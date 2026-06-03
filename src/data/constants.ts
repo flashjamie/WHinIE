@@ -34,14 +34,14 @@ export const TABS: { id: ScreenId; label: string; emoji: string }[] = [
 
 // ─── Avatar Options ───────────────────────────────────────────────────────────
 export const HAIR_OPTIONS = [
-  { label: '短直', value: 'shortFlat',  emoji: '💙' },
-  { label: '短捲', value: 'shortCurly', emoji: '💚' },
-  { label: '波浪', value: 'shortWaved', emoji: '💛' },
-  { label: '長直', value: 'straight01', emoji: '🩷' },
-  { label: '長捲', value: 'curly',      emoji: '❤️' },
-  { label: '丸子', value: 'bun',        emoji: '🟣' },
+  { label: '短直', value: 'shortFlat',  emoji: '💇' },
+  { label: '短捲', value: 'shortCurly', emoji: '🌀' },
+  { label: '波浪', value: 'shortWaved', emoji: '〰️' },
+  { label: '長直', value: 'straight01', emoji: '💁' },
+  { label: '長捲', value: 'curly',      emoji: '🌊' },
+  { label: '丸子', value: 'bun',        emoji: '🍡' },
   { label: '帽子', value: 'hat',        emoji: '🎩' },
-  { label: '冬帽', value: 'winterHat1', emoji: '🔵' },
+  { label: '冬帽', value: 'winterHat1', emoji: '🧢' },
 ];
 export const OUTFIT_OPTIONS = [
   { label: '帽T',   value: 'hoodie',           emoji: '🧥' },

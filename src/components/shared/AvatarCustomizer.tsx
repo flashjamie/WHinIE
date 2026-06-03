@@ -5,29 +5,9 @@ import {
   HAIR_COLOR_OPTIONS, buildAvatarUrl, ZH, EN,
 } from '../../data/constants';
 import { useGame } from '../../context/GameContext';
-import { createAvatar } from '@dicebear/core';
-import { avataaars } from '@dicebear/collection';
-
 const TAB_LABELS: Record<AvatarTab, string> = {
   hair: '髮型', outfit: '服裝', eyes: '眼睛', mouth: '嘴巴', color: '髮色',
 };
-
-function HairPreview({ hairValue, colorValue, size = 48 }: { hairValue: string; colorValue: string; size?: number }) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const svg = createAvatar(avataaars, {
-    seed: 'preview', backgroundColor: ['f5f0e8'],
-    top: [hairValue] as any, hairColor: [colorValue] as any,
-    eyes: ['default'] as any, mouth: ['default'] as any, clothing: ['hoodie'] as any,
-  }).toString();
-  const url = `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
-  return (
-    <img
-      src={url}
-      alt={hairValue}
-      style={{ width: size, height: size, display: 'block', objectFit: 'contain' }}
-    />
-  );
-}
 
 export function AvatarCustomizer() {
   const { state, dispatch } = useGame();
@@ -115,17 +95,17 @@ export function AvatarCustomizer() {
       }}>
         {tab === 'hair' && HAIR_OPTIONS.map((opt, idx) => (
           <button key={opt.value} onClick={() => setIdx(idx)} style={{
-            padding: '4px 2px',
+            padding: '5px 3px',
             border: '2px solid #000',
             boxShadow: currentIdx === idx ? 'none' : '2px 2px 0 #000',
             background: currentIdx === idx ? '#FFD700' : '#FDFBF7',
-            cursor: 'pointer',
-            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1,
+            cursor: 'pointer', fontSize: 9,
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
             transform: currentIdx === idx ? 'translate(2px,2px)' : 'none',
-            transition: 'all 0.1s',
+            transition: 'all 0.1s', ...ZH,
           }}>
-            <HairPreview hairValue={opt.value} colorValue={currentHairColor} size={52} />
-            <span style={{ fontSize: 9, ...ZH }}>{opt.label}</span>
+            <span style={{ fontSize: 18, lineHeight: 1 }}>{opt.emoji}</span>
+            <span>{opt.label}</span>
           </button>
         ))}
 
