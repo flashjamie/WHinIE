@@ -34,37 +34,37 @@ export const TABS: { id: ScreenId; label: string; emoji: string }[] = [
 
 // ─── Avatar Options ───────────────────────────────────────────────────────────
 export const HAIR_OPTIONS = [
-  { label: '無髮', value: 'NoHair',              emoji: '🔘' },
-  { label: '短直', value: 'ShortHairShortFlat',  emoji: '💙' },
-  { label: '短捲', value: 'ShortHairShortCurly', emoji: '💚' },
-  { label: '波浪', value: 'ShortHairShortWaved', emoji: '💛' },
-  { label: '長直', value: 'LongHairStraight',    emoji: '🩷' },
-  { label: '長捲', value: 'LongHairCurly',       emoji: '❤️' },
-  { label: '丸子', value: 'LongHairBun',         emoji: '🟣' },
-  { label: '帽子', value: 'Hat',                 emoji: '🎩' },
+  { label: '短直', value: 'shortFlat',  emoji: '💙' },
+  { label: '短捲', value: 'shortCurly', emoji: '💚' },
+  { label: '波浪', value: 'shortWaved', emoji: '💛' },
+  { label: '長直', value: 'straight01', emoji: '🩷' },
+  { label: '長捲', value: 'curly',      emoji: '❤️' },
+  { label: '丸子', value: 'bun',        emoji: '🟣' },
+  { label: '帽子', value: 'hat',        emoji: '🎩' },
+  { label: '冬帽', value: 'winterHat1', emoji: '🔵' },
 ];
 export const OUTFIT_OPTIONS = [
-  { label: '帽T',   value: 'Hoodie',         emoji: '🧥' },
-  { label: '西裝',  value: 'BlazerShirt',    emoji: '👔' },
-  { label: '毛衣',  value: 'CollarSweater',  emoji: '🧶' },
-  { label: '印花',  value: 'GraphicShirt',   emoji: '👕' },
-  { label: 'T 恤',  value: 'ShirtCrewNeck',  emoji: '🩵' },
-  { label: '吊帶',  value: 'Overall',        emoji: '👗' },
+  { label: '帽T',   value: 'hoodie',           emoji: '🧥' },
+  { label: '西裝',  value: 'blazerAndShirt',   emoji: '👔' },
+  { label: '毛衣',  value: 'collarAndSweater', emoji: '🧶' },
+  { label: '印花',  value: 'graphicShirt',     emoji: '👕' },
+  { label: 'T 恤',  value: 'shirtCrewNeck',    emoji: '🩵' },
+  { label: '吊帶',  value: 'overall',          emoji: '👗' },
 ];
 export const EYES_OPTIONS = [
-  { label: '一般',  value: 'Default',   emoji: '👁️' },
-  { label: '開心',  value: 'Happy',     emoji: '😊' },
-  { label: '側眼',  value: 'Side',      emoji: '👀' },
-  { label: '瞇眼',  value: 'Squint',    emoji: '😏' },
-  { label: '驚訝',  value: 'Surprised', emoji: '😲' },
-  { label: '眨眼',  value: 'Wink',      emoji: '😉' },
+  { label: '一般',  value: 'default',   emoji: '👁️' },
+  { label: '開心',  value: 'happy',     emoji: '😊' },
+  { label: '側眼',  value: 'side',      emoji: '👀' },
+  { label: '瞇眼',  value: 'squint',    emoji: '😏' },
+  { label: '驚訝',  value: 'surprised', emoji: '😲' },
+  { label: '眨眼',  value: 'wink',      emoji: '😉' },
 ];
 export const MOUTH_OPTIONS = [
-  { label: '一般', value: 'Default', emoji: '😐' },
-  { label: '微笑', value: 'Smile',   emoji: '😄' },
-  { label: '嚴肅', value: 'Serious', emoji: '😑' },
-  { label: '鬼臉', value: 'Grimace', emoji: '😬' },
-  { label: '閃耀', value: 'Twinkle', emoji: '🤩' },
+  { label: '一般', value: 'default', emoji: '😐' },
+  { label: '微笑', value: 'smile',   emoji: '😄' },
+  { label: '嚴肅', value: 'serious', emoji: '😑' },
+  { label: '鬼臉', value: 'grimace', emoji: '😬' },
+  { label: '閃耀', value: 'twinkle', emoji: '🤩' },
 ];
 
 export const DEFAULT_AVATAR: AvatarConfig = {
@@ -259,10 +259,10 @@ export const GUILD_POSTS: GuildPost[] = [
 
 // ─── Utility Helpers ─────────────────────────────────────────────────────────
 export function buildAvatarUrl(cfg: AvatarConfig): string {
-  const hair   = HAIR_OPTIONS[cfg.hairIdx]?.value   ?? 'ShortHairShortFlat';
-  const outfit = OUTFIT_OPTIONS[cfg.outfitIdx]?.value ?? 'Hoodie';
-  const eyes   = EYES_OPTIONS[cfg.eyesIdx]?.value   ?? 'Default';
-  const mouth  = MOUTH_OPTIONS[cfg.mouthIdx]?.value ?? 'Default';
+  const hair   = HAIR_OPTIONS[cfg.hairIdx]?.value   ?? 'shortFlat';
+  const outfit = OUTFIT_OPTIONS[cfg.outfitIdx]?.value ?? 'hoodie';
+  const eyes   = EYES_OPTIONS[cfg.eyesIdx]?.value   ?? 'default';
+  const mouth  = MOUTH_OPTIONS[cfg.mouthIdx]?.value ?? 'default';
   const p      = new URLSearchParams({ seed: 'WHinIE', backgroundColor: 'b6e3f4,c0aede,d1d4f9' });
   p.append('top', hair);
   p.append('eyes', eyes);
