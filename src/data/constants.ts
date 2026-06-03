@@ -272,20 +272,29 @@ export const GUILD_POSTS: GuildPost[] = [
 ];
 
 // ─── Utility Helpers ─────────────────────────────────────────────────────────
+import { createAvatar } from '@dicebear/core';
+import { avataaars } from '@dicebear/collection';
+
 export function buildAvatarUrl(cfg: AvatarConfig): string {
   const hair      = HAIR_OPTIONS[cfg.hairIdx]?.value        ?? 'shortFlat';
   const outfit    = OUTFIT_OPTIONS[cfg.outfitIdx]?.value    ?? 'hoodie';
   const eyes      = EYES_OPTIONS[cfg.eyesIdx]?.value        ?? 'default';
   const mouth     = MOUTH_OPTIONS[cfg.mouthIdx]?.value      ?? 'default';
   const hairColor = HAIR_COLOR_OPTIONS[cfg.hairColorIdx ?? 0]?.value ?? 'black';
-  const p = new URLSearchParams({ seed: 'WHinIE', backgroundColor: 'b6e3f4' });
-  p.append('top', hair);
-  p.append('eyes', eyes);
-  p.append('mouth', mouth);
-  p.append('clothe', outfit);
-  p.append('hairColor', hairColor);
-  p.append('facialHairColor', hairColor);
-  return `https://api.dicebear.com/9.x/avataaars/svg?${p.toString()}`;
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const svg = createAvatar(avataaars, {
+    seed:            'WHinIE',
+    backgroundColor: ['b6e3f4'],
+    top:             [hair]      as any,
+    eyes:            [eyes]      as any,
+    mouth:           [mouth]     as any,
+    clothing:        [outfit]    as any,
+    hairColor:       [hairColor] as any,
+    facialHairColor: [hairColor] as any,
+  }).toString();
+
+  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
 }
 
 export function clockAt(offsetHours: number): string {
