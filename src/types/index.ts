@@ -9,15 +9,17 @@ export type ScreenId =
   | 'BAG'
   | 'COLLECTIONS';
 
-export type AvatarTab = 'hair' | 'outfit' | 'eyes' | 'mouth';
+export type AvatarTab = 'hair' | 'outfit' | 'eyes' | 'mouth' | 'color';
 export type Gender    = 'female' | 'male' | '';
 
 // ─── Avatar ───────────────────────────────────────────────────────────────────
 export interface AvatarConfig {
-  hairIdx:   number;
-  outfitIdx: number;
-  eyesIdx:   number;
-  mouthIdx:  number;
+  hairIdx:       number;
+  outfitIdx:     number;
+  eyesIdx:       number;
+  mouthIdx:      number;
+  hairColorIdx:  number;
+  facialHairColorIdx: number;
 }
 
 // ─── Player / Passport ────────────────────────────────────────────────────────

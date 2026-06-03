@@ -22,7 +22,7 @@ const INIT_PLAYER: PlayerProfile = {
   transitHubs:  [],
   airlines:     [],
   flightNumber: '',
-  avatar:       DEFAULT_AVATAR,
+  avatar: DEFAULT_AVATAR,
 };
 
 const INITIAL_STATE: GameState = {

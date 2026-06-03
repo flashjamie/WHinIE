@@ -67,8 +67,22 @@ export const MOUTH_OPTIONS = [
   { label: '閃耀', value: 'twinkle', emoji: '🤩' },
 ];
 
+export const HAIR_COLOR_OPTIONS = [
+  { label: '黑色',   value: 'black',       swatch: '#2B1B17' },
+  { label: '深棕',   value: 'brownDark',   swatch: '#4A2912' },
+  { label: '棕色',   value: 'brown',       swatch: '#7B4F2E' },
+  { label: '金色',   value: 'blondeGolden',swatch: '#C8922A' },
+  { label: '金白',   value: 'blonde',      swatch: '#F5D58B' },
+  { label: '白金',   value: 'platinum',    swatch: '#E8E0D0' },
+  { label: '紅色',   value: 'red',         swatch: '#B5372A' },
+  { label: '栗色',   value: 'auburn',      swatch: '#8E3A2E' },
+  { label: '粉色',   value: 'pastelPink',  swatch: '#F4A7B9' },
+  { label: '銀灰',   value: 'silverGray',  swatch: '#A0A0A0' },
+];
+
 export const DEFAULT_AVATAR: AvatarConfig = {
-  hairIdx: 1, outfitIdx: 0, eyesIdx: 0, mouthIdx: 1,
+  hairIdx: 0, outfitIdx: 0, eyesIdx: 0, mouthIdx: 1,
+  hairColorIdx: 0, facialHairColorIdx: 0,
 };
 
 // ─── Transit / Airlines ───────────────────────────────────────────────────────
@@ -259,15 +273,18 @@ export const GUILD_POSTS: GuildPost[] = [
 
 // ─── Utility Helpers ─────────────────────────────────────────────────────────
 export function buildAvatarUrl(cfg: AvatarConfig): string {
-  const hair   = HAIR_OPTIONS[cfg.hairIdx]?.value   ?? 'shortFlat';
-  const outfit = OUTFIT_OPTIONS[cfg.outfitIdx]?.value ?? 'hoodie';
-  const eyes   = EYES_OPTIONS[cfg.eyesIdx]?.value   ?? 'default';
-  const mouth  = MOUTH_OPTIONS[cfg.mouthIdx]?.value ?? 'default';
-  const p      = new URLSearchParams({ seed: 'WHinIE', backgroundColor: 'b6e3f4,c0aede,d1d4f9' });
+  const hair      = HAIR_OPTIONS[cfg.hairIdx]?.value        ?? 'shortFlat';
+  const outfit    = OUTFIT_OPTIONS[cfg.outfitIdx]?.value    ?? 'hoodie';
+  const eyes      = EYES_OPTIONS[cfg.eyesIdx]?.value        ?? 'default';
+  const mouth     = MOUTH_OPTIONS[cfg.mouthIdx]?.value      ?? 'default';
+  const hairColor = HAIR_COLOR_OPTIONS[cfg.hairColorIdx ?? 0]?.value ?? 'black';
+  const p = new URLSearchParams({ seed: 'WHinIE', backgroundColor: 'b6e3f4,c0aede,d1d4f9' });
   p.append('top', hair);
   p.append('eyes', eyes);
   p.append('mouth', mouth);
   p.append('clothe', outfit);
+  p.append('hairColor', hairColor);
+  p.append('facialHairColor', hairColor);
   return `https://api.dicebear.com/9.x/avataaars/svg?${p.toString()}`;
 }
 
