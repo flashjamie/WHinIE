@@ -264,11 +264,11 @@ export function buildAvatarUrl(cfg: AvatarConfig): string {
   const eyes   = EYES_OPTIONS[cfg.eyesIdx]?.value   ?? 'Default';
   const mouth  = MOUTH_OPTIONS[cfg.mouthIdx]?.value ?? 'Default';
   const p      = new URLSearchParams({ seed: 'WHinIE', backgroundColor: 'b6e3f4,c0aede,d1d4f9' });
-  p.append('top[]', hair);
-  p.append('eyes[]', eyes);
-  p.append('mouth[]', mouth);
-  p.append('clothe[]', outfit);
-  return `https://api.dicebear.com/7.x/avataaars/svg?${p.toString()}`;
+  p.append('top', hair);
+  p.append('eyes', eyes);
+  p.append('mouth', mouth);
+  p.append('clothe', outfit);
+  return `https://api.dicebear.com/9.x/avataaars/svg?${p.toString()}`;
 }
 
 export function clockAt(offsetHours: number): string {
