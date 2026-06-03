@@ -12,7 +12,7 @@ const TAB_LABELS: Record<AvatarTab, string> = {
 
 function HairPreview({ hairValue, colorValue, size = 48 }: { hairValue: string; colorValue: string; size?: number }) {
   const p = new URLSearchParams({
-    seed: 'preview', backgroundColor: 'transparent',
+    seed: 'preview', backgroundColor: 'f5f0e8',
     top: hairValue, hairColor: colorValue,
     eyes: 'default', mouth: 'default', clothe: 'hoodie',
   });

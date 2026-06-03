@@ -278,7 +278,7 @@ export function buildAvatarUrl(cfg: AvatarConfig): string {
   const eyes      = EYES_OPTIONS[cfg.eyesIdx]?.value        ?? 'default';
   const mouth     = MOUTH_OPTIONS[cfg.mouthIdx]?.value      ?? 'default';
   const hairColor = HAIR_COLOR_OPTIONS[cfg.hairColorIdx ?? 0]?.value ?? 'black';
-  const p = new URLSearchParams({ seed: 'WHinIE', backgroundColor: 'b6e3f4,c0aede,d1d4f9' });
+  const p = new URLSearchParams({ seed: 'WHinIE', backgroundColor: 'b6e3f4' });
   p.append('top', hair);
   p.append('eyes', eyes);
   p.append('mouth', mouth);
