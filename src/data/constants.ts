@@ -14,10 +14,10 @@ import type {
 export const GOOGLE_FONTS_URL =
   "https://fonts.googleapis.com/css2?family=Itim&family=Noto+Sans+TC:wght@300;400;500;700;900&display=swap";
 
-export const ZH: React.CSSProperties = {
+export const ZH = {
   fontFamily: "'Noto Sans TC', 'Microsoft JhengHei', sans-serif",
-};
-export const EN: React.CSSProperties = { fontFamily: "'Itim', cursive" };
+} as const;
+export const EN = { fontFamily: "'Itim', cursive" } as const;
 
 // ─── Tabs ─────────────────────────────────────────────────────────────────────
 import type { ScreenId } from '../types';
