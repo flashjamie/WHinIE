@@ -320,7 +320,7 @@ export function buildAvatarUrl(cfg: AvatarConfig): string {
   const skinColor    = SKIN_COLOR_OPTIONS[cfg.skinColorIdx ?? 0]?.value    ?? 'f8d5c2';
   const clothesColor = CLOTHES_COLOR_OPTIONS[cfg.clothesColorIdx ?? 0]?.value ?? '264653';
 
-  const params: Record<string, string> = {
+  const p = new URLSearchParams({
     seed:            'WHinIE-fixed',
     backgroundColor: 'b6e3f4',
     hairColor,
@@ -328,24 +328,20 @@ export function buildAvatarUrl(cfg: AvatarConfig): string {
     clothesColor,
     clothes:         outfit,
     eyes,
-    eyebrows,
     mouth,
-    beardProbability: beard ? '100' : '0',
-  };
+  });
 
   if (isFront) {
-    params.hair            = hairOpt.value;
-    params.hairProbability = '100';
-    params.rearHairProbability = '0';
+    p.set('hair',                hairOpt.value);
+    p.set('hairProbability',     '100');
+    p.set('rearHairProbability', '0');
   } else {
-    params.rearHair            = hairOpt?.value ?? 'longStraight';
-    params.rearHairProbability = '100';
-    params.hairProbability     = '0';
+    p.set('rearHair',            hairOpt?.value ?? 'longStraight');
+    p.set('rearHairProbability', '100');
+    p.set('hairProbability',     '0');
   }
 
-  if (beard) params.beard = beard;
-
-  return `https://api.dicebear.com/9.x/toon-head/svg?${new URLSearchParams(params).toString()}`;
+  return `https://api.dicebear.com/9.x/toon-head/svg?${p.toString()}`;
 }
 
 export function clockAt(offsetHours: number): string {
