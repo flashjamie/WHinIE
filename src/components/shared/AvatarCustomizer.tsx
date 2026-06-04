@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
 import type { AvatarTab } from '../../types';
 import {
-  HAIR_OPTIONS, OUTFIT_OPTIONS, EYES_OPTIONS, EYEBROWS_OPTIONS,
-  MOUTH_OPTIONS, BEARD_OPTIONS,
+  HAIR_OPTIONS, REAR_HAIR_OPTIONS, OUTFIT_OPTIONS,
+  EYES_OPTIONS, EYEBROWS_OPTIONS, MOUTH_OPTIONS, BEARD_OPTIONS,
   HAIR_COLOR_OPTIONS, SKIN_COLOR_OPTIONS, CLOTHES_COLOR_OPTIONS,
   buildAvatarUrl, ZH, EN,
 } from '../../data/constants';
 import { useGame } from '../../context/GameContext';
 
 const TAB_LABELS: Record<AvatarTab, string> = {
-  hair:        '髮型',
+  hair:        '前髮',
+  rearHair:    '後髮',
   outfit:      '服裝',
   eyes:        '眼睛',
   eyebrows:    '眉毛',
@@ -29,38 +30,41 @@ export function AvatarCustomizer() {
 
   const setIdx = (idx: number) => {
     const cfg: Partial<typeof avatar> = {};
-    if (tab === 'hair')        cfg.hairIdx        = idx;
-    if (tab === 'outfit')      cfg.outfitIdx      = idx;
-    if (tab === 'eyes')        cfg.eyesIdx        = idx;
-    if (tab === 'eyebrows')    cfg.eyebrowsIdx    = idx;
-    if (tab === 'mouth')       cfg.mouthIdx       = idx;
-    if (tab === 'beard')       cfg.beardIdx       = idx;
-    if (tab === 'hairColor')   cfg.hairColorIdx   = idx;
-    if (tab === 'skinColor')   cfg.skinColorIdx   = idx;
+    if (tab === 'hair')         cfg.hairIdx         = idx;
+    if (tab === 'rearHair')     cfg.rearHairIdx     = idx;
+    if (tab === 'outfit')       cfg.outfitIdx       = idx;
+    if (tab === 'eyes')         cfg.eyesIdx         = idx;
+    if (tab === 'eyebrows')     cfg.eyebrowsIdx     = idx;
+    if (tab === 'mouth')        cfg.mouthIdx        = idx;
+    if (tab === 'beard')        cfg.beardIdx        = idx;
+    if (tab === 'hairColor')    cfg.hairColorIdx    = idx;
+    if (tab === 'skinColor')    cfg.skinColorIdx    = idx;
     if (tab === 'clothesColor') cfg.clothesColorIdx = idx;
     dispatch({ type: 'SET_AVATAR', cfg });
   };
 
   const currentIdx =
-    tab === 'hair'        ? avatar.hairIdx :
-    tab === 'outfit'      ? avatar.outfitIdx :
-    tab === 'eyes'        ? avatar.eyesIdx :
-    tab === 'eyebrows'    ? (avatar.eyebrowsIdx ?? 0) :
-    tab === 'mouth'       ? avatar.mouthIdx :
-    tab === 'beard'       ? (avatar.beardIdx ?? 0) :
-    tab === 'hairColor'   ? (avatar.hairColorIdx ?? 0) :
-    tab === 'skinColor'   ? (avatar.skinColorIdx ?? 0) :
+    tab === 'hair'         ? avatar.hairIdx :
+    tab === 'rearHair'     ? (avatar.rearHairIdx ?? 0) :
+    tab === 'outfit'       ? avatar.outfitIdx :
+    tab === 'eyes'         ? avatar.eyesIdx :
+    tab === 'eyebrows'     ? (avatar.eyebrowsIdx ?? 0) :
+    tab === 'mouth'        ? avatar.mouthIdx :
+    tab === 'beard'        ? (avatar.beardIdx ?? 0) :
+    tab === 'hairColor'    ? (avatar.hairColorIdx ?? 0) :
+    tab === 'skinColor'    ? (avatar.skinColorIdx ?? 0) :
     (avatar.clothesColorIdx ?? 0);
 
   const isColorTab = COLOR_TABS.includes(tab);
 
   const colorOptions =
-    tab === 'hairColor'    ? HAIR_COLOR_OPTIONS :
-    tab === 'skinColor'    ? SKIN_COLOR_OPTIONS :
+    tab === 'hairColor'  ? HAIR_COLOR_OPTIONS :
+    tab === 'skinColor'  ? SKIN_COLOR_OPTIONS :
     CLOTHES_COLOR_OPTIONS;
 
   const emojiOptions =
     tab === 'hair'     ? HAIR_OPTIONS :
+    tab === 'rearHair' ? REAR_HAIR_OPTIONS :
     tab === 'outfit'   ? OUTFIT_OPTIONS :
     tab === 'eyes'     ? EYES_OPTIONS :
     tab === 'eyebrows' ? EYEBROWS_OPTIONS :
@@ -68,6 +72,24 @@ export function AvatarCustomizer() {
     BEARD_OPTIONS;
 
   const avatarUrl = buildAvatarUrl(avatar);
+
+  const tabRow = (tabs: AvatarTab[]) => (
+    <div style={{ display: 'flex', gap: 3, flexShrink: 0 }}>
+      {tabs.map(t => (
+        <button key={t} onClick={() => setTab(t)} style={{
+          flex: 1, padding: '4px 2px',
+          border: '2px solid #000',
+          boxShadow: tab === t ? 'none' : '2px 2px 0 #000',
+          background: tab === t ? '#FFD700' : '#FDFBF7',
+          cursor: 'pointer', fontSize: 8, fontWeight: 700,
+          transform: tab === t ? 'translate(2px,2px)' : 'none',
+          transition: 'all 0.1s', ...ZH,
+        }}>
+          {TAB_LABELS[t]}
+        </button>
+      ))}
+    </div>
+  );
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: 8 }}>
@@ -104,46 +126,17 @@ export function AvatarCustomizer() {
         </div>
       </div>
 
-      {/* Tab bar — row 1 */}
-      <div style={{ display: 'flex', gap: 3, flexShrink: 0 }}>
-        {(['hair','outfit','eyes','eyebrows','mouth'] as AvatarTab[]).map(t => (
-          <button key={t} onClick={() => setTab(t)} style={{
-            flex: 1, padding: '4px 2px',
-            border: '2px solid #000',
-            boxShadow: tab === t ? 'none' : '2px 2px 0 #000',
-            background: tab === t ? '#FFD700' : '#FDFBF7',
-            cursor: 'pointer', fontSize: 8, fontWeight: 700,
-            transform: tab === t ? 'translate(2px,2px)' : 'none',
-            transition: 'all 0.1s', ...ZH,
-          }}>
-            {TAB_LABELS[t]}
-          </button>
-        ))}
-      </div>
-      <div style={{ display: 'flex', gap: 3, flexShrink: 0 }}>
-        {(['beard','hairColor','skinColor','clothesColor'] as AvatarTab[]).map(t => (
-          <button key={t} onClick={() => setTab(t)} style={{
-            flex: 1, padding: '4px 2px',
-            border: '2px solid #000',
-            boxShadow: tab === t ? 'none' : '2px 2px 0 #000',
-            background: tab === t ? '#FFD700' : '#FDFBF7',
-            cursor: 'pointer', fontSize: 8, fontWeight: 700,
-            transform: tab === t ? 'translate(2px,2px)' : 'none',
-            transition: 'all 0.1s', ...ZH,
-          }}>
-            {TAB_LABELS[t]}
-          </button>
-        ))}
-      </div>
+      {tabRow(['hair', 'rearHair', 'outfit', 'eyes', 'eyebrows'])}
+      {tabRow(['mouth', 'beard', 'hairColor', 'skinColor', 'clothesColor'])}
 
       {/* Options grid */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: isColorTab ? 'repeat(4,1fr)' : 'repeat(4,1fr)',
+        gridTemplateColumns: 'repeat(4,1fr)',
         gap: 4, overflowY: 'auto', flex: 1,
       }}>
         {isColorTab ? colorOptions.map((opt, idx) => (
-          <button key={opt.value} onClick={() => setIdx(idx)} style={{
+          <button key={opt.value + idx} onClick={() => setIdx(idx)} style={{
             padding: '6px 4px',
             border: `2px solid ${currentIdx === idx ? '#000' : '#ccc'}`,
             boxShadow: currentIdx === idx ? 'none' : '2px 2px 0 #000',

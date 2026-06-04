@@ -32,16 +32,20 @@ export const TABS: { id: ScreenId; label: string; emoji: string }[] = [
 ];
 
 // ─── Avatar Options ───────────────────────────────────────────────────────────
-// hair.type: 'front'=短髮用hair參數, 'rear'=長髮用rearHair參數
-export const HAIR_OPTIONS: { label: string; value: string; type: 'front' | 'rear'; emoji: string }[] = [
-  { label: '梳邊', value: 'sideComed',    type: 'front', emoji: '💇' },
-  { label: '削邊', value: 'undercut',     type: 'front', emoji: '✂️' },
-  { label: '刺蝟', value: 'spiky',        type: 'front', emoji: '⚡' },
-  { label: '丸子', value: 'bun',          type: 'front', emoji: '🍡' },
-  { label: '長直', value: 'longStraight', type: 'rear',  emoji: '💁' },
-  { label: '長波', value: 'longWavy',     type: 'rear',  emoji: '🌊' },
-  { label: '肩長', value: 'shoulderHigh', type: 'rear',  emoji: '👱' },
-  { label: '頸長', value: 'neckHigh',     type: 'rear',  emoji: '💆' },
+export const HAIR_OPTIONS: { label: string; value: string; emoji: string }[] = [
+  { label: '無前髮', value: '',           emoji: '🙂' },
+  { label: '梳邊',   value: 'sideComed',  emoji: '💇' },
+  { label: '削邊',   value: 'undercut',   emoji: '✂️' },
+  { label: '刺蝟',   value: 'spiky',      emoji: '⚡' },
+  { label: '丸子',   value: 'bun',        emoji: '🍡' },
+];
+
+export const REAR_HAIR_OPTIONS: { label: string; value: string; emoji: string }[] = [
+  { label: '無後髮', value: '',             emoji: '🙂' },
+  { label: '長直',   value: 'longStraight', emoji: '💁' },
+  { label: '長波',   value: 'longWavy',     emoji: '🌊' },
+  { label: '肩長',   value: 'shoulderHigh', emoji: '👱' },
+  { label: '頸長',   value: 'neckHigh',     emoji: '💆' },
 ];
 
 export const OUTFIT_OPTIONS = [
@@ -116,8 +120,8 @@ export const CLOTHES_COLOR_OPTIONS = [
 ];
 
 export const DEFAULT_AVATAR: AvatarConfig = {
-  hairIdx: 0, outfitIdx: 0, eyesIdx: 0, eyebrowsIdx: 0,
-  mouthIdx: 3, beardIdx: 0,
+  hairIdx: 1, rearHairIdx: 0, outfitIdx: 0,
+  eyesIdx: 0, eyebrowsIdx: 0, mouthIdx: 3, beardIdx: 0,
   hairColorIdx: 0, skinColorIdx: 0, clothesColorIdx: 0,
 };
 
@@ -309,37 +313,35 @@ export const GUILD_POSTS: GuildPost[] = [
 
 // ─── Utility Helpers ─────────────────────────────────────────────────────────
 export function buildAvatarUrl(cfg: AvatarConfig): string {
-  const hairOpt      = HAIR_OPTIONS[cfg.hairIdx];
-  const isFront      = hairOpt?.type === 'front';
-  const outfit       = OUTFIT_OPTIONS[cfg.outfitIdx]?.value      ?? 'tShirt';
-  const eyes         = EYES_OPTIONS[cfg.eyesIdx]?.value          ?? 'happy';
+  const hair         = HAIR_OPTIONS[cfg.hairIdx]?.value              ?? '';
+  const rearHair     = REAR_HAIR_OPTIONS[cfg.rearHairIdx ?? 0]?.value ?? '';
+  const outfit       = OUTFIT_OPTIONS[cfg.outfitIdx]?.value          ?? 'tShirt';
+  const eyes         = EYES_OPTIONS[cfg.eyesIdx]?.value              ?? 'happy';
   const eyebrows     = EYEBROWS_OPTIONS[cfg.eyebrowsIdx ?? 0]?.value ?? 'up';
-  const mouth        = MOUTH_OPTIONS[cfg.mouthIdx]?.value        ?? 'smile';
-  const beard        = BEARD_OPTIONS[cfg.beardIdx ?? 0]?.value   ?? '';
-  const hairColor    = HAIR_COLOR_OPTIONS[cfg.hairColorIdx ?? 0]?.value    ?? '2c1b18';
-  const skinColor    = SKIN_COLOR_OPTIONS[cfg.skinColorIdx ?? 0]?.value    ?? 'f8d5c2';
+  const mouth        = MOUTH_OPTIONS[cfg.mouthIdx]?.value            ?? 'smile';
+  const beard        = BEARD_OPTIONS[cfg.beardIdx ?? 0]?.value       ?? '';
+  const hairColor    = HAIR_COLOR_OPTIONS[cfg.hairColorIdx ?? 0]?.value     ?? '2c1b18';
+  const skinColor    = SKIN_COLOR_OPTIONS[cfg.skinColorIdx ?? 0]?.value     ?? 'f8d5c2';
   const clothesColor = CLOTHES_COLOR_OPTIONS[cfg.clothesColorIdx ?? 0]?.value ?? '264653';
 
   const p = new URLSearchParams({
-    seed:            'WHinIE-fixed',
-    backgroundColor: 'b6e3f4',
+    seed:                'WHinIE-fixed',
+    backgroundColor:     'b6e3f4',
     hairColor,
     skinColor,
     clothesColor,
-    clothes:         outfit,
+    clothes:             outfit,
     eyes,
+    eyebrows,
     mouth,
+    hairProbability:     hair     ? '100' : '0',
+    rearHairProbability: rearHair ? '100' : '0',
+    beardProbability:    beard    ? '100' : '0',
   });
 
-  if (isFront) {
-    p.set('hair',                hairOpt.value);
-    p.set('hairProbability',     '100');
-    p.set('rearHairProbability', '0');
-  } else {
-    p.set('rearHair',            hairOpt?.value ?? 'longStraight');
-    p.set('rearHairProbability', '100');
-    p.set('hairProbability',     '0');
-  }
+  if (hair)     p.set('hair',     hair);
+  if (rearHair) p.set('rearHair', rearHair);
+  if (beard)    p.set('beard',    beard);
 
   return `https://api.dicebear.com/9.x/toon-head/svg?${p.toString()}`;
 }
