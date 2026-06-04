@@ -332,16 +332,13 @@ export function buildAvatarUrl(cfg: AvatarConfig): string {
     clothesColor,
     clothes:             outfit,
     eyes,
-    eyebrows,
     mouth,
     hairProbability:     hair     ? '100' : '0',
     rearHairProbability: rearHair ? '100' : '0',
-    beardProbability:    beard    ? '100' : '0',
   });
 
   if (hair)     p.set('hair',     hair);
   if (rearHair) p.set('rearHair', rearHair);
-  if (beard)    p.set('beard',    beard);
 
   return `https://api.dicebear.com/9.x/toon-head/svg?${p.toString()}`;
 }
