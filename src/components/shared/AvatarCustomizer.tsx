@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import type { AvatarTab } from '../../types';
 import {
   HAIR_OPTIONS, REAR_HAIR_OPTIONS, OUTFIT_OPTIONS,
-  EYES_OPTIONS, EYEBROWS_OPTIONS, MOUTH_OPTIONS, BEARD_OPTIONS,
+  EYES_OPTIONS, MOUTH_OPTIONS,
   HAIR_COLOR_OPTIONS, SKIN_COLOR_OPTIONS, CLOTHES_COLOR_OPTIONS,
   buildAvatarUrl, ZH, EN,
 } from '../../data/constants';
@@ -13,9 +13,7 @@ const TAB_LABELS: Record<AvatarTab, string> = {
   rearHair:    '後髮',
   outfit:      '服裝',
   eyes:        '眼睛',
-  eyebrows:    '眉毛',
   mouth:       '嘴巴',
-  beard:       '鬍鬚',
   hairColor:   '髮色',
   skinColor:   '膚色',
   clothesColor:'衣色',
@@ -34,9 +32,7 @@ export function AvatarCustomizer() {
     if (tab === 'rearHair')     cfg.rearHairIdx     = idx;
     if (tab === 'outfit')       cfg.outfitIdx       = idx;
     if (tab === 'eyes')         cfg.eyesIdx         = idx;
-    if (tab === 'eyebrows')     cfg.eyebrowsIdx     = idx;
     if (tab === 'mouth')        cfg.mouthIdx        = idx;
-    if (tab === 'beard')        cfg.beardIdx        = idx;
     if (tab === 'hairColor')    cfg.hairColorIdx    = idx;
     if (tab === 'skinColor')    cfg.skinColorIdx    = idx;
     if (tab === 'clothesColor') cfg.clothesColorIdx = idx;
@@ -48,9 +44,7 @@ export function AvatarCustomizer() {
     tab === 'rearHair'     ? (avatar.rearHairIdx ?? 0) :
     tab === 'outfit'       ? avatar.outfitIdx :
     tab === 'eyes'         ? avatar.eyesIdx :
-    tab === 'eyebrows'     ? (avatar.eyebrowsIdx ?? 0) :
     tab === 'mouth'        ? avatar.mouthIdx :
-    tab === 'beard'        ? (avatar.beardIdx ?? 0) :
     tab === 'hairColor'    ? (avatar.hairColorIdx ?? 0) :
     tab === 'skinColor'    ? (avatar.skinColorIdx ?? 0) :
     (avatar.clothesColorIdx ?? 0);
@@ -67,9 +61,7 @@ export function AvatarCustomizer() {
     tab === 'rearHair' ? REAR_HAIR_OPTIONS :
     tab === 'outfit'   ? OUTFIT_OPTIONS :
     tab === 'eyes'     ? EYES_OPTIONS :
-    tab === 'eyebrows' ? EYEBROWS_OPTIONS :
-    tab === 'mouth'    ? MOUTH_OPTIONS :
-    BEARD_OPTIONS;
+    MOUTH_OPTIONS;
 
   const avatarUrl = buildAvatarUrl(avatar);
 
@@ -126,8 +118,8 @@ export function AvatarCustomizer() {
         </div>
       </div>
 
-      {tabRow(['hair', 'rearHair', 'outfit', 'eyes', 'eyebrows'])}
-      {tabRow(['mouth', 'beard', 'hairColor', 'skinColor', 'clothesColor'])}
+      {tabRow(['hair', 'rearHair', 'outfit', 'eyes', 'mouth'])}
+      {tabRow(['hairColor', 'skinColor', 'clothesColor'])}
 
       {/* Options grid */}
       <div style={{

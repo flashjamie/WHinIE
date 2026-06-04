@@ -64,26 +64,12 @@ export const EYES_OPTIONS = [
   { label: '眨眼', value: 'wink',   emoji: '😉' },
 ];
 
-export const EYEBROWS_OPTIONS = [
-  { label: '上揚', value: 'up',           emoji: '🤨' },
-  { label: '下壓', value: 'down',         emoji: '😠' },
-  { label: '翹睫', value: 'eyelashesUp',  emoji: '😳' },
-  { label: '垂睫', value: 'eyelashesDown',emoji: '🥺' },
-];
-
 export const MOUTH_OPTIONS = [
   { label: '大笑', value: 'laugh', emoji: '😄' },
   { label: '生氣', value: 'angry', emoji: '😠' },
   { label: '張嘴', value: 'agape', emoji: '😮' },
   { label: '微笑', value: 'smile', emoji: '🙂' },
   { label: '難過', value: 'sad',   emoji: '😢' },
-];
-
-export const BEARD_OPTIONS = [
-  { label: '無鬍',   value: '',        emoji: '😶' },
-  { label: '鬍渣',   value: 'scruff',  emoji: '🧔' },
-  { label: '山羊鬍', value: 'goatee',  emoji: '🧔‍♂️' },
-  { label: '大鬍',   value: 'full',    emoji: '🧔‍♀️' },
 ];
 
 export const HAIR_COLOR_OPTIONS = [
@@ -121,7 +107,7 @@ export const CLOTHES_COLOR_OPTIONS = [
 
 export const DEFAULT_AVATAR: AvatarConfig = {
   hairIdx: 1, rearHairIdx: 0, outfitIdx: 0,
-  eyesIdx: 0, eyebrowsIdx: 0, mouthIdx: 3, beardIdx: 0,
+  eyesIdx: 0, mouthIdx: 3,
   hairColorIdx: 0, skinColorIdx: 0, clothesColorIdx: 0,
 };
 

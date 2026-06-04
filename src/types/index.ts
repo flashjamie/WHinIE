@@ -10,7 +10,7 @@ export type ScreenId =
   | 'COLLECTIONS';
 
 export type AvatarTab =
-  | 'hair' | 'rearHair' | 'outfit' | 'eyes' | 'eyebrows' | 'mouth' | 'beard'
+  | 'hair' | 'rearHair' | 'outfit' | 'eyes' | 'mouth'
   | 'hairColor' | 'skinColor' | 'clothesColor';
 export type Gender = 'female' | 'male' | '';
 
@@ -20,9 +20,7 @@ export interface AvatarConfig {
   rearHairIdx:     number;
   outfitIdx:       number;
   eyesIdx:         number;
-  eyebrowsIdx:     number;
   mouthIdx:        number;
-  beardIdx:        number;
   hairColorIdx:    number;
   skinColorIdx:    number;
   clothesColorIdx: number;
