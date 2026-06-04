@@ -318,6 +318,7 @@ export function buildAvatarUrl(cfg: AvatarConfig): string {
     clothesColor,
     clothes:             outfit,
     eyes,
+    eyebrows:            'neutral',
     mouth,
     hairProbability:     hair     ? '100' : '0',
     rearHairProbability: rearHair ? '100' : '0',
