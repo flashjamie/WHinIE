@@ -273,7 +273,7 @@ export const GUILD_POSTS: GuildPost[] = [
 
 // ─── Utility Helpers ─────────────────────────────────────────────────────────
 import { createAvatar } from '@dicebear/core';
-import { avataaars } from '@dicebear/avataaars';
+import * as avataaars from '@dicebear/avataaars';
 
 export function buildAvatarUrl(cfg: AvatarConfig): string {
   const hair      = HAIR_OPTIONS[cfg.hairIdx]?.value        ?? 'shortFlat';
