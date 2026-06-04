@@ -68,16 +68,16 @@ export const MOUTH_OPTIONS = [
 ];
 
 export const HAIR_COLOR_OPTIONS = [
-  { label: '黑色',   value: 'black',       swatch: '#2B1B17' },
-  { label: '深棕',   value: 'brownDark',   swatch: '#4A2912' },
-  { label: '棕色',   value: 'brown',       swatch: '#7B4F2E' },
-  { label: '金色',   value: 'blondeGolden',swatch: '#C8922A' },
-  { label: '金白',   value: 'blonde',      swatch: '#F5D58B' },
-  { label: '白金',   value: 'platinum',    swatch: '#E8E0D0' },
-  { label: '紅色',   value: 'red',         swatch: '#B5372A' },
-  { label: '栗色',   value: 'auburn',      swatch: '#8E3A2E' },
-  { label: '粉色',   value: 'pastelPink',  swatch: '#F4A7B9' },
-  { label: '銀灰',   value: 'silverGray',  swatch: '#A0A0A0' },
+  { label: '黑色', value: '2c1b18', swatch: '#2c1b18' },
+  { label: '深棕', value: '4a312c', swatch: '#4a312c' },
+  { label: '棕色', value: '724133', swatch: '#724133' },
+  { label: '淺棕', value: 'a55728', swatch: '#a55728' },
+  { label: '金棕', value: 'b58143', swatch: '#b58143' },
+  { label: '金色', value: 'd6b370', swatch: '#d6b370' },
+  { label: '紅色', value: 'c93305', swatch: '#c93305' },
+  { label: '粉色', value: 'f59797', swatch: '#f59797' },
+  { label: '米白', value: 'ecdcbf', swatch: '#ecdcbf' },
+  { label: '銀白', value: 'e8e1e1', swatch: '#e8e1e1' },
 ];
 
 export const DEFAULT_AVATAR: AvatarConfig = {
@@ -284,14 +284,16 @@ export function buildAvatarUrl(cfg: AvatarConfig): string {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const svg = createAvatar(avataaars, {
-    seed:            'WHinIE',
-    backgroundColor: ['b6e3f4'],
-    top:             [hair]      as any,
-    eyes:            [eyes]      as any,
-    mouth:           [mouth]     as any,
-    clothing:        [outfit]    as any,
-    hairColor:       [hairColor] as any,
-    facialHairColor: [hairColor] as any,
+    seed:                'WHinIE',
+    backgroundColor:     ['b6e3f4'],
+    top:                 [hair]      as any,
+    topProbability:      100,
+    eyes:                [eyes]      as any,
+    mouth:               [mouth]     as any,
+    clothing:            [outfit]    as any,
+    hairColor:           [hairColor] as any,
+    facialHairColor:     [hairColor] as any,
+    facialHairProbability: 0,
   }).toString();
 
   return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
