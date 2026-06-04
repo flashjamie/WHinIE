@@ -7,7 +7,7 @@
 import type {
   Task, DailyTask, ShopItem, BagItem,
   RandomEvent, Badge, BankStep, GuildPost,
-  AvatarConfig,
+  AvatarConfig, ScreenId,
 } from '../types';
 
 // ─── Fonts ────────────────────────────────────────────────────────────────────
@@ -20,7 +20,6 @@ export const ZH = {
 export const EN = { fontFamily: "'Itim', cursive" } as const;
 
 // ─── Tabs ─────────────────────────────────────────────────────────────────────
-import type { ScreenId } from '../types';
 
 export const TABS: { id: ScreenId; label: string; emoji: string }[] = [
   { id: 'HOME',        label: 'HOME',          emoji: '🏠' },
