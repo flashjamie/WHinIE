@@ -33,38 +33,54 @@ export const TABS: { id: ScreenId; label: string; emoji: string }[] = [
 ];
 
 // ─── Avatar Options ───────────────────────────────────────────────────────────
-export const HAIR_OPTIONS = [
-  { label: '短直', value: 'shortFlat',  emoji: '💇' },
-  { label: '短捲', value: 'shortCurly', emoji: '🌀' },
-  { label: '波浪', value: 'shortWaved', emoji: '〰️' },
-  { label: '長直', value: 'straight01', emoji: '💁' },
-  { label: '長捲', value: 'curly',      emoji: '🌊' },
-  { label: '丸子', value: 'bun',        emoji: '🍡' },
-  { label: '帽子', value: 'hat',        emoji: '🎩' },
-  { label: '冬帽', value: 'winterHat1', emoji: '🧢' },
+// hair.type: 'front'=短髮用hair參數, 'rear'=長髮用rearHair參數
+export const HAIR_OPTIONS: { label: string; value: string; type: 'front' | 'rear'; emoji: string }[] = [
+  { label: '梳邊', value: 'sideComed',    type: 'front', emoji: '💇' },
+  { label: '削邊', value: 'undercut',     type: 'front', emoji: '✂️' },
+  { label: '刺蝟', value: 'spiky',        type: 'front', emoji: '⚡' },
+  { label: '丸子', value: 'bun',          type: 'front', emoji: '🍡' },
+  { label: '長直', value: 'longStraight', type: 'rear',  emoji: '💁' },
+  { label: '長波', value: 'longWavy',     type: 'rear',  emoji: '🌊' },
+  { label: '肩長', value: 'shoulderHigh', type: 'rear',  emoji: '👱' },
+  { label: '頸長', value: 'neckHigh',     type: 'rear',  emoji: '💆' },
 ];
+
 export const OUTFIT_OPTIONS = [
-  { label: '帽T',   value: 'hoodie',           emoji: '🧥' },
-  { label: '西裝',  value: 'blazerAndShirt',   emoji: '👔' },
-  { label: '毛衣',  value: 'collarAndSweater', emoji: '🧶' },
-  { label: '印花',  value: 'graphicShirt',     emoji: '👕' },
-  { label: 'T 恤',  value: 'shirtCrewNeck',    emoji: '🩵' },
-  { label: '吊帶',  value: 'overall',          emoji: '👗' },
+  { label: '高領', value: 'turtleNeck', emoji: '🧥' },
+  { label: '外套', value: 'openJacket', emoji: '🧣' },
+  { label: '洋裝', value: 'dress',      emoji: '👗' },
+  { label: '襯衫', value: 'shirt',      emoji: '👔' },
+  { label: 'T恤',  value: 'tShirt',     emoji: '👕' },
 ];
+
 export const EYES_OPTIONS = [
-  { label: '一般',  value: 'default',   emoji: '👁️' },
-  { label: '開心',  value: 'happy',     emoji: '😊' },
-  { label: '側眼',  value: 'side',      emoji: '👀' },
-  { label: '瞇眼',  value: 'squint',    emoji: '😏' },
-  { label: '驚訝',  value: 'surprised', emoji: '😲' },
-  { label: '眨眼',  value: 'wink',      emoji: '😉' },
+  { label: '開心', value: 'happy',  emoji: '😊' },
+  { label: '圓眼', value: 'wide',   emoji: '👁️' },
+  { label: '弓眼', value: 'bow',    emoji: '🙂' },
+  { label: '溫柔', value: 'humble', emoji: '😌' },
+  { label: '眨眼', value: 'wink',   emoji: '😉' },
 ];
+
+export const EYEBROWS_OPTIONS = [
+  { label: '上揚', value: 'up',           emoji: '🤨' },
+  { label: '下壓', value: 'down',         emoji: '😠' },
+  { label: '翹睫', value: 'eyelashesUp',  emoji: '😳' },
+  { label: '垂睫', value: 'eyelashesDown',emoji: '🥺' },
+];
+
 export const MOUTH_OPTIONS = [
-  { label: '一般', value: 'default', emoji: '😐' },
-  { label: '微笑', value: 'smile',   emoji: '😄' },
-  { label: '嚴肅', value: 'serious', emoji: '😑' },
-  { label: '鬼臉', value: 'grimace', emoji: '😬' },
-  { label: '閃耀', value: 'twinkle', emoji: '🤩' },
+  { label: '大笑', value: 'laugh', emoji: '😄' },
+  { label: '生氣', value: 'angry', emoji: '😠' },
+  { label: '張嘴', value: 'agape', emoji: '😮' },
+  { label: '微笑', value: 'smile', emoji: '🙂' },
+  { label: '難過', value: 'sad',   emoji: '😢' },
+];
+
+export const BEARD_OPTIONS = [
+  { label: '無鬍',   value: '',        emoji: '😶' },
+  { label: '鬍渣',   value: 'scruff',  emoji: '🧔' },
+  { label: '山羊鬍', value: 'goatee',  emoji: '🧔‍♂️' },
+  { label: '大鬍',   value: 'full',    emoji: '🧔‍♀️' },
 ];
 
 export const HAIR_COLOR_OPTIONS = [
@@ -80,9 +96,30 @@ export const HAIR_COLOR_OPTIONS = [
   { label: '銀白', value: 'e8e1e1', swatch: '#e8e1e1' },
 ];
 
+export const SKIN_COLOR_OPTIONS = [
+  { label: '瓷白', value: 'f8d5c2', swatch: '#f8d5c2' },
+  { label: '米膚', value: 'f3c49a', swatch: '#f3c49a' },
+  { label: '小麥', value: 'd08b5b', swatch: '#d08b5b' },
+  { label: '蜜棕', value: 'ae5d29', swatch: '#ae5d29' },
+  { label: '深棕', value: '694d3d', swatch: '#694d3d' },
+  { label: '巧克力', value: '3c1f0f', swatch: '#3c1f0f' },
+];
+
+export const CLOTHES_COLOR_OPTIONS = [
+  { label: '海軍藍', value: '264653', swatch: '#264653' },
+  { label: '翠綠',   value: '2a9d8f', swatch: '#2a9d8f' },
+  { label: '橙黃',   value: 'e9c46a', swatch: '#e9c46a' },
+  { label: '暖橘',   value: 'f4a261', swatch: '#f4a261' },
+  { label: '朱紅',   value: 'e76f51', swatch: '#e76f51' },
+  { label: '純白',   value: 'ffffff', swatch: '#ffffff' },
+  { label: '炭黑',   value: '222222', swatch: '#222222' },
+  { label: '薰衣草', value: 'b39ddb', swatch: '#b39ddb' },
+];
+
 export const DEFAULT_AVATAR: AvatarConfig = {
-  hairIdx: 0, outfitIdx: 0, eyesIdx: 0, mouthIdx: 1,
-  hairColorIdx: 0, facialHairColorIdx: 0,
+  hairIdx: 0, outfitIdx: 0, eyesIdx: 0, eyebrowsIdx: 0,
+  mouthIdx: 3, beardIdx: 0,
+  hairColorIdx: 0, skinColorIdx: 0, clothesColorIdx: 0,
 };
 
 // ─── Transit / Airlines ───────────────────────────────────────────────────────
@@ -273,14 +310,43 @@ export const GUILD_POSTS: GuildPost[] = [
 
 // ─── Utility Helpers ─────────────────────────────────────────────────────────
 export function buildAvatarUrl(cfg: AvatarConfig): string {
-  const seed = `WHinIE-${cfg.hairIdx}-${cfg.outfitIdx}-${cfg.eyesIdx}-${cfg.mouthIdx}-${cfg.hairColorIdx ?? 0}`;
-  const color = HAIR_COLOR_OPTIONS[cfg.hairColorIdx ?? 0]?.value ?? '2c1b18';
-  const p = new URLSearchParams({
-    seed,
+  const hairOpt      = HAIR_OPTIONS[cfg.hairIdx];
+  const isFront      = hairOpt?.type === 'front';
+  const outfit       = OUTFIT_OPTIONS[cfg.outfitIdx]?.value      ?? 'tShirt';
+  const eyes         = EYES_OPTIONS[cfg.eyesIdx]?.value          ?? 'happy';
+  const eyebrows     = EYEBROWS_OPTIONS[cfg.eyebrowsIdx ?? 0]?.value ?? 'up';
+  const mouth        = MOUTH_OPTIONS[cfg.mouthIdx]?.value        ?? 'smile';
+  const beard        = BEARD_OPTIONS[cfg.beardIdx ?? 0]?.value   ?? '';
+  const hairColor    = HAIR_COLOR_OPTIONS[cfg.hairColorIdx ?? 0]?.value    ?? '2c1b18';
+  const skinColor    = SKIN_COLOR_OPTIONS[cfg.skinColorIdx ?? 0]?.value    ?? 'f8d5c2';
+  const clothesColor = CLOTHES_COLOR_OPTIONS[cfg.clothesColorIdx ?? 0]?.value ?? '264653';
+
+  const params: Record<string, string> = {
+    seed:            'WHinIE-fixed',
     backgroundColor: 'b6e3f4',
-    hairColor:       color,
-  });
-  return `https://api.dicebear.com/9.x/toon-head/svg?${p.toString()}`;
+    hairColor,
+    skinColor,
+    clothesColor,
+    clothes:         outfit,
+    eyes,
+    eyebrows,
+    mouth,
+    beardProbability: beard ? '100' : '0',
+  };
+
+  if (isFront) {
+    params.hair            = hairOpt.value;
+    params.hairProbability = '100';
+    params.rearHairProbability = '0';
+  } else {
+    params.rearHair            = hairOpt?.value ?? 'longStraight';
+    params.rearHairProbability = '100';
+    params.hairProbability     = '0';
+  }
+
+  if (beard) params.beard = beard;
+
+  return `https://api.dicebear.com/9.x/toon-head/svg?${new URLSearchParams(params).toString()}`;
 }
 
 export function clockAt(offsetHours: number): string {
