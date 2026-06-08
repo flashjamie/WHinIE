@@ -2,7 +2,229 @@ import React, { useEffect, useState } from 'react';
 import { useGame } from '../../context/GameContext';
 import { buildAvatarUrl, ZH, EN } from '../../data/constants';
 
-// ─── Analog clock hook ────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════
+// FURNITURE DATA STRUCTURE
+// ══════════════════════════════════════════════════════════════
+interface FurnitureItem {
+  id:          string;
+  type:        string;
+  x:           number;
+  y:           number;
+  rotation?:   number;
+  isSurface?:  boolean;
+  stackedOn?:  string;
+  zOffset?:    number;
+}
+
+const FURNITURE: FurnitureItem[] = [
+  { id: 'rug',       type: 'rug',       x: 210,  y: 290 },
+  { id: 'sofa',      type: 'sofa',      x: 42,   y: 228, rotation: 90 },
+  { id: 'guitar',    type: 'guitar',    x: 22,   y: 168, rotation: -15 },
+  { id: 'backpack',  type: 'backpack',  x: 98,   y: 264 },
+  { id: 'island',    type: 'island',    x: 348,  y: 208, isSurface: true },
+  { id: 'sink',      type: 'sink',      x: 454,  y: 204 },
+  { id: 'induction', type: 'induction', x: 386,  y: 208 },
+  { id: 'microwave', type: 'microwave', x: 362,  y: 192, stackedOn: 'island', zOffset: -28 },
+  { id: 'desk',      type: 'desk',      x: 276,  y: 216 },
+];
+
+// ══════════════════════════════════════════════════════════════
+// SVG FURNITURE DRAWERS
+// ══════════════════════════════════════════════════════════════
+
+function Rug({ x, y }: { x: number; y: number }) {
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <ellipse cx={0} cy={0} rx={148} ry={30} fill="#B07845" opacity={0.38} stroke="#8B5C30" strokeWidth={1.2} />
+      <ellipse cx={0} cy={0} rx={128} ry={22} fill="none" stroke="#C09050" strokeWidth={0.8} strokeDasharray="6,4" opacity={0.5} />
+    </g>
+  );
+}
+
+// Caramel modular sofa (rotation=90 → faces right toward window)
+function Sofa({ x, y }: { x: number; y: number }) {
+  return (
+    <g transform={`translate(${x},${y})`}>
+      {/* Shadow */}
+      <ellipse cx={90} cy={68} rx={95} ry={16} fill="#000" opacity={0.12} />
+      {/* Back cushion */}
+      <polygon points="0,10 190,10 190,52 0,52" fill="#A0724A" stroke="#7A5030" strokeWidth={1.5} />
+      {/* Seat */}
+      <polygon points="0,52 190,52 200,80 -10,80" fill="#C4925A" stroke="#A07040" strokeWidth={1.5} />
+      {/* Seat cushion L */}
+      <polygon points="8,34 88,34 94,52 2,52" fill="#D4A870" stroke="#B08850" strokeWidth={1} />
+      {/* Seat cushion R */}
+      <polygon points="100,34 180,34 186,52 94,52" fill="#D4A870" stroke="#B08850" strokeWidth={1} />
+      {/* Left armrest */}
+      <polygon points="-8,8 14,8 14,80 -18,80" fill="#8B6038" stroke="#6A4020" strokeWidth={1.2} />
+      {/* Right armrest */}
+      <polygon points="178,8 200,8 210,80 184,80" fill="#8B6038" stroke="#6A4020" strokeWidth={1.2} />
+      {/* Leg FL */}
+      <rect x={0} y={80} width={8} height={12} fill="#5A3C18" />
+      {/* Leg FR */}
+      <rect x={182} y={80} width={8} height={12} fill="#5A3C18" />
+    </g>
+  );
+}
+
+// Guitar leaning against left wall
+function Guitar({ x, y, rotation }: { x: number; y: number; rotation: number }) {
+  return (
+    <g transform={`translate(${x},${y}) rotate(${rotation})`}>
+      {/* Neck */}
+      <rect x={12} y={-80} width={8} height={100} rx={3} fill="#8B5C2A" stroke="#5A3C18" strokeWidth={1} />
+      {/* Headstock */}
+      <rect x={9} y={-88} width={14} height={12} rx={2} fill="#6B4418" stroke="#3A2408" strokeWidth={1} />
+      {/* Tuning pegs */}
+      {[-86,-82,-78].map((py,i) => <circle key={i} cx={7} cy={py} r={2.5} fill="#C0A060" />)}
+      {[-86,-82,-78].map((py,i) => <circle key={`r${i}`} cx={25} cy={py} r={2.5} fill="#C0A060" />)}
+      {/* Body */}
+      <ellipse cx={16} cy={30} rx={18} ry={22} fill="#C4803C" stroke="#8B5020" strokeWidth={1.5} />
+      <ellipse cx={16} cy={8}  rx={14} ry={16} fill="#C4803C" stroke="#8B5020" strokeWidth={1.5} />
+      {/* Waist connector */}
+      <rect x={6} y={16} width={20} height={16} fill="#C4803C" />
+      <rect x={4} y={16} width={24} height={16} fill="none" stroke="#8B5020" strokeWidth={1.5} />
+      {/* Sound hole */}
+      <circle cx={16} cy={22} r={6} fill="#5A3010" stroke="#3A1C00" strokeWidth={0.8} />
+      {/* Strings */}
+      {[10,13,16,19,22].map((sx,i) => (
+        <line key={i} x1={sx} y1={-80} x2={sx} y2={44} stroke="#D4C090" strokeWidth={0.6} />
+      ))}
+    </g>
+  );
+}
+
+// Backpack leaning near sofa
+function Backpack({ x, y }: { x: number; y: number }) {
+  return (
+    <g transform={`translate(${x},${y})`}>
+      {/* Shadow */}
+      <ellipse cx={22} cy={58} rx={20} ry={5} fill="#000" opacity={0.15} />
+      {/* Main body */}
+      <rect x={0} y={4} width={44} height={52} rx={6} fill="#6B7C4A" stroke="#4A5830" strokeWidth={1.5} />
+      {/* Top flap */}
+      <rect x={2} y={0} width={40} height={16} rx={4} fill="#7A8C58" stroke="#4A5830" strokeWidth={1} />
+      {/* Front pocket */}
+      <rect x={6} y={30} width={32} height={22} rx={4} fill="#5A6B3C" stroke="#4A5830" strokeWidth={1} />
+      {/* Pocket zipper */}
+      <line x1={8} y1={30} x2={36} y2={30} stroke="#C0A060" strokeWidth={1.5} />
+      {/* Handle */}
+      <path d="M 14,0 Q 22,-8 30,0" stroke="#4A5830" strokeWidth={2.5} fill="none" strokeLinecap="round" />
+      {/* Straps */}
+      <rect x={8} y={8} width={5} height={38} rx={2} fill="#4A5830" opacity={0.6} />
+      <rect x={31} y={8} width={5} height={38} rx={2} fill="#4A5830" opacity={0.6} />
+    </g>
+  );
+}
+
+// Kitchen island counter (isSurface: true)
+function KitchenIsland({ x, y }: { x: number; y: number }) {
+  return (
+    <g transform={`translate(${x},${y})`}>
+      {/* Shadow */}
+      <polygon points="5,5 165,5 185,60 25,60" fill="#000" opacity={0.14} />
+      {/* Counter front face */}
+      <polygon points="0,28 160,28 178,58 18,58" fill="#8B7048" stroke="#6A5030" strokeWidth={1.5} />
+      {/* Counter top (marble effect) */}
+      <polygon points="-6,10 166,10 178,28 0,28" fill="#E8E0D0" stroke="#C0B8A8" strokeWidth={1.5} />
+      {/* Marble veins */}
+      <path d="M 20,14 Q 50,18 80,12 Q 110,8 140,16" stroke="#C8C0B0" strokeWidth="0.8" fill="none" opacity="0.7" />
+      <path d="M 30,20 Q 70,24 110,18" stroke="#C8C0B0" strokeWidth="0.6" fill="none" opacity="0.5" />
+      {/* isSurface indicator (subtle shelf line) */}
+      <line x1={0} y1={28} x2={160} y2={28} stroke="#A09080" strokeWidth={0.8} strokeDasharray="4,3" />
+      {/* Legs */}
+      <rect x={4}   y={58} width={7} height={18} fill="#5A3C18" />
+      <rect x={162} y={58} width={7} height={18} fill="#5A3C18" />
+    </g>
+  );
+}
+
+// Sink fixture on island
+function Sink({ x, y }: { x: number; y: number }) {
+  return (
+    <g transform={`translate(${x},${y})`}>
+      {/* Basin */}
+      <ellipse cx={24} cy={18} rx={22} ry={10} fill="#D8E0E8" stroke="#A0B0C0" strokeWidth={1.2} />
+      <ellipse cx={24} cy={18} rx={16} ry={7} fill="#B8C8D8" stroke="#90A8B8" strokeWidth={0.8} />
+      {/* Drain */}
+      <circle cx={24} cy={18} r={3} fill="#8090A0" />
+      {/* Faucet base */}
+      <rect x={20} y={4} width={8} height={12} rx={2} fill="#C8C8C8" stroke="#909090" strokeWidth={1} />
+      {/* Faucet neck */}
+      <path d="M 24,4 Q 24,-4 32,-4" stroke="#B0B0B0" strokeWidth={4} fill="none" strokeLinecap="round" />
+      <circle cx={32} cy={-4} r={3} fill="#C0C0C0" stroke="#909090" strokeWidth={0.8} />
+    </g>
+  );
+}
+
+// Induction cooktop
+function InductionCooktop({ x, y }: { x: number; y: number }) {
+  return (
+    <g transform={`translate(${x},${y})`}>
+      {/* Body */}
+      <polygon points="0,8 62,8 72,26 10,26" fill="#1C1C2C" stroke="#0A0A18" strokeWidth={1.2} rx={4} />
+      {/* Surface */}
+      <polygon points="-4,0 66,0 72,8 0,8" fill="#2A2A3C" stroke="#18183A" strokeWidth={1} />
+      {/* Heating zones */}
+      <ellipse cx={18} cy={4} rx={12} ry={5} fill="none" stroke="#E74C3C" strokeWidth={1.2} opacity={0.7} />
+      <ellipse cx={48} cy={4} rx={12} ry={5} fill="none" stroke="#E74C3C" strokeWidth={1.2} opacity={0.7} />
+      {/* Zone glow */}
+      <ellipse cx={18} cy={4} rx={8} ry={3} fill="#FF6B6B" opacity={0.15} />
+      <ellipse cx={48} cy={4} rx={8} ry={3} fill="#FF6B6B" opacity={0.15} />
+      {/* Control panel */}
+      <rect x={26} y={2} width={14} height={4} rx={1} fill="#3A3A5C" />
+      {[0,1,2].map(i => <circle key={i} cx={29+i*4} cy={4} r={1} fill="#00D4FF" opacity={0.8} />)}
+    </g>
+  );
+}
+
+// Microwave stacked on island (zOffset compensates Z-axis height)
+function Microwave({ x, y }: { x: number; y: number }) {
+  return (
+    <g transform={`translate(${x},${y})`}>
+      {/* Body shadow */}
+      <polygon points="4,4 72,4 80,28 12,28" fill="#000" opacity={0.15} />
+      {/* Body front */}
+      <polygon points="0,16 68,16 76,28 8,28" fill="#3A3A3A" stroke="#1a1a1a" strokeWidth={1.2} />
+      {/* Body top */}
+      <polygon points="-4,4 68,4 76,16 0,16" fill="#4A4A4A" stroke="#2a2a2a" strokeWidth={1.2} />
+      {/* Door */}
+      <polygon points="2,16 44,16 50,28 6,28" fill="#2A2A2A" stroke="#1a1a1a" strokeWidth={0.8} />
+      {/* Door window */}
+      <polygon points="6,17 38,17 44,26 10,26" fill="#0A1A2A" opacity={0.9} />
+      <polygon points="8,18 36,18 42,25 12,25" fill="#0D2A3A" opacity={0.5} />
+      {/* Control panel */}
+      <polygon points="46,16 68,16 74,28 52,28" fill="#5A5A5A" stroke="#3a3a3a" strokeWidth={0.8} />
+      {/* Clock display */}
+      <polygon points="48,18 66,18 71,26 54,26" fill="#001010" />
+      <text x={56} y={24} fontSize={6} fill="#00FF88" fontFamily="monospace" textAnchor="middle">12:00</text>
+      {/* Handle */}
+      <line x1={44} y1={17} x2={50} y2={27} stroke="#888" strokeWidth={2.5} strokeLinecap="round" />
+    </g>
+  );
+}
+
+// Writing desk
+function Desk({ x, y }: { x: number; y: number }) {
+  return (
+    <g transform={`translate(${x},${y})`}>
+      <rect x={4} y={36} width={6} height={20} fill="#6B4423" />
+      <rect x={112} y={36} width={6} height={20} fill="#6B4423" />
+      <polygon points="4,4 130,4 138,36 12,36" fill="#000" opacity={0.12} />
+      <polygon points="-2,-10 126,-10 134,4 4,4" fill="#A07848" stroke="#7A5830" strokeWidth={1.5} />
+      <polygon points="4,4 130,4 138,36 12,36" fill="#8B6038" stroke="#6A4420" strokeWidth={1.5} />
+      {/* Laptop */}
+      <polygon points="10,-26 72,-26 76,-10 6,-10" fill="#2C2C2C" stroke="#1a1a1a" strokeWidth={1} />
+      <polygon points="6,-10 76,-10 82,0 0,0" fill="#3A3A3A" stroke="#1a1a1a" strokeWidth={1} />
+      <polygon points="12,-24 70,-24 74,-11 8,-11" fill="#5DADE2" opacity={0.5} />
+      <ellipse cx={98} cy={-4} rx={8} ry={5} fill="#4A4A4A" stroke="#2a2a2a" strokeWidth={0.8} />
+    </g>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════
+// LIVE CLOCK HOOK
+// ══════════════════════════════════════════════════════════════
 function useClockHands(gmtOffset: number) {
   const [t, setT] = useState(() => new Date());
   useEffect(() => {
@@ -17,377 +239,357 @@ function useClockHands(gmtOffset: number) {
   return { hDeg: h * 30 - 90, mDeg: m * 6 - 90, sDeg: s * 6 - 90 };
 }
 
-// ─── SVG Analog Clock ─────────────────────────────────────────────────────────
-function SvgClock({ cx, cy, r, offset, label, sub }: {
+// SVG Wall Clock (on back wall)
+function WallClock({ cx, cy, r, offset, label, sub }: {
   cx: number; cy: number; r: number; offset: number; label: string; sub: string;
 }) {
   const { hDeg, mDeg, sDeg } = useClockHands(offset);
   const arm = (deg: number, len: number, sw: number, col: string) => {
     const rad = deg * Math.PI / 180;
-    return (
-      <line x1={cx} y1={cy}
-        x2={cx + Math.cos(rad) * len}
-        y2={cy + Math.sin(rad) * len}
-        stroke={col} strokeWidth={sw} strokeLinecap="round" />
-    );
+    return <line x1={cx} y1={cy}
+      x2={cx + Math.cos(rad) * len} y2={cy + Math.sin(rad) * len}
+      stroke={col} strokeWidth={sw} strokeLinecap="round" />;
   };
   return (
     <g>
-      <circle cx={cx + 2} cy={cy + 2} r={r + 3} fill="#000" />
-      <circle cx={cx} cy={cy} r={r + 3} fill="#1a1a1a" />
+      <circle cx={cx+2} cy={cy+2} r={r+3} fill="#000" />
+      <circle cx={cx} cy={cy} r={r+3} fill="#1a1a1a" />
       <circle cx={cx} cy={cy} r={r} fill="#FFFEF5" />
-      {Array.from({ length: 12 }, (_, i) => {
-        const a = (i * 30 - 90) * Math.PI / 180;
-        const inner = i % 3 === 0 ? r - 8 : r - 5;
-        return (
-          <line key={i}
-            x1={cx + Math.cos(a) * inner} y1={cy + Math.sin(a) * inner}
-            x2={cx + Math.cos(a) * (r - 1)} y2={cy + Math.sin(a) * (r - 1)}
-            stroke="#1a1a1a" strokeWidth={i % 3 === 0 ? 2.5 : 1} />
-        );
+      {Array.from({length:12},(_,i) => {
+        const a=(i*30-90)*Math.PI/180;
+        const inner = i%3===0 ? r-8 : r-5;
+        return <line key={i}
+          x1={cx+Math.cos(a)*inner} y1={cy+Math.sin(a)*inner}
+          x2={cx+Math.cos(a)*(r-1)} y2={cy+Math.sin(a)*(r-1)}
+          stroke="#1a1a1a" strokeWidth={i%3===0?2.5:1} />;
       })}
-      {arm(hDeg, r * 0.54, 3.5, '#1a1a1a')}
-      {arm(mDeg, r * 0.78, 2, '#1a1a1a')}
-      {arm(sDeg, r * 0.82, 1, '#C0392B')}
+      {arm(hDeg, r*.54, 3.5, '#1a1a1a')}
+      {arm(mDeg, r*.78, 2,   '#1a1a1a')}
+      {arm(sDeg, r*.82, 1,   '#C0392B')}
       <circle cx={cx} cy={cy} r={2.5} fill="#1a1a1a" />
-      <text x={cx} y={cy + r + 13} textAnchor="middle" fontSize={9} fontWeight="700"
-        fill="#1a1a1a" fontFamily="'Noto Sans TC','Microsoft JhengHei',sans-serif">{label}</text>
-      <text x={cx} y={cy + r + 23} textAnchor="middle" fontSize={7} fill="#666"
+      <text x={cx} y={cy+r+12} textAnchor="middle" fontSize={9} fontWeight="700"
+        fill="#1a1a1a" fontFamily="'Noto Sans TC',sans-serif">{label}</text>
+      <text x={cx} y={cy+r+22} textAnchor="middle" fontSize={7} fill="#666"
         fontFamily="monospace">{sub}</text>
     </g>
   );
 }
 
-// ─── Sky colour by location + real hour ──────────────────────────────────────
-function useSkyGrad(location: 'taiwan' | 'ireland' | 'transit'): [string, string, string] {
+// ══════════════════════════════════════════════════════════════
+// SKY GRADIENT (location-aware)
+// ══════════════════════════════════════════════════════════════
+function useSkyGrad(location: 'taiwan'|'ireland'|'transit'): [string,string,string] {
   const [h, setH] = useState(() => new Date().getHours());
   useEffect(() => {
     const id = setInterval(() => setH(new Date().getHours()), 60000);
     return () => clearInterval(id);
   }, []);
-  if (h < 5 || h >= 21) return ['#0A0A1E', '#1B2344', '#0A0A1E'];
-  if (h < 7)            return ['#C0392B', '#E67E22', '#F39C12'];
-  if (h >= 18)          return ['#8E44AD', '#E74C3C', '#F39C12'];
-  switch (location) {
-    case 'ireland': return ['#5B8EC5', '#87CEEB', '#B0D8EA'];
-    case 'taiwan':  return ['#1A8FD1', '#5CC8F8', '#B0E0FF'];
-    default:        return ['#E67E22', '#F39C12', '#FFD700']; // desert transit
-  }
+  if (h<5||h>=21) return ['#0A0A1E','#1B2344','#0A0A1E'];
+  if (h<7)        return ['#C0392B','#E67E22','#F39C12'];
+  if (h>=18)      return ['#8E44AD','#E74C3C','#F39C12'];
+  if (location==='ireland') return ['#5B8EC5','#87CEEB','#B0D8EA'];
+  if (location==='taiwan')  return ['#1A8FD1','#5CC8F8','#B0E0FF'];
+  return ['#E67E22','#F39C12','#FFD700'];
 }
 
-// ─── 2.5D Room SVG ────────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════
+// 2.5D ROOM SVG
+// ══════════════════════════════════════════════════════════════
 function RoomSVG() {
-  const { state, derived } = useGame();
+  const { derived } = useGame();
   const transitOffset = derived.transitTz.offset ?? 8;
   const transitLabel  = derived.transitTz.name !== '中轉機場'
-    ? derived.transitTz.name.slice(0, 7)
-    : 'Transit';
+    ? derived.transitTz.name.slice(0,7) : 'Transit';
+  const location: 'taiwan'|'ireland'|'transit' =
+    derived.hasArrived ? 'ireland' : 'taiwan';
+  const [sky1,sky2,sky3] = useSkyGrad(location);
 
-  const location: 'taiwan' | 'ireland' | 'transit' =
-    derived.hasArrived ? 'ireland'
-    : derived.dayStatus.type === 'countdown' ? 'taiwan'
-    : 'taiwan';
+  const W=760, H=360, ceilY=28, wallBotY=248, winX=570;
 
-  const [sky1, sky2, sky3] = useSkyGrad(location);
-
-  // ── Room geometry ──
-  const W = 760, H = 360;
-  const ceilY = 28;
-  const wallBotY = 248;
-  const winX = 570;   // where right wall/window starts
+  // Resolve furniture with Z-axis stacking
+  const resolvedFurniture = FURNITURE.map(item => {
+    if (item.stackedOn) {
+      const surface = FURNITURE.find(f => f.id === item.stackedOn);
+      return surface ? { ...item, y: item.y + (item.zOffset ?? 0) } : item;
+    }
+    return item;
+  });
 
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: '100%', display: 'block' }}>
+    <svg viewBox={`0 0 ${W} ${H}`} style={{width:'100%',height:'100%',display:'block'}}>
       <defs>
         <linearGradient id="skyG" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%"   stopColor={sky1} />
-          <stop offset="55%"  stopColor={sky2} />
-          <stop offset="100%" stopColor={sky3} />
+          <stop offset="0%"  stopColor={sky1}/>
+          <stop offset="55%" stopColor={sky2}/>
+          <stop offset="100%" stopColor={sky3}/>
         </linearGradient>
         <linearGradient id="floorG" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%"   stopColor="#DFD0B8" />
-          <stop offset="100%" stopColor="#C8B898" />
+          <stop offset="0%"   stopColor="#E4C890"/>
+          <stop offset="100%" stopColor="#D2B06C"/>
         </linearGradient>
         <pattern id="floorTile" x="0" y="0" width="44" height="44" patternUnits="userSpaceOnUse">
-          <rect width="44" height="44" fill="url(#floorG)" />
-          <rect width="44" height="44" fill="none" stroke="#C0A880" strokeWidth="0.7" />
+          <rect width="44" height="44" fill="url(#floorG)"/>
+          <rect width="44" height="44" fill="none" stroke="#C0A060" strokeWidth="0.7"/>
         </pattern>
-        <clipPath id="floorClip">
-          <polygon points={`0,${wallBotY} ${winX},${wallBotY} ${W},${H} 0,${H}`} />
-        </clipPath>
         <clipPath id="winClip">
-          <polygon points={`${winX},${ceilY} ${W},0 ${W},${H} ${winX},${wallBotY}`} />
+          <polygon points={`${winX},${ceilY} ${W},0 ${W},${H} ${winX},${wallBotY}`}/>
         </clipPath>
-        <filter id="softShadow">
-          <feDropShadow dx="3" dy="3" stdDeviation="2" floodOpacity="0.25" />
+        <filter id="drop">
+          <feDropShadow dx="2" dy="3" stdDeviation="2" floodOpacity="0.2"/>
         </filter>
       </defs>
 
-      {/* ── Ceiling ─────────────────────────────────────── */}
-      <rect x={0} y={0} width={winX} height={ceilY} fill="#D4C8B2" />
-      <line x1={0} y1={ceilY} x2={winX} y2={ceilY} stroke="#1a1a1a" strokeWidth={2.5} />
+      {/* Ceiling */}
+      <rect x={0} y={0} width={winX} height={ceilY} fill="#D4C8B2"/>
+      <line x1={0} y1={ceilY} x2={winX} y2={ceilY} stroke="#1a1a1a" strokeWidth={2.5}/>
 
-      {/* ── Back wall ───────────────────────────────────── */}
-      <rect x={0} y={ceilY} width={winX} height={wallBotY - ceilY} fill="#F0E8D8" />
-      {/* Subtle vertical planks */}
-      {Array.from({ length: 15 }, (_, i) => (
-        <line key={i} x1={i * 40} y1={ceilY} x2={i * 40} y2={wallBotY}
-          stroke="#E0D2BC" strokeWidth="0.8" />
+      {/* Back wall */}
+      <rect x={0} y={ceilY} width={winX} height={wallBotY-ceilY} fill="#F0E8D8"/>
+      {Array.from({length:15},(_,i)=>(
+        <line key={i} x1={i*40} y1={ceilY} x2={i*40} y2={wallBotY}
+          stroke="#E0D2BC" strokeWidth="0.8"/>
       ))}
-      {/* Skirting board */}
-      <rect x={0} y={wallBotY - 14} width={winX} height={14} fill="#D4C4A4" stroke="#C0AC8A" strokeWidth="0.8" />
+      <rect x={0} y={wallBotY-14} width={winX} height={14} fill="#D4C4A4" stroke="#C0AC8A" strokeWidth="0.8"/>
 
-      {/* ── Floor ───────────────────────────────────────── */}
-      <polygon points={`0,${wallBotY} ${winX},${wallBotY} ${W},${H} 0,${H}`}
-        fill="url(#floorTile)" />
-      {/* Perspective grid lines */}
-      {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
-        <line key={`fv${i}`}
-          x1={i * 73} y1={wallBotY}
-          x2={i * 73 + (W - winX) * (i / 8)} y2={H}
-          stroke="#C0A880" strokeWidth="0.6" opacity="0.5" />
+      {/* Floor */}
+      <polygon points={`0,${wallBotY} ${winX},${wallBotY} ${W},${H} 0,${H}`} fill="url(#floorTile)"/>
+      {[1,2,3,4,5,6,7,8].map(i=>(
+        <line key={`fv${i}`} x1={i*73} y1={wallBotY}
+          x2={i*73+(W-winX)*(i/8)} y2={H}
+          stroke="#C0A060" strokeWidth="0.6" opacity="0.4"/>
       ))}
-      {[0.25, 0.5, 0.75].map((t, i) => (
-        <line key={`fh${i}`}
-          x1={0} y1={wallBotY + (H - wallBotY) * t}
-          x2={winX + (W - winX) * t} y2={wallBotY + (H - wallBotY) * t}
-          stroke="#C0A880" strokeWidth="0.6" opacity="0.5" />
+      {[0.25,0.5,0.75].map((t,i)=>(
+        <line key={`fh${i}`} x1={0} y1={wallBotY+(H-wallBotY)*t}
+          x2={winX+(W-winX)*t} y2={wallBotY+(H-wallBotY)*t}
+          stroke="#C0A060" strokeWidth="0.6" opacity="0.4"/>
       ))}
 
-      {/* ── Window / right wall ─────────────────────────── */}
-      <polygon points={`${winX},${ceilY} ${W},0 ${W},${H} ${winX},${wallBotY}`}
-        fill="url(#skyG)" />
-
-      {/* Clouds */}
-      <g clipPath="url(#winClip)" opacity="0.7">
-        <ellipse cx={650} cy={40} rx={38} ry={14} fill="#fff" />
-        <ellipse cx={670} cy={34} rx={24} ry={18} fill="#fff" />
-        <ellipse cx={635} cy={44} rx={20} ry={10} fill="#fff" />
-        <ellipse cx={720} cy={65} rx={28} ry={10} fill="#fff" opacity="0.8" />
-        <ellipse cx={735} cy={60} rx={18} ry={13} fill="#fff" opacity="0.8" />
+      {/* Airport window */}
+      <polygon points={`${winX},${ceilY} ${W},0 ${W},${H} ${winX},${wallBotY}`} fill="url(#skyG)"/>
+      <g clipPath="url(#winClip)" opacity="0.75">
+        <ellipse cx={650} cy={42} rx={38} ry={14} fill="#fff"/>
+        <ellipse cx={668} cy={36} rx={24} ry={18} fill="#fff"/>
+        <ellipse cx={635} cy={46} rx={20} ry={10} fill="#fff"/>
+        <ellipse cx={722} cy={66} rx={28} ry={11} fill="#fff" opacity="0.85"/>
       </g>
-
-      {/* Airport ground + tarmac */}
       <g clipPath="url(#winClip)">
-        <polygon points={`${winX},${wallBotY - 20} ${W},${H * 0.64} ${W},${H} ${winX},${wallBotY}`}
-          fill="#3A3A3A" />
-        {/* Runway centreline */}
-        {[0, 1, 2, 3].map(i => (
-          <rect key={i} x={590 + i * 42} y={282 + i * 10} width={22} height={4}
-            fill="#FFD700" opacity={0.75} />
+        <polygon points={`${winX},${wallBotY-18} ${W},${H*0.64} ${W},${H} ${winX},${wallBotY}`} fill="#3A3A3A"/>
+        {[0,1,2,3].map(i=>(
+          <rect key={i} x={592+i*42} y={284+i*10} width={22} height={4} fill="#FFD700" opacity={0.75}/>
         ))}
-        {/* Airport lights */}
-        {[0, 1, 2, 3, 4].map(i => (
-          <circle key={i} cx={585 + i * 38} cy={295 + i * 8} r={2}
-            fill="#FFD700" opacity={0.9} />
+        {[0,1,2,3,4].map(i=>(
+          <circle key={i} cx={587+i*38} cy={296+i*8} r={2} fill="#FFD700" opacity={0.9}/>
         ))}
       </g>
-
       {/* Aer Lingus plane */}
-      <g transform="translate(580, 205)" clipPath="url(#winClip)">
-        <ellipse cx={52} cy={13} rx={62} ry={12} fill="#F0F0F0" stroke="#D8D8D8" strokeWidth={1} />
-        <polygon points="25,13 78,13 84,22 18,22" fill="#E8E8E8" stroke="#CCC" strokeWidth={0.8} />
-        <polygon points="4,4 16,13 20,13" fill="#007A33" />
-        <polygon points="6,13 18,13 20,19 4,19" fill="#E8E8E8" stroke="#CCC" strokeWidth={0.8} />
-        {[0, 1, 2, 3, 4, 5].map(i => (
-          <ellipse key={i} cx={28 + i * 13} cy={9} rx={4} ry={3}
-            fill="#87CEEB" opacity={0.9} />
+      <g transform="translate(578,206)" clipPath="url(#winClip)">
+        <ellipse cx={52} cy={13} rx={62} ry={12} fill="#F0F0F0" stroke="#D8D8D8" strokeWidth={1}/>
+        <polygon points="25,13 78,13 84,22 18,22" fill="#E8E8E8" stroke="#CCC" strokeWidth={0.8}/>
+        <polygon points="4,4 16,13 20,13" fill="#007A33"/>
+        <polygon points="6,13 18,13 20,19 4,19" fill="#E8E8E8" stroke="#CCC" strokeWidth={0.8}/>
+        {[0,1,2,3,4,5].map(i=>(
+          <ellipse key={i} cx={28+i*13} cy={9} rx={4} ry={3} fill="#87CEEB" opacity={0.9}/>
         ))}
-        <line x1={10} y1={15} x2={114} y2={15} stroke="#007A33" strokeWidth={2.5} />
+        <line x1={10} y1={15} x2={114} y2={15} stroke="#007A33" strokeWidth={2.5}/>
       </g>
-
       {/* Window panes */}
-      <g stroke="#1a1a1a" strokeWidth={3.5} fill="none">
-        <polygon points={`${winX},${ceilY} ${W},0 ${W},${H} ${winX},${wallBotY}`} />
-      </g>
-      <g stroke="#1a1a1a" strokeWidth={2.5} opacity={0.65}>
-        <line x1={624} y1={0} x2={624} y2={H} />
-        <line x1={682} y1={0} x2={682} y2={H} />
-        <line x1={730} y1={0} x2={730} y2={H} />
-        <line x1={winX} y1={(ceilY + wallBotY) / 2}
-          x2={W} y2={(H) / 2} />
+      <polygon points={`${winX},${ceilY} ${W},0 ${W},${H} ${winX},${wallBotY}`}
+        fill="none" stroke="#1a1a1a" strokeWidth={3.5}/>
+      <g stroke="#1a1a1a" strokeWidth={2.5} opacity={0.6}>
+        <line x1={624} y1={0} x2={624} y2={H}/>
+        <line x1={682} y1={0} x2={682} y2={H}/>
+        <line x1={730} y1={0} x2={730} y2={H}/>
+        <line x1={winX} y1={(ceilY+wallBotY)/2} x2={W} y2={H/2}/>
       </g>
 
-      {/* ── Wall clocks ────────────────────────────────── */}
-      <SvgClock cx={135} cy={118} r={38} offset={8}
-        label="台灣" sub="TAIWAN (GMT+8)" />
-      <SvgClock cx={285} cy={118} r={38} offset={transitOffset}
-        label={transitLabel} sub={`GMT+${transitOffset}`} />
-      <SvgClock cx={445} cy={118} r={38} offset={1}
-        label="愛爾蘭" sub="IRELAND (GMT+1)" />
+      {/* Wall clocks */}
+      <WallClock cx={125} cy={118} r={36} offset={8}       label="台灣"   sub="TAIWAN (GMT+8)"/>
+      <WallClock cx={276} cy={118} r={36} offset={transitOffset} label={transitLabel} sub={`GMT+${transitOffset}`}/>
+      <WallClock cx={438} cy={118} r={36} offset={1}       label="愛爾蘭" sub="IRELAND (GMT+1)"/>
 
-      {/* ── Furniture ──────────────────────────────────── */}
+      {/* Furniture (data-driven) */}
+      {resolvedFurniture.map(item => {
+        switch(item.type) {
+          case 'rug':       return <Rug       key={item.id} x={item.x} y={item.y}/>;
+          case 'sofa':      return <Sofa      key={item.id} x={item.x} y={item.y}/>;
+          case 'guitar':    return <Guitar    key={item.id} x={item.x} y={item.y} rotation={item.rotation??0}/>;
+          case 'backpack':  return <Backpack  key={item.id} x={item.x} y={item.y}/>;
+          case 'island':    return <KitchenIsland key={item.id} x={item.x} y={item.y}/>;
+          case 'sink':      return <Sink      key={item.id} x={item.x} y={item.y}/>;
+          case 'induction': return <InductionCooktop key={item.id} x={item.x} y={item.y}/>;
+          case 'microwave': return <Microwave key={item.id} x={item.x} y={item.y}/>;
+          case 'desk':      return <Desk      key={item.id} x={item.x} y={item.y}/>;
+          default: return null;
+        }
+      })}
 
-      {/* Rug */}
-      <ellipse cx={240} cy={296} rx={140} ry={28}
-        fill="#B07040" opacity={0.38} stroke="#8B5530" strokeWidth={1} />
-
-      {/* Bed */}
-      <g filter="url(#softShadow)">
-        {/* Headboard */}
-        <polygon points="45,200 215,200 215,228 45,228" fill="#7B4F2E" stroke="#5A3418" strokeWidth={1.5} />
-        {/* Bed frame */}
-        <polygon points="45,228 215,228 235,282 25,282" fill="#B8905C" stroke="#8B6040" strokeWidth={1.5} />
-        {/* Mattress */}
-        <polygon points="50,212 210,212 228,268 32,268" fill="#EAD8C0" stroke="#C8B898" strokeWidth={1} />
-        {/* Pillow L */}
-        <polygon points="55,200 115,200 122,228 62,228" fill="#FFFEF5" stroke="#D8CCA8" strokeWidth={1} />
-        {/* Pillow R */}
-        <polygon points="120,200 180,200 187,228 127,228" fill="#FFFEF5" stroke="#D8CCA8" strokeWidth={1} />
-        {/* Blanket fold */}
-        <polygon points="50,234 210,234 225,268 35,268" fill="#C8A878" opacity={0.6} stroke="#A08050" strokeWidth={0.8} />
-      </g>
-
-      {/* Desk */}
-      <g filter="url(#softShadow)" transform="translate(380, 215)">
-        {/* Legs */}
-        <rect x={5} y={38} width={6} height={22} fill="#6B4423" />
-        <rect x={115} y={38} width={6} height={22} fill="#6B4423" />
-        {/* Surface shadow */}
-        <polygon points="5,5 135,5 148,38 18,38" fill="#000" opacity={0.15} />
-        {/* Surface top */}
-        <polygon points="-3,-10 130,-10 138,5 5,5" fill="#A07848" stroke="#7A5830" strokeWidth={1.5} />
-        {/* Surface front */}
-        <polygon points="5,5 135,5 148,38 18,38" fill="#8B6038" stroke="#6A4420" strokeWidth={1.5} />
-        {/* Laptop */}
-        <polygon points="12,-28 78,-28 82,-10 8,-10" fill="#2C2C2C" stroke="#1a1a1a" strokeWidth={1} />
-        <polygon points="8,-10 82,-10 88,-2 2,-2" fill="#3A3A3A" stroke="#1a1a1a" strokeWidth={1} />
-        <polygon points="14,-26 76,-26 80,-11 10,-11" fill="#5DADE2" opacity={0.55} />
-        {/* Mouse */}
-        <ellipse cx={100} cy={-5} rx={8} ry={5} fill="#4A4A4A" stroke="#2a2a2a" strokeWidth={0.8} />
-      </g>
-
-      {/* Globe on desk */}
-      <g transform="translate(498, 196)">
-        <ellipse cx={0} cy={16} rx={9} ry={3} fill="#5A3C1A" opacity={0.4} />
-        <rect x={-2} y={12} width={4} height={6} fill="#6B4423" />
-        <ellipse cx={0} cy={-2} rx={8} ry={3} fill="#2980B9" opacity={0.5} />
-        <circle cx={0} cy={0} r={13} fill="#3498DB" stroke="#2471A3" strokeWidth={1.5} />
-        <ellipse cx={0} cy={0} rx={13} ry={5} fill="none" stroke="#1A6FA8" strokeWidth={0.8} />
-        <line x1={0} y1={-13} x2={0} y2={13} stroke="#1A6FA8" strokeWidth={0.8} />
-        {/* Land masses */}
-        <ellipse cx={-3} cy={-2} rx={4} ry={6} fill="#5D8A3C" opacity={0.8} />
-        <ellipse cx={5} cy={3} rx={5} ry={3} fill="#5D8A3C" opacity={0.8} />
-      </g>
-
-      {/* ── Room outline strokes ────────────────────────── */}
-      <line x1={0} y1={ceilY} x2={0} y2={H} stroke="#1a1a1a" strokeWidth={3} />
-      <line x1={0} y1={wallBotY} x2={winX} y2={wallBotY} stroke="#1a1a1a" strokeWidth={2.5} />
-      <line x1={winX} y1={ceilY} x2={winX} y2={wallBotY} stroke="#1a1a1a" strokeWidth={3} />
+      {/* Room outlines */}
+      <line x1={0} y1={ceilY} x2={0} y2={H} stroke="#1a1a1a" strokeWidth={3}/>
+      <line x1={0} y1={wallBotY} x2={winX} y2={wallBotY} stroke="#1a1a1a" strokeWidth={2.5}/>
+      <line x1={winX} y1={ceilY} x2={winX} y2={wallBotY} stroke="#1a1a1a" strokeWidth={3}/>
     </svg>
   );
 }
 
-// ─── HUD Overlay ──────────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════
+// HUD TOY CLOCK (hand-drawn button style)
+// ══════════════════════════════════════════════════════════════
+function ToyClockBtn({ offset, label, sub, bg }: {
+  offset: number; label: string; sub: string; bg: string;
+}) {
+  const { hDeg, mDeg, sDeg } = useClockHands(offset);
+  const r = 22, cx = 26, cy = 26;
+  const arm = (deg: number, len: number, sw: number, col: string) => {
+    const rad = deg * Math.PI / 180;
+    return <line x1={cx} y1={cy}
+      x2={cx+Math.cos(rad)*len} y2={cy+Math.sin(rad)*len}
+      stroke={col} strokeWidth={sw} strokeLinecap="round"/>;
+  };
+  return (
+    <div style={{
+      display:'flex', flexDirection:'column', alignItems:'center', gap:2,
+      background: bg,
+      border:'2.5px solid #000', boxShadow:'3px 3px 0 #000',
+      padding:'5px 6px',
+    }}>
+      <svg width={52} height={52}>
+        <circle cx={cx+1} cy={cy+1} r={r+2} fill="#000"/>
+        <circle cx={cx} cy={cy} r={r+2} fill="#1a1a1a"/>
+        <circle cx={cx} cy={cy} r={r} fill="#FFFEF5"/>
+        {Array.from({length:12},(_,i)=>{
+          const a=(i*30-90)*Math.PI/180;
+          return <line key={i}
+            x1={cx+Math.cos(a)*(r-5)} y1={cy+Math.sin(a)*(r-5)}
+            x2={cx+Math.cos(a)*(r-1)} y2={cy+Math.sin(a)*(r-1)}
+            stroke="#1a1a1a" strokeWidth={i%3===0?2:0.8}/>;
+        })}
+        {arm(hDeg,r*.52,3,'#1a1a1a')}
+        {arm(mDeg,r*.76,2,'#1a1a1a')}
+        {arm(sDeg,r*.80,1,'#C0392B')}
+        <circle cx={cx} cy={cy} r={2} fill="#1a1a1a"/>
+      </svg>
+      <div style={{fontSize:9,fontWeight:900,...ZH,textAlign:'center'}}>{label}</div>
+      <div style={{fontSize:7,color:'#666',fontFamily:'monospace',textAlign:'center'}}>{sub}</div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════
+// HUD OVERLAY (3 Areas, no opaque background)
+// ══════════════════════════════════════════════════════════════
 function HUDOverlay() {
   const { state, derived } = useGame();
   const { player } = state;
   const { dayStatus, totalXP } = derived;
   const avatarUrl = buildAvatarUrl(player.avatar);
+  const transitOffset = derived.transitTz.offset ?? 8;
+  const transitLabel  = derived.transitTz.name !== '中轉機場'
+    ? derived.transitTz.name.slice(0,8) : '中轉機場';
 
-  // Day status card
-  let statusBg   = '#E8E4D8';
-  let statusIcon = '🛰️';
-  let statusLine1 = '台灣整備中';
-  let statusLine2 = `基地充能第 ${Math.max(dayStatus.days, 1)} 天`;
-
-  if (dayStatus.type === 'countdown') {
-    statusBg    = '#FFF8DC';
-    statusIcon  = '✈️';
-    statusLine1 = `出發倒數 D-${dayStatus.days}`;
-    statusLine2 = `抵達日：${player.arrivalDate}`;
-  } else if (dayStatus.type === 'arrived') {
-    statusBg    = '#E8F8E8';
-    statusIcon  = '☘️';
-    statusLine1 = `登陸愛爾蘭：Day ${dayStatus.days}`;
-    statusLine2 = `${player.arrivalDate} 抵達`;
+  // ── Day status card ──
+  let statusBg='#E8E4D8', statusText='', statusSub='';
+  if (dayStatus.type==='none') {
+    statusText = `台灣整備中`;
+    statusSub  = `基地充能第 ${Math.max(dayStatus.days,1)} 天`;
+  } else if (dayStatus.type==='countdown') {
+    statusBg   = '#FFF8DC';
+    statusText = `出發倒數 D-${dayStatus.days} 天`;
+    statusSub  = player.arrivalDate;
+  } else {
+    statusBg   = '#E4F4E4';
+    statusText = `登陸愛爾蘭：Day ${dayStatus.days}`;
+    statusSub  = `${player.arrivalDate} 抵達`;
   }
 
   return (
     <div style={{
-      position: 'absolute',
-      top: 10, left: 10,
-      display: 'flex', flexDirection: 'column', gap: 6,
-      pointerEvents: 'none',
+      position:'absolute', inset:0,
+      pointerEvents:'none',
+      display:'flex', flexDirection:'column',
+      justifyContent:'space-between',
+      padding:'8px 8px 6px',
     }}>
-      {/* Name card */}
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 6,
-        background: 'rgba(253,251,247,0.88)',
-        border: '2.5px solid #000',
-        boxShadow: '3px 3px 0 rgba(0,0,0,0.5)',
-        padding: '4px 8px 4px 4px',
-      }}>
+
+      {/* ── HUD Area 1: 個人名牌 + Gold ── */}
+      <div style={{display:'flex', gap:6, alignItems:'flex-start'}}>
+        {/* Name card */}
         <div style={{
-          width: 36, height: 36, flexShrink: 0,
-          border: '2px solid #000', background: '#b6e3f4', overflow: 'hidden',
+          display:'flex', alignItems:'center', gap:5,
+          background:'rgba(253,251,247,0.90)',
+          border:'2.5px solid #000', boxShadow:'3px 3px 0 #000',
+          padding:'3px 7px 3px 3px',
         }}>
-          <img src={avatarUrl} alt="avatar" style={{ width: '100%', display: 'block' }} />
-        </div>
-        <div>
-          <div style={{ fontSize: 13, fontWeight: 900, lineHeight: 1.1, ...ZH }}>
-            {player.name || '旅行者'}
+          <div style={{
+            width:38, height:38, flexShrink:0,
+            border:'2px solid #000', background:'#b6e3f4', overflow:'hidden',
+          }}>
+            <img src={avatarUrl} alt="" style={{width:'100%',display:'block'}}/>
           </div>
-          <div style={{ fontSize: 9, color: '#666', ...ZH }}>
-            {player.gender === 'female' ? '♀ 女' : player.gender === 'male' ? '♂ 男' : '冒險者'} · LV.1
+          <div>
+            <div style={{fontSize:14,fontWeight:900,lineHeight:1.1,...ZH}}>
+              {player.name||'旅行者'}
+            </div>
+            <div style={{fontSize:9,color:'#666',...ZH}}>
+              {player.gender==='female'?'♀ 女':player.gender==='male'?'♂ 男':'冒險者'} · LV.1
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* XP / Gold */}
-      <div style={{
-        background: 'rgba(0,0,0,0.82)',
-        border: '2.5px solid #FFD700',
-        boxShadow: '3px 3px 0 rgba(0,0,0,0.5)',
-        padding: '4px 10px',
-        display: 'flex', alignItems: 'center', gap: 6,
-      }}>
-        <span style={{ fontSize: 14 }}>⭐</span>
-        <span style={{
-          fontSize: 18, fontWeight: 900, color: '#FFD700',
-          letterSpacing: '0.05em', ...EN,
-        }}>{totalXP}</span>
-        <span style={{ fontSize: 9, color: '#C9A96E', ...ZH }}>XP</span>
-      </div>
-
-      {/* Day status */}
-      <div style={{
-        background: statusBg,
-        border: '2.5px solid #000',
-        boxShadow: '3px 3px 0 rgba(0,0,0,0.5)',
-        padding: '5px 10px',
-        minWidth: 140,
-      }}>
-        <div style={{ fontSize: 11, fontWeight: 900, ...ZH }}>
-          {statusIcon} {statusLine1}
-        </div>
-        <div style={{ fontSize: 9, color: '#555', marginTop: 1, ...ZH }}>
-          {statusLine2}
-        </div>
-      </div>
-
-      {/* Flight info */}
-      {player.flightNumber && (
+        {/* Gold / XP */}
         <div style={{
-          background: 'rgba(0,0,0,0.80)',
-          border: '2px solid #FFD700',
-          padding: '3px 8px',
-          boxShadow: '3px 3px 0 rgba(0,0,0,0.5)',
+          background:'rgba(0,0,0,0.85)',
+          border:'2.5px solid #FFD700', boxShadow:'3px 3px 0 rgba(0,0,0,0.6)',
+          padding:'3px 10px',
+          display:'flex', alignItems:'center', gap:5,
         }}>
-          <span style={{ fontSize: 10, color: '#FFD700', fontWeight: 700, ...EN }}>
-            ✈ {player.flightNumber}
-            {player.flightTime ? ` @ ${player.flightTime}` : ''}
-          </span>
+          <span style={{fontSize:10,color:'#FFD700',...ZH}}>XP</span>
+          <span style={{
+            fontSize:22, fontWeight:900, color:'#FFD700',
+            fontFamily:"'Itim', cursive", letterSpacing:'0.05em',
+          }}>{totalXP}</span>
         </div>
-      )}
+
+        {/* Day status card */}
+        <div style={{
+          background: statusBg,
+          border:'2.5px solid #000', boxShadow:'3px 3px 0 #000',
+          padding:'4px 10px', minWidth:130,
+        }}>
+          <div style={{fontSize:11,fontWeight:900,...ZH}}>{statusText}</div>
+          <div style={{fontSize:8,color:'#666',marginTop:1,...ZH}}>{statusSub}</div>
+        </div>
+
+        {/* Flight tag */}
+        {player.flightNumber && (
+          <div style={{
+            background:'rgba(0,0,0,0.82)',
+            border:'2px solid #FFD700', boxShadow:'3px 3px 0 rgba(0,0,0,0.5)',
+            padding:'3px 8px',
+          }}>
+            <span style={{fontSize:10,color:'#FFD700',fontWeight:700,...EN}}>
+              {player.flightNumber}
+              {player.flightTime?` @ ${player.flightTime}`:''}
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* ── HUD Area 3: 時空同步時鐘組 ── */}
+      <div style={{display:'flex', gap:5, justifyContent:'flex-end'}}>
+        <ToyClockBtn offset={8}             label="台灣"       sub="GMT+8"           bg="#FFE4E1"/>
+        <ToyClockBtn offset={transitOffset} label={transitLabel} sub={`GMT+${transitOffset}`} bg="#EDE7F6"/>
+        <ToyClockBtn offset={1}             label="愛爾蘭"     sub="GMT+1"           bg="#E8F5E9"/>
+      </div>
     </div>
   );
 }
 
-// ─── HomeScreen ───────────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════
+// HOME SCREEN ROOT
+// ══════════════════════════════════════════════════════════════
 export function HomeScreen() {
   return (
-    <div style={{ height: '100%', position: 'relative', overflow: 'hidden' }}>
+    <div style={{height:'100%', position:'relative', overflow:'hidden'}}>
       <RoomSVG />
       <HUDOverlay />
     </div>
