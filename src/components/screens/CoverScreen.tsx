@@ -1,5 +1,5 @@
 import React from 'react';
-import { ComposableMap, Geographies, Geography, Marker, Line } from 'react-simple-maps';
+import { ComposableMap, Geographies, Geography, Marker, useMap } from 'react-simple-maps';
 import { useGame } from '../../context/GameContext';
 import { ZH, EN } from '../../data/constants';
 
@@ -7,6 +7,52 @@ const GEO_URL = 'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json'
 
 const TW: [number, number] = [121, 25];
 const IE: [number, number] = [-8, 53];
+
+// ─── Flight Arc + Plane ───────────────────────────────────────────────────────
+function FlightArc() {
+  const { projection } = useMap();
+
+  const pTW = projection(TW);
+  const pIE = projection(IE);
+  if (!pTW || !pIE) return null;
+
+  const [x1, y1] = pTW;
+  const [x2, y2] = pIE;
+
+  // Control point: lift midpoint upward for parabolic arc
+  const cpX = (x1 + x2) / 2;
+  const cpY = (Math.min(y1, y2) + (y1 + y2) / 2) / 2 - 55;
+
+  // Midpoint on bezier at t=0.5
+  const mx = 0.25 * x1 + 0.5 * cpX + 0.25 * x2;
+  const my = 0.25 * y1 + 0.5 * cpY + 0.25 * y2;
+
+  // Tangent at t=0.5 → heading angle
+  const tx = (cpX - x1) * 0.5 + (x2 - cpX) * 0.5;
+  const ty = (cpY - y1) * 0.5 + (y2 - cpY) * 0.5;
+  const angle = Math.atan2(ty, tx) * (180 / Math.PI);
+
+  return (
+    <g>
+      <path
+        d={`M ${x1},${y1} Q ${cpX},${cpY} ${x2},${y2}`}
+        stroke="#7A5C2E"
+        strokeWidth={1.5}
+        strokeDasharray="5,4"
+        strokeLinecap="round"
+        fill="none"
+      />
+      <g transform={`translate(${mx},${my}) rotate(${angle})`}>
+        <text
+          textAnchor="middle"
+          dominantBaseline="middle"
+          fontSize={14}
+          style={{ userSelect: 'none' }}
+        >✈</text>
+      </g>
+    </g>
+  );
+}
 
 // ─── World Map ────────────────────────────────────────────────────────────────
 function WorldMap() {
@@ -36,15 +82,7 @@ function WorldMap() {
           }
         </Geographies>
 
-        {/* Flight arc */}
-        <Line
-          from={TW}
-          to={IE}
-          stroke="#7A5C2E"
-          strokeWidth={1.5}
-          strokeDasharray="4,3"
-          strokeLinecap="round"
-        />
+        <FlightArc />
 
         {/* Taiwan pin */}
         <Marker coordinates={TW}>

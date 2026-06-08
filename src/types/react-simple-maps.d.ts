@@ -49,6 +49,15 @@ declare module 'react-simple-maps' {
     fill?: string;
   }
 
+  export interface MapContextValue {
+    projection: (coords: [number, number]) => [number, number] | null;
+    path: any;
+    width: number;
+    height: number;
+  }
+
+  export function useMap(): MapContextValue;
+
   export const ComposableMap: ComponentType<ComposableMapProps>;
   export const Geographies: ComponentType<GeographiesProps>;
   export const Geography: ComponentType<GeographyProps>;
