@@ -26,7 +26,7 @@ export const TABS: { id: ScreenId; label: string; emoji: string }[] = [
   { id: 'AIB',         label: 'AIB Bank',      emoji: '🏦' },
   { id: 'TASK',        label: 'Task',          emoji: '📋' },
   { id: 'GUILD',       label: 'GUILD',         emoji: '⚔️' },
-  { id: 'DUNNES',      label: 'DUNNES',        emoji: '🛒' },
+  { id: 'DUNNES',      label: 'DUNNES STORE',  emoji: '🛒' },
   { id: 'BAG',         label: 'BAG',           emoji: '🎒' },
   { id: 'COLLECTIONS', label: 'COLLECTIONS',  emoji: '📔' },
 ];
