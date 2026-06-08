@@ -1,6 +1,46 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useGame } from '../../context/GameContext';
 import { buildAvatarUrl, ZH, EN } from '../../data/constants';
+
+// ══════════════════════════════════════════════════════════════
+// ISOMETRIC PROJECTION ENGINE
+// ══════════════════════════════════════════════════════════════
+const TW  = 64;   // tile width (px)
+const TH  = 32;   // tile height = TW/2
+const ZPX = 56;   // px per z-unit (wall height)
+const OX  = 440;  // screen origin X (back corner of room)
+const OY  = 200;  // screen origin Y
+const ROOM_W = 8; // tiles wide  (x-axis)
+const ROOM_D = 5; // tiles deep  (y-axis)
+const ROOM_H = 3; // z-units tall
+
+// 3D → 2D isometric projection
+function iso(x: number, y: number, z = 0): [number, number] {
+  return [
+    OX + (x - y) * TW / 2,
+    OY + (x + y) * TH / 2 - z * ZPX,
+  ];
+}
+
+// Convert array of 3D points → SVG polygon "x,y x,y" string
+function p(...pts: [number, number, number][]): string {
+  return pts.map(([x, y, z]) => iso(x, y, z).join(',')).join(' ');
+}
+
+// Screen → grid inverse (at z=0 ground plane)
+function screenToGrid(
+  sx: number, sy: number,
+  rect: DOMRect,
+  svgW: number, svgH: number,
+): [number, number] {
+  const scx = ((sx - rect.left) / rect.width)  * svgW;
+  const scy = ((sy - rect.top)  / rect.height) * svgH;
+  const dx  = scx - OX;
+  const dy  = scy - OY;
+  const gx  = dx / TW + dy / TH;
+  const gy  = dy / TH - dx / TW;
+  return [gx, gy];
+}
 
 // ══════════════════════════════════════════════════════════════
 // TYPES
@@ -13,11 +53,10 @@ type FurnitureType =
 interface PlacedItem {
   id: string;
   type: FurnitureType;
-  x: number;
-  y: number;
+  gx: number;
+  gy: number;
+  gz?: number;
   rotation: 0 | 90 | 180 | 270;
-  stackedOn?: string;
-  zOffset?: number;
 }
 
 interface OwnedItem {
@@ -26,37 +65,33 @@ interface OwnedItem {
 }
 
 // ══════════════════════════════════════════════════════════════
-// INITIAL STATE
+// ISOMETRIC BOX PRIMITIVE  (3 visible faces: top / left / right)
 // ══════════════════════════════════════════════════════════════
-const CATALOG: OwnedItem[] = [
-  { type: 'sofa',      label: '沙發'   },
-  { type: 'bed',       label: '床'     },
-  { type: 'desk',      label: '書桌'   },
-  { type: 'wardrobe',  label: '衣櫃'   },
-  { type: 'bookshelf', label: '書櫃'   },
-  { type: 'island',    label: '廚島'   },
-  { type: 'microwave', label: '微波爐' },
-  { type: 'oven',      label: '烤箱'   },
-  { type: 'sink',      label: '水槽'   },
-  { type: 'rug',       label: '地毯'   },
-  { type: 'guitar',    label: '吉他'   },
-  { type: 'backpack',  label: '背包'   },
-  { type: 'plant',     label: '盆栽'   },
-];
-
-const DEFAULT_PLACED: PlacedItem[] = [
-  { id: 'p_rug',       type: 'rug',       x: 200, y: 270, rotation: 0 },
-  { id: 'p_sofa',      type: 'sofa',      x: 40,  y: 210, rotation: 0 },
-  { id: 'p_guitar',    type: 'guitar',    x: 28,  y: 158, rotation: 0 },
-  { id: 'p_backpack',  type: 'backpack',  x: 96,  y: 248, rotation: 0 },
-  { id: 'p_island',    type: 'island',    x: 340, y: 198, rotation: 0 },
-  { id: 'p_microwave', type: 'microwave', x: 352, y: 158, rotation: 0, stackedOn: 'p_island', zOffset: -40 },
-  { id: 'p_desk',      type: 'desk',      x: 500, y: 190, rotation: 0 },
-];
-
-const DEFAULT_OWNED: OwnedItem[] = CATALOG.filter(c =>
-  !DEFAULT_PLACED.some(p => p.type === c.type)
-);
+interface IsoBoxProps {
+  x: number; y: number; z?: number;
+  w: number; d: number; h: number;
+  top:   string;   // lightest (receives light from above)
+  left:  string;   // medium   (left/front face, y=y+d side)
+  right: string;   // darkest  (right/front face, x=x+w side)
+  stroke?: string;
+  sw?: number;
+  opacity?: number;
+}
+function IsoBox({ x, y, z = 0, w, d, h, top, left, right, stroke = '#1a1a1a', sw = 1, opacity = 1 }: IsoBoxProps) {
+  return (
+    <g opacity={opacity}>
+      {/* Right face (x+w) — darkest */}
+      <polygon stroke={stroke} strokeWidth={sw} fill={right}
+        points={p([x+w,y,z],[x+w,y+d,z],[x+w,y+d,z+h],[x+w,y,z+h])}/>
+      {/* Left/front face (y+d) — medium */}
+      <polygon stroke={stroke} strokeWidth={sw} fill={left}
+        points={p([x,y+d,z],[x+w,y+d,z],[x+w,y+d,z+h],[x,y+d,z+h])}/>
+      {/* Top face — lightest */}
+      <polygon stroke={stroke} strokeWidth={sw} fill={top}
+        points={p([x,y,z+h],[x+w,y,z+h],[x+w,y+d,z+h],[x,y+d,z+h])}/>
+    </g>
+  );
+}
 
 // ══════════════════════════════════════════════════════════════
 // CLOCK HOOK
@@ -76,7 +111,53 @@ function useClockHands(gmtOffset: number) {
 }
 
 // ══════════════════════════════════════════════════════════════
-// SKY + WEATHER HOOK
+// WALL CLOCK  (placed on back wall at grid coords wx, wy=0, wz)
+// ══════════════════════════════════════════════════════════════
+function WallClock({ wx, wz, offset, label, r = 18 }: {
+  wx: number; wz: number; offset: number; label: string; r?: number;
+}) {
+  const { hDeg, mDeg, sDeg } = useClockHands(offset);
+  const [cx, cy] = iso(wx, 0, wz);
+
+  const arm = (deg: number, len: number, sw: number, col: string) => {
+    const rad = deg * Math.PI / 180;
+    return (
+      <line x1={cx} y1={cy}
+        x2={cx + Math.cos(rad) * len}
+        y2={cy + Math.sin(rad) * len}
+        stroke={col} strokeWidth={sw} strokeLinecap="round"/>
+    );
+  };
+
+  return (
+    <g>
+      <circle cx={cx + 2} cy={cy + 2} r={r + 3} fill="rgba(0,0,0,0.20)"/>
+      <circle cx={cx} cy={cy} r={r + 3} fill="#3A2408" stroke="#1a1a1a" strokeWidth={1.5}/>
+      <circle cx={cx} cy={cy} r={r}     fill="#FDF8EE"/>
+      {Array.from({ length: 12 }, (_, i) => {
+        const a = (i * 30 - 90) * Math.PI / 180;
+        const isQ = i % 3 === 0;
+        return (
+          <line key={i}
+            x1={cx + Math.cos(a) * (r - (isQ ? 5 : 3))}
+            y1={cy + Math.sin(a) * (r - (isQ ? 5 : 3))}
+            x2={cx + Math.cos(a) * (r - 0.5)}
+            y2={cy + Math.sin(a) * (r - 0.5)}
+            stroke="#2C1A08" strokeWidth={isQ ? 2 : 0.8}/>
+        );
+      })}
+      {arm(hDeg, r * 0.52, 2.5, '#1a1a1a')}
+      {arm(mDeg, r * 0.74, 1.8, '#1a1a1a')}
+      {arm(sDeg, r * 0.80, 1.0, '#C0392B')}
+      <circle cx={cx} cy={cy} r={2} fill="#1a1a1a"/>
+      <text x={cx} y={cy + r + 12} textAnchor="middle" fontSize={7} fontWeight="700"
+        fill="#5C3C18" fontFamily="'Noto Sans TC',sans-serif">{label}</text>
+    </g>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════
+// SKY / WEATHER
 // ══════════════════════════════════════════════════════════════
 type WeatherType = 'clear' | 'cloudy' | 'rain';
 
@@ -87,592 +168,694 @@ function useSkyAndWeather(arrived: boolean) {
     if (arrived) return r < 0.5 ? 'rain' : r < 0.8 ? 'cloudy' : 'clear';
     return r < 0.2 ? 'cloudy' : 'clear';
   });
-
   useEffect(() => {
     const id = setInterval(() => setHour(new Date().getHours()), 60000);
     return () => clearInterval(id);
   }, []);
-
   let sky: [string, string, string];
-  if (hour < 5 || hour >= 22)      sky = ['#020212', '#0A0E2C', '#141C44'];
-  else if (hour < 7)                sky = ['#6B1A2A', '#D4603A', '#F4C060'];
-  else if (hour >= 19 && hour < 22) sky = ['#7A1E3A', '#D04428', '#F09030'];
-  else if (hour >= 16)              sky = ['#2A5A8C', '#5A9AC0', '#A0C8E0'];
-  else if (arrived)                 sky = ['#3A6A8C', '#6AAEC8', '#A8D4E8'];
-  else                              sky = ['#1A5A90', '#3A9AC8', '#80CAE8'];
-
+  if      (hour < 5 || hour >= 22)      sky = ['#020212', '#0A0E2C', '#141C44'];
+  else if (hour < 7)                     sky = ['#6B1A2A', '#D4603A', '#F4C060'];
+  else if (hour >= 19 && hour < 22)      sky = ['#7A1E3A', '#D04428', '#F09030'];
+  else if (hour >= 16)                   sky = ['#2A5A8C', '#5A9AC0', '#A0C8E0'];
+  else if (arrived)                      sky = ['#3A6A8C', '#6AAEC8', '#A8D4E8'];
+  else                                   sky = ['#1A5A90', '#3A9AC8', '#80CAE8'];
   return { sky, weather };
 }
 
 // ══════════════════════════════════════════════════════════════
-// WALL ANALOG CLOCK (SVG sub-component, rendered inside RoomSVG)
+// ISOMETRIC FURNITURE COMPONENTS
+// Each takes (gx, gy) in grid coords and renders isometric boxes
 // ══════════════════════════════════════════════════════════════
-function WallClock({ cx, cy, r, offset, label }: {
-  cx: number; cy: number; r: number;
-  offset: number; label: string;
-}) {
-  const { hDeg, mDeg, sDeg } = useClockHands(offset);
-  const arm = (deg: number, len: number, sw: number, col: string) => {
-    const rad = deg * Math.PI / 180;
+type FurnitureProps = { gx: number; gy: number; gz?: number };
+
+const Furniture: Record<FurnitureType, React.FC<FurnitureProps>> = {
+
+  rug: ({ gx, gy }) => {
+    const [cx, cy] = iso(gx + 1.5, gy + 1, 0.01);
     return (
-      <line
-        x1={cx} y1={cy}
-        x2={cx + Math.cos(rad) * len}
-        y2={cy + Math.sin(rad) * len}
-        stroke={col} strokeWidth={sw} strokeLinecap="round"
-      />
+      <g>
+        <ellipse cx={cx} cy={cy} rx={90} ry={30} fill="#A06838" opacity={0.30}/>
+        <ellipse cx={cx} cy={cy} rx={74} ry={22} fill="none"
+          stroke="#C09050" strokeWidth={1.2} strokeDasharray="6,4" opacity={0.45}/>
+        <ellipse cx={cx} cy={cy} rx={58} ry={15} fill="none"
+          stroke="#D4A860" strokeWidth={0.7} strokeDasharray="4,4" opacity={0.3}/>
+      </g>
     );
-  };
-  return (
+  },
+
+  sofa: ({ gx, gy }) => (
     <g>
-      {/* Clock shadow */}
-      <circle cx={cx + 2} cy={cy + 2} r={r + 3} fill="rgba(0,0,0,0.18)" />
-      {/* Clock body */}
-      <circle cx={cx} cy={cy} r={r + 3} fill="#3A2408" stroke="#1a1a1a" strokeWidth={1.5} />
-      <circle cx={cx} cy={cy} r={r}     fill="#FDF8EE" />
-      {/* Hour ticks */}
-      {Array.from({ length: 12 }, (_, i) => {
-        const a = (i * 30 - 90) * Math.PI / 180;
-        const isQ = i % 3 === 0;
+      {/* Seat */}
+      <IsoBox x={gx} y={gy} z={0} w={3} d={0.9} h={0.45}
+        top="#D4985C" left="#B07840" right="#9A6830"/>
+      {/* Back rest */}
+      <IsoBox x={gx} y={gy + 0.55} z={0.45} w={3} d={0.35} h={0.65}
+        top="#A06030" left="#8A4C20" right="#7A3C10"/>
+      {/* Cushion lines on seat top */}
+      {(() => {
+        const [ax, ay] = iso(gx + 1.5, gy, 0.45);
+        const [bx, by] = iso(gx + 1.5, gy + 0.9, 0.45);
+        return <line x1={ax} y1={ay} x2={bx} y2={by} stroke="#9A6830" strokeWidth={1.5}/>;
+      })()}
+      {/* Left armrest */}
+      <IsoBox x={gx - 0.2} y={gy - 0.05} z={0} w={0.2} d={1.0} h={0.85}
+        top="#7A5030" left="#5A3818" right="#4A2808"/>
+      {/* Right armrest */}
+      <IsoBox x={gx + 3.0} y={gy - 0.05} z={0} w={0.2} d={1.0} h={0.85}
+        top="#7A5030" left="#5A3818" right="#4A2808"/>
+      {/* Legs */}
+      <IsoBox x={gx}       y={gy}       z={0} w={0.15} d={0.12} h={0.1}
+        top="#3A1A08" left="#2A1008" right="#1A0808"/>
+      <IsoBox x={gx + 2.7} y={gy}       z={0} w={0.15} d={0.12} h={0.1}
+        top="#3A1A08" left="#2A1008" right="#1A0808"/>
+    </g>
+  ),
+
+  bed: ({ gx, gy }) => (
+    <g>
+      {/* Frame */}
+      <IsoBox x={gx} y={gy} z={0} w={2.5} d={2} h={0.28}
+        top="#5A3C1A" left="#3A2408" right="#2A1808"/>
+      {/* Mattress */}
+      <IsoBox x={gx} y={gy} z={0.28} w={2.5} d={2} h={0.22}
+        top="#E8DCC8" left="#C8B8A0" right="#B8A890"/>
+      {/* Pillows */}
+      <IsoBox x={gx + 0.08} y={gy + 1.45} z={0.5} w={1.0} d={0.45} h={0.14}
+        top="#FDFAF4" left="#D8D0C0" right="#C8C0B0"/>
+      <IsoBox x={gx + 1.3}  y={gy + 1.45} z={0.5} w={1.0} d={0.45} h={0.14}
+        top="#FDFAF4" left="#D8D0C0" right="#C8C0B0"/>
+      {/* Blanket */}
+      <IsoBox x={gx} y={gy} z={0.5} w={2.5} d={1.35} h={0.12}
+        top="#6A8AC0" left="#4A6AA0" right="#3A5A90"/>
+      {/* Fold on blanket top */}
+      {(() => {
+        const [ax, ay] = iso(gx, gy + 1.35, 0.62);
+        const [bx, by] = iso(gx + 2.5, gy + 1.35, 0.62);
+        return <line x1={ax} y1={ay} x2={bx} y2={by} stroke="#3A5A90" strokeWidth={1.2}/>;
+      })()}
+      {/* Headboard */}
+      <IsoBox x={gx} y={gy + 1.8} z={0} w={2.5} d={0.2} h={1.1}
+        top="#7A5230" left="#5A3818" right="#4A2808"/>
+      {/* Panel details on headboard (left face) */}
+      {(() => {
+        const [ax, ay] = iso(gx + 0.8, gy + 2, 0.2);
+        const [bx, by] = iso(gx + 0.8, gy + 2, 0.9);
+        const [cx, cy] = iso(gx + 1.7, gy + 2, 0.9);
+        const [dx, dy] = iso(gx + 1.7, gy + 2, 0.2);
         return (
-          <line key={i}
-            x1={cx + Math.cos(a) * (r - (isQ ? 6 : 4))}
-            y1={cy + Math.sin(a) * (r - (isQ ? 6 : 4))}
-            x2={cx + Math.cos(a) * (r - 1)}
-            y2={cy + Math.sin(a) * (r - 1)}
-            stroke="#2C1A08" strokeWidth={isQ ? 2 : 0.8}
-          />
+          <polygon points={`${ax},${ay} ${bx},${by} ${cx},${cy} ${dx},${dy}`}
+            fill="#6A4828" stroke="#5A3818" strokeWidth={0.8}/>
+        );
+      })()}
+    </g>
+  ),
+
+  desk: ({ gx, gy }) => (
+    <g>
+      {/* Legs */}
+      <IsoBox x={gx + 0.1} y={gy + 0.1} z={0} w={0.12} d={0.12} h={0.45}
+        top="#5A3C18" left="#3A2408" right="#2A1808"/>
+      <IsoBox x={gx + 1.8} y={gy + 0.1} z={0} w={0.12} d={0.12} h={0.45}
+        top="#5A3C18" left="#3A2408" right="#2A1808"/>
+      <IsoBox x={gx + 0.1} y={gy + 0.8} z={0} w={0.12} d={0.12} h={0.45}
+        top="#5A3C18" left="#3A2408" right="#2A1808"/>
+      <IsoBox x={gx + 1.8} y={gy + 0.8} z={0} w={0.12} d={0.12} h={0.45}
+        top="#5A3C18" left="#3A2408" right="#2A1808"/>
+      {/* Tabletop */}
+      <IsoBox x={gx} y={gy} z={0.45} w={2} d={1} h={0.1}
+        top="#B08848" left="#8A6830" right="#7A5820"/>
+      {/* Monitor stand */}
+      <IsoBox x={gx + 0.7} y={gy + 0.55} z={0.55} w={0.2} d={0.1} h={0.4}
+        top="#3A3A3A" left="#2A2A2A" right="#1A1A1A"/>
+      {/* Monitor */}
+      <IsoBox x={gx + 0.3} y={gy + 0.6} z={0.95} w={1.0} d={0.08} h={0.62}
+        top="#2C2C2C" left="#3A3A3A" right="#1A1A1A"/>
+      {/* Screen glow */}
+      {(() => {
+        const [ax, ay] = iso(gx + 0.35, gy + 0.68, 1.52);
+        const [bx, by] = iso(gx + 1.25, gy + 0.68, 1.52);
+        const [cx, cy] = iso(gx + 1.25, gy + 0.68, 1.0);
+        const [dx, dy] = iso(gx + 0.35, gy + 0.68, 1.0);
+        return (
+          <polygon points={`${ax},${ay} ${bx},${by} ${cx},${cy} ${dx},${dy}`}
+            fill="#5DADE2" opacity={0.6}/>
+        );
+      })()}
+      {/* Keyboard */}
+      <IsoBox x={gx + 0.3} y={gy + 0.1} z={0.55} w={1.0} d={0.4} h={0.04}
+        top="#C8C8C8" left="#A8A8A8" right="#888888"/>
+      {/* Mouse */}
+      <IsoBox x={gx + 1.55} y={gy + 0.2} z={0.55} w={0.25} d={0.2} h={0.06}
+        top="#B0B0B0" left="#909090" right="#707070"/>
+    </g>
+  ),
+
+  wardrobe: ({ gx, gy }) => (
+    <g>
+      {/* Main body */}
+      <IsoBox x={gx} y={gy} z={0} w={1.5} d={0.8} h={2.0}
+        top="#7A5838" left="#6A4C30" right="#4A3018"/>
+      {/* Door frame line (left face) */}
+      {(() => {
+        const [ax, ay] = iso(gx, gy + 0.8, 0.12);
+        const [bx, by] = iso(gx + 0.75, gy + 0.8, 0.12);
+        const [cx, cy] = iso(gx + 0.75, gy + 0.8, 1.85);
+        const [dx, dy] = iso(gx, gy + 0.8, 1.85);
+        const [ex, ey] = iso(gx + 1.5, gy + 0.8, 0.12);
+        const [fx, fy] = iso(gx + 1.5, gy + 0.8, 1.85);
+        return (
+          <>
+            <polygon points={`${ax},${ay} ${bx},${by} ${cx},${cy} ${dx},${dy}`}
+              fill="#5A3C20" stroke="#4A3010" strokeWidth={0.8}/>
+            <polygon points={`${bx},${by} ${ex},${ey} ${fx},${fy} ${cx},${cy}`}
+              fill="#5A3C20" stroke="#4A3010" strokeWidth={0.8}/>
+          </>
+        );
+      })()}
+      {/* Left handle */}
+      {(() => {
+        const [hx, hy] = iso(gx + 0.65, gy + 0.8, 1.0);
+        return <circle cx={hx} cy={hy} r={3.5} fill="#C0A060" stroke="#A08040" strokeWidth={1}/>;
+      })()}
+      {/* Right handle */}
+      {(() => {
+        const [hx, hy] = iso(gx + 0.85, gy + 0.8, 1.0);
+        return <circle cx={hx} cy={hy} r={3.5} fill="#C0A060" stroke="#A08040" strokeWidth={1}/>;
+      })()}
+    </g>
+  ),
+
+  bookshelf: ({ gx, gy }) => (
+    <g>
+      {/* Back panel + sides */}
+      <IsoBox x={gx} y={gy} z={0} w={1.2} d={0.7} h={1.8}
+        top="#9A7440" left="#7A5C30" right="#5A3C18"/>
+      {/* Shelf 1 */}
+      <IsoBox x={gx} y={gy} z={0.6} w={1.2} d={0.65} h={0.06}
+        top="#7A5428" left="#5A3C18" right="#4A2C10"/>
+      {/* Shelf 2 */}
+      <IsoBox x={gx} y={gy} z={1.2} w={1.2} d={0.65} h={0.06}
+        top="#7A5428" left="#5A3C18" right="#4A2C10"/>
+      {/* Books row 1 */}
+      {[
+        { dx: 0.05, c: '#C0392B', w: 0.18 },
+        { dx: 0.25, c: '#2E86C1', w: 0.22 },
+        { dx: 0.5,  c: '#F39C12', w: 0.16 },
+        { dx: 0.7,  c: '#27AE60', w: 0.2  },
+        { dx: 0.95, c: '#8E44AD', w: 0.15 },
+      ].map((b, i) => (
+        <IsoBox key={i} x={gx + b.dx} y={gy + 0.05} z={0.05} w={b.w} d={0.55} h={0.5}
+          top={b.c} left={b.c} right={b.c} sw={0.5}/>
+      ))}
+      {/* Books row 2 */}
+      {[
+        { dx: 0.05, c: '#E74C3C', w: 0.20 },
+        { dx: 0.3,  c: '#1A5276', w: 0.18 },
+        { dx: 0.52, c: '#D4AC0D', w: 0.22 },
+        { dx: 0.78, c: '#117A65', w: 0.15 },
+      ].map((b, i) => (
+        <IsoBox key={i} x={gx + b.dx} y={gy + 0.05} z={0.65} w={b.w} d={0.55} h={0.5}
+          top={b.c} left={b.c} right={b.c} sw={0.5}/>
+      ))}
+    </g>
+  ),
+
+  island: ({ gx, gy }) => (
+    <g>
+      {/* Cabinet body */}
+      <IsoBox x={gx} y={gy} z={0} w={2.5} d={1} h={0.65}
+        top="#7A6040" left="#5A4228" right="#4A3018"/>
+      {/* Door details on left face */}
+      {(() => {
+        const [ax, ay] = iso(gx + 0.55, gy + 1, 0.1);
+        const [bx, by] = iso(gx + 1.15, gy + 1, 0.1);
+        const [cx, cy] = iso(gx + 1.15, gy + 1, 0.55);
+        const [dx, dy] = iso(gx + 0.55, gy + 1, 0.55);
+        return (
+          <>
+            <polygon points={`${ax},${ay} ${bx},${by} ${cx},${cy} ${dx},${dy}`}
+              fill="#4A3018" stroke="#3A2010" strokeWidth={0.8}/>
+            {(() => {
+              const [hx, hy] = iso(gx + 1.0, gy + 1, 0.32);
+              return <circle cx={hx} cy={hy} r={3} fill="#C0A060" stroke="#A08040" strokeWidth={0.8}/>;
+            })()}
+          </>
+        );
+      })()}
+      {/* Marble counter top */}
+      <IsoBox x={gx - 0.05} y={gy - 0.05} z={0.65} w={2.6} d={1.1} h={0.08}
+        top="#E8DCC8" left="#C8B8A0" right="#B0A090"/>
+      {/* Marble veins */}
+      {(() => {
+        const [ax, ay] = iso(gx + 0.3, gy + 0.1, 0.73);
+        const [bx, by] = iso(gx + 1.2, gy + 0.8, 0.73);
+        return <line x1={ax} y1={ay} x2={bx} y2={by} stroke="#D0C4B0" strokeWidth={1} opacity={0.6}/>;
+      })()}
+    </g>
+  ),
+
+  microwave: ({ gx, gy, gz = 0 }) => (
+    <g>
+      <IsoBox x={gx} y={gy} z={gz} w={0.9} d={0.65} h={0.5}
+        top="#4C4C4C" left="#2A2A2A" right="#1A1A1A"/>
+      {/* Door window (left face) */}
+      {(() => {
+        const [ax, ay] = iso(gx + 0.05, gy + 0.65, gz + 0.07);
+        const [bx, by] = iso(gx + 0.55, gy + 0.65, gz + 0.07);
+        const [cx, cy] = iso(gx + 0.55, gy + 0.65, gz + 0.42);
+        const [dx, dy] = iso(gx + 0.05, gy + 0.65, gz + 0.42);
+        return (
+          <polygon points={`${ax},${ay} ${bx},${by} ${cx},${cy} ${dx},${dy}`}
+            fill="#0A1A2A"/>
+        );
+      })()}
+      {/* Display */}
+      {(() => {
+        const [sx, sy] = iso(gx + 0.64, gy + 0.65, gz + 0.18);
+        return (
+          <text x={sx} y={sy} fontSize={5} fill="#00FF88"
+            fontFamily="monospace" textAnchor="middle">12:00</text>
+        );
+      })()}
+    </g>
+  ),
+
+  oven: ({ gx, gy }) => (
+    <g>
+      {/* Body */}
+      <IsoBox x={gx} y={gy} z={0} w={1.0} d={0.85} h={0.9}
+        top="#2C2C2C" left="#1A1A1A" right="#0A0A0A"/>
+      {/* Door window */}
+      {(() => {
+        const [ax, ay] = iso(gx + 0.08, gy + 0.85, 0.12);
+        const [bx, by] = iso(gx + 0.92, gy + 0.85, 0.12);
+        const [cx, cy] = iso(gx + 0.92, gy + 0.85, 0.72);
+        const [dx, dy] = iso(gx + 0.08, gy + 0.85, 0.72);
+        return (
+          <polygon points={`${ax},${ay} ${bx},${by} ${cx},${cy} ${dx},${dy}`}
+            fill="#0A1A0A" stroke="#2a2a2a" strokeWidth={0.5}/>
+        );
+      })()}
+      {/* Stovetop */}
+      <IsoBox x={gx} y={gy} z={0.9} w={1.0} d={0.85} h={0.06}
+        top="#3A3A3A" left="#2A2A2A" right="#1A1A1A"/>
+      {/* Burner rings */}
+      {[
+        { bx: gx + 0.28, by: gy + 0.26 },
+        { bx: gx + 0.72, by: gy + 0.26 },
+        { bx: gx + 0.28, by: gy + 0.64 },
+        { bx: gx + 0.72, by: gy + 0.64 },
+      ].map((b, i) => {
+        const [cx, cy] = iso(b.bx, b.by, 0.96);
+        return (
+          <g key={i}>
+            <ellipse cx={cx} cy={cy} rx={12} ry={5} fill="none" stroke="#555" strokeWidth={1.5}/>
+            <ellipse cx={cx} cy={cy} rx={6}  ry={2.5} fill="#1a1a1a" stroke="#333" strokeWidth={1}/>
+          </g>
         );
       })}
-      {arm(hDeg, r * 0.52, 2.5, '#1a1a1a')}
-      {arm(mDeg, r * 0.74, 1.8, '#1a1a1a')}
-      {arm(sDeg, r * 0.78, 1,   '#C0392B')}
-      <circle cx={cx} cy={cy} r={2} fill="#1a1a1a" />
-      {/* Label below clock */}
-      <text x={cx} y={cy + r + 11} textAnchor="middle" fontSize={8}
-        fontWeight="700" fill="#5C3C18"
-        fontFamily="'Noto Sans TC', sans-serif">
-        {label}
-      </text>
-    </g>
-  );
-}
-
-// ══════════════════════════════════════════════════════════════
-// REALISTIC SVG FURNITURE COMPONENTS
-// ══════════════════════════════════════════════════════════════
-const F: Record<FurnitureType, React.FC<{ x: number; y: number; rotation?: number }>> = {
-
-  rug: ({ x, y }) => (
-    <g transform={`translate(${x},${y})`}>
-      <ellipse cx={0} cy={0} rx={150} ry={30} fill="#A06838" opacity={0.32} stroke="#7A4820" strokeWidth={1}/>
-      <ellipse cx={0} cy={0} rx={130} ry={22} fill="#B87840" opacity={0.22} stroke="#C09050" strokeWidth={0.8} strokeDasharray="6,4"/>
-      <ellipse cx={0} cy={0} rx={110} ry={16} fill="none" stroke="#D4A860" strokeWidth={0.5} strokeDasharray="4,4" opacity={0.4}/>
     </g>
   ),
 
-  sofa: ({ x, y }) => (
-    <g transform={`translate(${x},${y})`} style={{ filter: 'drop-shadow(5px 8px 0 rgba(0,0,0,0.22))' }}>
-      {/* Shadow */}
-      <ellipse cx={95} cy={76} rx={100} ry={13} fill="#000" opacity={0.1}/>
-      {/* Back rest */}
-      <polygon points="0,6 200,6 200,52 0,52" fill="#9B6A3C" stroke="#7A5030" strokeWidth={1.5}/>
-      {/* Back cushions */}
-      <polygon points="4,8  94,8  94,50 4,50"   fill="#B07A48" stroke="#8A5C30" strokeWidth={1}/>
-      <polygon points="106,8 196,8 196,50 106,50" fill="#B07A48" stroke="#8A5C30" strokeWidth={1}/>
-      {/* Cushion detail */}
-      <path d="M 4,29 Q 49,24 94,29" stroke="#8A5C30" strokeWidth="0.8" fill="none"/>
-      <path d="M 106,29 Q 151,24 196,29" stroke="#8A5C30" strokeWidth="0.8" fill="none"/>
-      {/* Seat */}
-      <polygon points="0,52  200,52  212,82 -12,82" fill="#C48850" stroke="#A06838" strokeWidth={1.5}/>
-      {/* Seat cushions */}
-      <polygon points="2,53  95,53  102,80 -6,80"  fill="#D4985C" stroke="#B07840" strokeWidth={1}/>
-      <polygon points="105,53 198,53 208,80 98,80" fill="#D4985C" stroke="#B07840" strokeWidth={1}/>
-      <path d="M -2,66 Q 48,62 100,66" stroke="#B07840" strokeWidth="0.8" fill="none"/>
-      <path d="M 102,66 Q 152,62 210,66" stroke="#B07840" strokeWidth="0.8" fill="none"/>
-      {/* Armrests */}
-      <polygon points="-12,4 12,4 12,82 -22,82" fill="#7A5030" stroke="#5A3818" strokeWidth={1.2}/>
-      <polygon points="190,4 212,4 220,82 188,82" fill="#7A5030" stroke="#5A3818" strokeWidth={1.2}/>
-      {/* Legs */}
-      <rect x={-4}  y={82} width={8}  height={14} rx={2} fill="#4A2C10"/>
-      <rect x={186} y={82} width={8}  height={14} rx={2} fill="#4A2C10"/>
-    </g>
-  ),
-
-  bed: ({ x, y }) => (
-    <g transform={`translate(${x},${y})`} style={{ filter: 'drop-shadow(5px 8px 0 rgba(0,0,0,0.2))' }}>
-      <ellipse cx={80} cy={100} rx={88} ry={12} fill="#000" opacity={0.1}/>
-      {/* Frame */}
-      <polygon points="0,20 164,20 176,96 12,96" fill="#5A3C1A" stroke="#3A2408" strokeWidth={1.5}/>
-      {/* Mattress */}
-      <polygon points="4,14 160,14 172,88 16,88"  fill="#E8DCC8" stroke="#C8B8A0" strokeWidth={1.2}/>
-      {/* Pillow */}
-      <polygon points="8,16  68,16  76,36  16,36"  fill="#FDFAF4" stroke="#D8D0C0" strokeWidth={1}/>
-      <polygon points="78,16 138,16 146,36 86,36"  fill="#FDFAF4" stroke="#D8D0C0" strokeWidth={1}/>
-      {/* Blanket */}
-      <polygon points="8,36  170,36  178,84 16,84" fill="#6A8AC0" stroke="#4A6AA0" strokeWidth={1}/>
-      <path d="M 8,36 Q 89,32 170,36" stroke="#5A7AB0" strokeWidth="1.5" fill="none"/>
-      <path d="M 12,58 Q 93,54 172,58" stroke="#5A7AB0" strokeWidth="0.8" fill="none" opacity="0.6"/>
-      {/* Headboard */}
-      <polygon points="-8,-18 168,-18 164,20 0,20" fill="#7A5230" stroke="#5A3818" strokeWidth={1.5}/>
-      <rect x={4} y={-14} width={72} height={30} rx={4} fill="#8A6240" stroke="#6A4828" strokeWidth={1}/>
-      <rect x={84} y={-14} width={72} height={30} rx={4} fill="#8A6240" stroke="#6A4828" strokeWidth={1}/>
-      {/* Legs */}
-      <rect x={4}   y={96} width={8} height={16} rx={2} fill="#3A2408"/>
-      <rect x={160} y={96} width={8} height={16} rx={2} fill="#3A2408"/>
-    </g>
-  ),
-
-  desk: ({ x, y }) => (
-    <g transform={`translate(${x},${y})`} style={{ filter: 'drop-shadow(4px 6px 0 rgba(0,0,0,0.18))' }}>
-      {/* Legs */}
-      <rect x={4}   y={36} width={7} height={24} rx={2} fill="#5A3C18"/>
-      <rect x={116} y={36} width={7} height={24} rx={2} fill="#5A3C18"/>
-      {/* Tabletop shadow */}
-      <polygon points="4,5 132,5 140,36 12,36" fill="#000" opacity={0.12}/>
-      {/* Tabletop underside */}
-      <polygon points="-2,-12 128,-12 136,4 4,4" fill="#9A7040" stroke="#7A5028" strokeWidth={1.5}/>
-      {/* Tabletop surface */}
-      <polygon points="4,4 132,4 140,36 12,36"  fill="#B08848" stroke="#8A6830" strokeWidth={1.5}/>
-      {/* Wood grain */}
-      <line x1={20} y1={6} x2={26} y2={34} stroke="#A07838" strokeWidth="0.6" opacity="0.5"/>
-      <line x1={50} y1={5} x2={57} y2={35} stroke="#A07838" strokeWidth="0.6" opacity="0.5"/>
-      <line x1={80} y1={5} x2={88} y2={35} stroke="#A07838" strokeWidth="0.6" opacity="0.5"/>
-      {/* Monitor */}
-      <polygon points="10,-28 78,-28 82,-12 6,-12"  fill="#2C2C2C" stroke="#1a1a1a" strokeWidth={1}/>
-      <polygon points="6,-12 82,-12 88,-2 0,-2"     fill="#3A3A3A" stroke="#1a1a1a" strokeWidth={1}/>
-      <polygon points="12,-26 76,-26 80,-13 8,-13"  fill="#5DADE2" opacity={0.55}/>
-      <rect x={38} y={-2} width={14} height={4} rx={1} fill="#4A4A4A"/>
-      {/* Mouse */}
-      <ellipse cx={104} cy={6} rx={9} ry={6} fill="#4A4A4A" stroke="#2a2a2a" strokeWidth={0.8}/>
-      <line x1={104} y1={0} x2={104} y2={12} stroke="#3a3a3a" strokeWidth="0.8"/>
-    </g>
-  ),
-
-  wardrobe: ({ x, y }) => (
-    <g transform={`translate(${x},${y})`} style={{ filter: 'drop-shadow(5px 8px 0 rgba(0,0,0,0.2))' }}>
-      {/* Body */}
-      <polygon points="0,4 108,4 116,100 8,100" fill="#5A4028" stroke="#3A2810" strokeWidth={1.5}/>
-      {/* Top face */}
-      <polygon points="-6,-8 108,-8 116,4 0,4"  fill="#7A5838" stroke="#5A3A20" strokeWidth={1.5}/>
-      {/* Door divider */}
-      <line x1={54} y1={4} x2={62} y2={100} stroke="#3A2810" strokeWidth={2}/>
-      {/* Left door panel */}
-      <polygon points="4,8 52,8 60,96 12,96" fill="#6A4C30" stroke="#4A3418" strokeWidth={0.8}/>
-      {/* Right door panel */}
-      <polygon points="56,8 104,8 112,96 64,96" fill="#6A4C30" stroke="#4A3418" strokeWidth={0.8}/>
-      {/* Handles */}
-      <circle cx={48} cy={52} r={4} fill="#C0A060" stroke="#A08040" strokeWidth={1}/>
-      <circle cx={62} cy={52} r={4} fill="#C0A060" stroke="#A08040" strokeWidth={1}/>
-      {/* Feet */}
-      <rect x={4}   y={100} width={10} height={8} rx={2} fill="#3A2408"/>
-      <rect x={100} y={100} width={10} height={8} rx={2} fill="#3A2408"/>
-    </g>
-  ),
-
-  bookshelf: ({ x, y }) => (
-    <g transform={`translate(${x},${y})`} style={{ filter: 'drop-shadow(4px 6px 0 rgba(0,0,0,0.18))' }}>
-      {/* Back */}
-      <polygon points="0,0 90,0 98,100 8,100" fill="#7A5C30" stroke="#5A3C18" strokeWidth={1.5}/>
-      {/* Top */}
-      <polygon points="-6,-8 90,-8 98,0 0,0" fill="#9A7440" stroke="#7A5428" strokeWidth={1.5}/>
-      {/* Shelves */}
-      {[0.28, 0.54, 0.78].map((t, i) => (
-        <polygon key={i}
-          points={`${-2 + t*8},${t*100} ${90 - t*8},${t*100} ${90 - t*8 + 6},${t*100 + 6} ${-2 + t*8 + 6},${t*100 + 6}`}
-          fill="#6A4820" stroke="#4A3010" strokeWidth={0.8}/>
-      ))}
-      {/* Books */}
-      {[
-        { x: 4,  y: 6,  w: 10, h: 24, c: '#C0392B' },
-        { x: 16, y: 4,  w: 12, h: 26, c: '#2E86C1' },
-        { x: 30, y: 8,  w: 9,  h: 22, c: '#F39C12' },
-        { x: 41, y: 6,  w: 11, h: 24, c: '#27AE60' },
-        { x: 6,  y: 32, w: 13, h: 22, c: '#8E44AD' },
-        { x: 21, y: 30, w: 10, h: 24, c: '#E74C3C' },
-        { x: 33, y: 34, w: 11, h: 20, c: '#1A5276' },
-      ].map((b, i) => (
-        <rect key={i} x={b.x} y={b.y} width={b.w} height={b.h} fill={b.c} stroke="#1a1a1a" strokeWidth="0.5" rx={0.5}/>
-      ))}
-    </g>
-  ),
-
-  island: ({ x, y }) => (
-    <g transform={`translate(${x},${y})`} style={{ filter: 'drop-shadow(5px 8px 0 rgba(0,0,0,0.15))' }}>
-      {/* Shadow */}
-      <polygon points="8,7 172,7 192,68 28,68" fill="#000" opacity={0.12}/>
-      {/* Body */}
-      <polygon points="0,30 166,30 184,64 18,64" fill="#7A6040" stroke="#5A4228" strokeWidth={1.5}/>
-      {/* Counter top */}
-      <polygon points="-6,12 166,12 184,30 0,30" fill="#E8DCC8" stroke="#C8B8A0" strokeWidth={1.5}/>
-      {/* Marble veins */}
-      <path d="M 10,14 Q 50,20 90,14 Q 130,10 160,18" stroke="#D0C4B0" strokeWidth="0.9" fill="none" opacity="0.7"/>
-      <path d="M 30,24 Q 80,18 130,24" stroke="#D0C4B0" strokeWidth="0.6" fill="none" opacity="0.5"/>
-      {/* Edge highlight */}
-      <line x1={0} y1={30} x2={166} y2={30} stroke="#B0A090" strokeWidth={0.8} strokeDasharray="5,3"/>
-      {/* Legs */}
-      <rect x={6}   y={64} width={8} height={20} rx={2} fill="#4A3018"/>
-      <rect x={168} y={64} width={8} height={20} rx={2} fill="#4A3018"/>
-    </g>
-  ),
-
-  microwave: ({ x, y }) => (
-    <g transform={`translate(${x},${y})`} style={{ filter: 'drop-shadow(3px 4px 0 rgba(0,0,0,0.22))' }}>
-      {/* Body shadow */}
-      <polygon points="4,5 78,5 86,30 12,30" fill="#000" opacity={0.14}/>
-      {/* Bottom face */}
-      <polygon points="0,16 72,16 80,30 8,30" fill="#3A3A3A" stroke="#1a1a1a" strokeWidth={1.2}/>
-      {/* Top face */}
-      <polygon points="-4,4 72,4 80,16 0,16"  fill="#4C4C4C" stroke="#2a2a2a" strokeWidth={1.2}/>
-      {/* Door */}
-      <polygon points="2,16 46,16 52,30 6,30"  fill="#2A2A2A" stroke="#1a1a1a" strokeWidth={0.8}/>
-      <polygon points="6,17 40,17 46,26 10,26" fill="#0A1A2A"/>
-      {/* Control panel */}
-      <polygon points="48,16 70,16 76,30 54,30" fill="#5C5C5C" stroke="#3a3a3a" strokeWidth={0.8}/>
-      <polygon points="50,18 68,18 73,27 56,27" fill="#001010"/>
-      <text x={61} y={24} fontSize={6} fill="#00FF88" fontFamily="monospace" textAnchor="middle">12:00</text>
-      {[0,1,2].map(i => <circle key={i} cx={58+i*5} cy={29} r={1.5} fill="#555" stroke="#333" strokeWidth="0.5"/>)}
-      <line x1={48} y1={17} x2={54} y2={29} stroke="#888" strokeWidth={2.2} strokeLinecap="round"/>
-    </g>
-  ),
-
-  oven: ({ x, y }) => (
-    <g transform={`translate(${x},${y})`} style={{ filter: 'drop-shadow(4px 6px 0 rgba(0,0,0,0.2))' }}>
-      {/* Body */}
-      <polygon points="0,14 72,14 80,64 8,64" fill="#2C2C2C" stroke="#1a1a1a" strokeWidth={1.5}/>
-      {/* Top */}
-      <polygon points="-4,0 72,0 80,14 0,14"  fill="#3A3A3A" stroke="#1a1a1a" strokeWidth={1.5}/>
-      {/* Stovetop burners */}
-      <ellipse cx={18} cy={7}  rx={13} ry={5} fill="none" stroke="#555" strokeWidth={1.5}/>
-      <ellipse cx={52} cy={7}  rx={13} ry={5} fill="none" stroke="#555" strokeWidth={1.5}/>
-      <ellipse cx={18} cy={7}  rx={7}  ry={3} fill="#1a1a1a" stroke="#444" strokeWidth={1}/>
-      <ellipse cx={52} cy={7}  rx={7}  ry={3} fill="#1a1a1a" stroke="#444" strokeWidth={1}/>
-      {/* Oven door */}
-      <polygon points="4,16 68,16 76,60 12,60" fill="#1a1a1a" stroke="#0a0a0a" strokeWidth={1}/>
-      <polygon points="8,18 64,18 72,56 16,56" fill="#222" />
-      {/* Window on oven door */}
-      <polygon points="12,20 58,20 66,50 20,50" fill="#0A1A0A" stroke="#2a2a2a" strokeWidth={0.5}/>
-      {/* Handle */}
-      <line x1={16} y1={19} x2={66} y2={19} stroke="#888" strokeWidth={3} strokeLinecap="round"/>
-      {/* Knobs */}
-      {[10, 24, 50, 64].map((kx, i) => (
-        <circle key={i} cx={kx} cy={8} r={3} fill="#666" stroke="#444" strokeWidth="0.8"/>
-      ))}
-    </g>
-  ),
-
-  sink: ({ x, y }) => (
-    <g transform={`translate(${x},${y})`}>
-      <ellipse cx={26} cy={18} rx={24} ry={10} fill="#C8D8E0" stroke="#A0B8C8" strokeWidth={1.2}/>
-      <ellipse cx={26} cy={18} rx={18} ry={7}  fill="#A8C0D0" stroke="#88A8C0" strokeWidth={0.8}/>
-      <ellipse cx={26} cy={19} rx={6}  ry={3}  fill="#888"/>
+  sink: ({ gx, gy }) => (
+    <g>
+      {/* Cabinet */}
+      <IsoBox x={gx} y={gy} z={0} w={0.9} d={0.75} h={0.6}
+        top="#6A5038" left="#4A3018" right="#3A2008"/>
+      {/* Counter */}
+      <IsoBox x={gx - 0.05} y={gy - 0.05} z={0.6} w={1.0} d={0.85} h={0.07}
+        top="#D8E4E8" left="#B8C8D0" right="#A0B4BC"/>
+      {/* Basin */}
+      {(() => {
+        const [cx, cy] = iso(gx + 0.45, gy + 0.42, 0.67);
+        return (
+          <>
+            <ellipse cx={cx} cy={cy} rx={22} ry={9} fill="#A8C0D0" stroke="#88A0B0" strokeWidth={1}/>
+            <ellipse cx={cx} cy={cy} rx={14} ry={5.5} fill="#88A8C0"/>
+          </>
+        );
+      })()}
       {/* Faucet */}
-      <rect x={22}  y={4}   width={8} height={12} rx={2} fill="#C0C0C0" stroke="#909090" strokeWidth={1}/>
-      <path d="M 26,4 Q 26,-6 36,-6" stroke="#B0B8C0" strokeWidth={5} fill="none" strokeLinecap="round"/>
-      <circle cx={36} cy={-6} r={4} fill="#C8C8C8" stroke="#909090" strokeWidth={1}/>
-      {/* Water drops */}
-      <ellipse cx={36} cy={2} rx={1.5} ry={2.5} fill="#A8C8E0" opacity={0.7}/>
+      <IsoBox x={gx + 0.35} y={gy + 0.55} z={0.67} w={0.08} d={0.06} h={0.28}
+        top="#C0C8D0" left="#A8B8C0" right="#9098A0"/>
     </g>
   ),
 
-  guitar: ({ x, y, rotation }) => (
-    <g transform={`translate(${x},${y}) rotate(${rotation ?? -15})`} style={{ filter: 'drop-shadow(3px 5px 0 rgba(0,0,0,0.22))' }}>
-      {/* Neck */}
-      <rect x={11} y={-86} width={9}  height={108} rx={3} fill="#8B5C2A" stroke="#5A3C18" strokeWidth={1}/>
-      {/* Headstock */}
-      <rect x={8}  y={-96} width={15} height={14}  rx={3} fill="#6B4418" stroke="#3A2408" strokeWidth={1}/>
-      {/* Tuning pegs */}
-      {[-92, -87, -82].map((py, i) => [
-        <circle key={`l${i}`} cx={6}  cy={py} r={3} fill="#D4B060" stroke="#B09040" strokeWidth={0.8}/>,
-        <circle key={`r${i}`} cx={26} cy={py} r={3} fill="#D4B060" stroke="#B09040" strokeWidth={0.8}/>,
-      ])}
-      {/* Upper body */}
-      <path d="M 0,6 Q -20,0 -16,16 Q -18,24 -8,28 Q 4,34 16,28 Q 26,22 26,14 Q 28,4 18,6 Z"
-        fill="#C4803C" stroke="#8B5020" strokeWidth={1.5}/>
-      {/* Lower body */}
-      <path d="M -8,28 Q -22,30 -22,46 Q -22,66 -6,70 Q 8,74 22,66 Q 36,58 32,44 Q 32,28 16,28 Z"
-        fill="#C4803C" stroke="#8B5020" strokeWidth={1.5}/>
-      {/* Sound hole */}
-      <circle cx={13} cy={48} r={9}  fill="#5A3010" stroke="#3A1C00" strokeWidth={1}/>
-      <circle cx={13} cy={48} r={7}  fill="#3A1A00" opacity={0.8}/>
-      {/* Strings */}
-      {[9, 12, 15, 18, 21, 24].map((sx, i) => (
-        <line key={i} x1={sx} y1={-86} x2={sx} y2={68} stroke="#D4C090" strokeWidth={0.5}/>
-      ))}
-      {/* Frets */}
-      {[-60, -40, -20, 0].map((fy, i) => (
-        <line key={i} x1={9} y1={fy} x2={26} y2={fy} stroke="#B09060" strokeWidth={1}/>
-      ))}
-    </g>
-  ),
+  guitar: ({ gx, gy }) => {
+    // Leaning against wall — rendered as 2D sprite using iso projection
+    const [bx, by] = iso(gx, gy, 0);
+    return (
+      <g transform={`translate(${bx}, ${by})`}>
+        {/* Neck */}
+        <rect x={-3} y={-95} width={7} height={105} rx={2} fill="#8B5C2A" stroke="#5A3C18" strokeWidth={0.8}/>
+        <rect x={-5} y={-105} width={12} height={13} rx={2} fill="#6B4418" stroke="#3A2408" strokeWidth={0.8}/>
+        {[-101,-96,-91].map((py, i) => [
+          <circle key={`l${i}`} cx={-6} cy={py} r={2.5} fill="#D4B060" stroke="#B09040" strokeWidth={0.6}/>,
+          <circle key={`r${i}`} cx={8}  cy={py} r={2.5} fill="#D4B060" stroke="#B09040" strokeWidth={0.6}/>,
+        ])}
+        {/* Upper body */}
+        <path d="M -3,2 Q -20,-4 -18,14 Q -20,22 -10,26 Q 2,32 14,26 Q 24,20 24,12 Q 26,2 16,2 Z"
+          fill="#C4803C" stroke="#8B5020" strokeWidth={1.2}/>
+        {/* Lower body */}
+        <path d="M -10,26 Q -24,28 -24,44 Q -24,64 -8,68 Q 6,72 20,64 Q 34,56 30,42 Q 30,26 14,26 Z"
+          fill="#C4803C" stroke="#8B5020" strokeWidth={1.2}/>
+        <circle cx={10} cy={46} r={9} fill="#3A1000" stroke="#2A0C00" strokeWidth={0.8}/>
+        {[7,10,13,16,19,22].map((sx, i) => (
+          <line key={i} x1={sx} y1={-95} x2={sx} y2={66} stroke="#D4C090" strokeWidth={0.45}/>
+        ))}
+      </g>
+    );
+  },
 
-  backpack: ({ x, y }) => (
-    <g transform={`translate(${x},${y})`} style={{ filter: 'drop-shadow(3px 5px 0 rgba(0,0,0,0.2))' }}>
-      <ellipse cx={24} cy={62} rx={22} ry={6} fill="#000" opacity={0.12}/>
-      {/* Main body */}
-      <rect x={0}  y={4}  width={48} height={54} rx={7} fill="#5A6B3C" stroke="#3A4C24" strokeWidth={1.8}/>
-      {/* Top flap */}
-      <rect x={2}  y={0}  width={44} height={18} rx={5} fill="#6A7C48" stroke="#4A5C30" strokeWidth={1.2}/>
+  backpack: ({ gx, gy }) => (
+    <g>
+      <IsoBox x={gx} y={gy} z={0} w={0.7} d={0.6} h={0.85}
+        top="#5A6B3C" left="#3A4C24" right="#2A3C14"/>
       {/* Front pocket */}
-      <rect x={6}  y={32} width={36} height={24} rx={5} fill="#4A5C2C" stroke="#3A4C1C" strokeWidth={1.2}/>
-      {/* Pocket zipper */}
-      <line x1={8}  y1={32} x2={40} y2={32} stroke="#C8A840" strokeWidth={2} strokeLinecap="round"/>
-      <circle cx={24} cy={32} r={2.5} fill="#D4B050" stroke="#A08030" strokeWidth={0.8}/>
-      {/* Main zipper */}
-      <path d="M 4,18 Q 24,15 44,18" stroke="#C8A840" strokeWidth={1.8} fill="none" strokeLinecap="round"/>
-      {/* Straps visible */}
-      <path d="M 14,0 Q 24,-10 34,0" stroke="#3A4C1C" strokeWidth={3} fill="none" strokeLinecap="round"/>
-      {/* Side straps */}
-      <rect x={8}  y={8} width={5} height={42} rx={2.5} fill="#4A5C2C" opacity={0.7}/>
-      <rect x={35} y={8} width={5} height={42} rx={2.5} fill="#4A5C2C" opacity={0.7}/>
-      {/* Ireland flag patch */}
-      <rect x={28} y={6} width={15} height={10} rx={1} fill="#169B62"/>
-      <rect x={31} y={6} width={5}  height={10} fill="#fff"/>
-      <rect x={36} y={6} width={4}  height={10} fill="#FF883E"/>
-      <rect x={28} y={6} width={15} height={10} rx={1} fill="none" stroke="#1a1a1a" strokeWidth="0.5"/>
+      <IsoBox x={gx} y={gy} z={0.1} w={0.7} d={0.58} h={0.3}
+        top="#4A5C2C" left="#3A4C1C" right="#2A3C0C" sw={0.6}/>
+      {/* Ireland patch on top */}
+      {(() => {
+        const [ax, ay] = iso(gx + 0.35, gy + 0.08, 0.85);
+        return (
+          <g>
+            <rect x={ax - 12} y={ay - 5} width={24} height={10} fill="#169B62"/>
+            <rect x={ax - 4}  y={ay - 5} width={8}  height={10} fill="#fff"/>
+            <rect x={ax + 4}  y={ay - 5} width={8}  height={10} fill="#FF883E"/>
+            <rect x={ax - 12} y={ay - 5} width={24} height={10} fill="none" stroke="#1a1a1a" strokeWidth="0.5"/>
+          </g>
+        );
+      })()}
     </g>
   ),
 
-  plant: ({ x, y }) => (
-    <g transform={`translate(${x},${y})`}>
+  plant: ({ gx, gy }) => (
+    <g>
       {/* Pot */}
-      <polygon points="4,32 36,32 40,54 0,54"  fill="#C44A2A" stroke="#A33020" strokeWidth={1.2}/>
-      <polygon points="0,28 40,28 44,34 -4,34" fill="#D4583A" stroke="#B04030" strokeWidth={1}/>
+      <IsoBox x={gx} y={gy} z={0} w={0.55} d={0.55} h={0.42}
+        top="#C44A2A" left="#A33020" right="#8A2010"/>
       {/* Soil */}
-      <ellipse cx={20} cy={29} rx={20} ry={5} fill="#3A2410" opacity={0.8}/>
+      {(() => {
+        const [cx, cy] = iso(gx + 0.275, gy + 0.275, 0.42);
+        return <ellipse cx={cx} cy={cy} rx={14} ry={6} fill="#3A2410" opacity={0.9}/>;
+      })()}
       {/* Stems */}
-      <path d="M 20,28 Q 10,16 6,4"  stroke="#3A8020" strokeWidth={2.5} fill="none" strokeLinecap="round"/>
-      <path d="M 20,28 Q 24,14 30,6"  stroke="#3A8020" strokeWidth={2.5} fill="none" strokeLinecap="round"/>
-      <path d="M 20,28 Q 20,12 18,2"  stroke="#3A8020" strokeWidth={2.5} fill="none" strokeLinecap="round"/>
+      {[
+        { ex: gx + 0.15, ey: gy + 0.15, ez: 1.1 },
+        { ex: gx + 0.4,  ey: gy + 0.1,  ez: 1.2 },
+        { ex: gx + 0.1,  ey: gy + 0.4,  ez: 1.0 },
+      ].map((s, i) => {
+        const [sx, sy] = iso(gx + 0.275, gy + 0.275, 0.42);
+        const [ex, ey] = iso(s.ex, s.ey, s.ez);
+        return <line key={i} x1={sx} y1={sy} x2={ex} y2={ey}
+          stroke="#3A8020" strokeWidth={2} strokeLinecap="round"/>;
+      })}
       {/* Leaves */}
-      <ellipse cx={6}  cy={2}  rx={10} ry={6} fill="#4AA830" stroke="#2A8010" strokeWidth={1} transform="rotate(-20,6,2)"/>
-      <ellipse cx={30} cy={4}  rx={11} ry={6} fill="#4AA830" stroke="#2A8010" strokeWidth={1} transform="rotate(15,30,4)"/>
-      <ellipse cx={18} cy={0}  rx={9}  ry={5} fill="#5AC040" stroke="#2A8010" strokeWidth={1}/>
+      {[
+        { lx: gx + 0.1, ly: gy + 0.12, lz: 1.1 },
+        { lx: gx + 0.42, ly: gy + 0.08, lz: 1.2 },
+        { lx: gx + 0.08, ly: gy + 0.42, lz: 1.0 },
+      ].map((l, i) => {
+        const [cx, cy] = iso(l.lx, l.ly, l.lz);
+        return (
+          <ellipse key={i} cx={cx} cy={cy}
+            rx={12} ry={6}
+            fill={i % 2 === 0 ? '#4AA830' : '#5AC040'}
+            stroke="#2A8010" strokeWidth={0.8}
+            transform={`rotate(${[-20, 15, -35][i]}, ${cx}, ${cy})`}/>
+        );
+      })}
     </g>
   ),
 };
 
 // ══════════════════════════════════════════════════════════════
-// WEATHER OVERLAY (inside window clip)
+// DEFAULT LAYOUT (grid coordinates)
 // ══════════════════════════════════════════════════════════════
-function WeatherOverlay({ weather, winX, W, H }: {
-  weather: WeatherType; winX: number; W: number; H: number;
-}) {
-  const [drops, setDrops] = useState<{ x: number; y: number; speed: number; len: number }[]>(() =>
-    weather === 'rain'
-      ? Array.from({ length: 30 }, () => ({
-          x: winX + Math.random() * (W - winX),
-          y: Math.random() * H,
-          speed: 3 + Math.random() * 4,
-          len: 8 + Math.random() * 10,
-        }))
-      : []
-  );
+const CATALOG: OwnedItem[] = [
+  { type: 'sofa',      label: '沙發'   },
+  { type: 'bed',       label: '床'     },
+  { type: 'desk',      label: '書桌'   },
+  { type: 'wardrobe',  label: '衣櫃'   },
+  { type: 'bookshelf', label: '書櫃'   },
+  { type: 'island',    label: '廚島'   },
+  { type: 'microwave', label: '微波爐' },
+  { type: 'oven',      label: '烤箱'   },
+  { type: 'sink',      label: '水槽'   },
+  { type: 'rug',       label: '地毯'   },
+  { type: 'guitar',    label: '吉他'   },
+  { type: 'backpack',  label: '背包'   },
+  { type: 'plant',     label: '盆栽'   },
+];
 
-  useEffect(() => {
-    if (weather !== 'rain') return;
-    const id = setInterval(() => {
-      setDrops(prev => prev.map(d => ({
-        ...d,
-        y: d.y > H ? -d.len : d.y + d.speed,
-      })));
-    }, 50);
-    return () => clearInterval(id);
-  }, [weather, H]);
+const DEFAULT_PLACED: PlacedItem[] = [
+  { id:'p_rug',       type:'rug',       gx:2.5,  gy:2.5,  rotation:0 },
+  { id:'p_sofa',      type:'sofa',      gx:0.3,  gy:3.0,  rotation:0 },
+  { id:'p_guitar',    type:'guitar',    gx:0.2,  gy:4.5,  rotation:0 },
+  { id:'p_backpack',  type:'backpack',  gx:2.0,  gy:3.8,  rotation:0 },
+  { id:'p_island',    type:'island',    gx:3.8,  gy:0.2,  rotation:0 },
+  { id:'p_microwave', type:'microwave', gx:3.9,  gy:0.3,  gz:0.73, rotation:0 },
+  { id:'p_desk',      type:'desk',      gx:5.8,  gy:0.2,  rotation:0 },
+  { id:'p_bed',       type:'bed',       gx:5.4,  gy:2.0,  rotation:0 },
+  { id:'p_wardrobe',  type:'wardrobe',  gx:6.8,  gy:3.8,  rotation:0 },
+];
 
-  if (weather === 'clear') return null;
-
-  return (
-    <g clipPath="url(#wClip)">
-      {weather === 'rain' && drops.map((d, i) => (
-        <line key={i} x1={d.x} y1={d.y} x2={d.x - 2} y2={d.y + d.len}
-          stroke="rgba(180,210,240,0.6)" strokeWidth={1} strokeLinecap="round"/>
-      ))}
-      {weather === 'cloudy' && (
-        <>
-          <ellipse cx={winX + 30} cy={40}  rx={32} ry={16} fill="rgba(220,225,230,0.7)"/>
-          <ellipse cx={winX + 50} cy={32}  rx={22} ry={18} fill="rgba(220,225,230,0.7)"/>
-          <ellipse cx={winX + 20} cy={48}  rx={18} ry={10} fill="rgba(210,215,220,0.6)"/>
-          <ellipse cx={winX + 75} cy={55}  rx={28} ry={14} fill="rgba(215,220,225,0.6)"/>
-          <ellipse cx={winX + 95} cy={45}  rx={20} ry={16} fill="rgba(220,225,230,0.7)"/>
-        </>
-      )}
-    </g>
-  );
-}
+const DEFAULT_OWNED: OwnedItem[] = CATALOG.filter(c =>
+  !DEFAULT_PLACED.some(p => p.type === c.type)
+);
 
 // ══════════════════════════════════════════════════════════════
-// MAIN 2.5D ROOM SVG
+// MAIN 2.5D ISOMETRIC ROOM SVG
 // ══════════════════════════════════════════════════════════════
+const SVG_W = 900, SVG_H = 450;
+
 function RoomSVG({
-  placedItems, editMode, selectedId,
-  onItemClick, roomScale,
+  placedItems, editMode, selectedId, onItemClick,
   transitOffset, transitLabel,
 }: {
-  placedItems: PlacedItem[];
-  editMode: boolean;
-  selectedId: string | null;
-  onItemClick: (id: string) => void;
-  roomScale: number;
+  placedItems:   PlacedItem[];
+  editMode:      boolean;
+  selectedId:    string | null;
+  onItemClick:   (id: string) => void;
   transitOffset: number;
-  transitLabel: string;
+  transitLabel:  string;
 }) {
   const { derived } = useGame();
   const { sky, weather } = useSkyAndWeather(derived.hasArrived);
 
-  const W = 800, H = 460;
-  const winX = Math.floor(W * 0.80);  // window starts at 80%
-  const ceilY = 20, wallBotY = 220;
-  const roomW = winX;
+  // Sort furniture by isometric Z-order (render far items first)
+  const sortedItems = useMemo(() =>
+    [...placedItems].sort((a, b) => (a.gx + a.gy) - (b.gx + b.gy)),
+    [placedItems]
+  );
+
+  // Right wall (airport window) corner points
+  const winPts = [
+    iso(ROOM_W, 0, 0),
+    iso(ROOM_W, ROOM_D, 0),
+    iso(ROOM_W, ROOM_D, ROOM_H),
+    iso(ROOM_W, 0, ROOM_H),
+  ];
+  const winPointsStr = winPts.map(([x, y]) => `${x},${y}`).join(' ');
+
+  // Back wall corner points (y=0)
+  const bwPts = [
+    iso(0, 0, 0),
+    iso(ROOM_W, 0, 0),
+    iso(ROOM_W, 0, ROOM_H),
+    iso(0, 0, ROOM_H),
+  ];
+  const bwPointsStr = bwPts.map(([x, y]) => `${x},${y}`).join(' ');
+
+  // Left wall corner points (x=0)
+  const lwPts = [
+    iso(0, 0, 0),
+    iso(0, ROOM_D, 0),
+    iso(0, ROOM_D, ROOM_H),
+    iso(0, 0, ROOM_H),
+  ];
+  const lwPointsStr = lwPts.map(([x, y]) => `${x},${y}`).join(' ');
+
+  // Floor polygon (the whole room floor)
+  const floorPts = [
+    iso(0, 0, 0),
+    iso(ROOM_W, 0, 0),
+    iso(ROOM_W, ROOM_D, 0),
+    iso(0, ROOM_D, 0),
+  ];
+  const floorStr = floorPts.map(([x, y]) => `${x},${y}`).join(' ');
+
+  // Clip path for airport window interior
+  const winClipId = 'isoWinClip';
 
   return (
-    <svg
-      viewBox={`0 0 ${W} ${H}`}
-      style={{ width: '100%', height: '100%', display: 'block', userSelect: 'none' }}
-    >
+    <svg viewBox={`0 0 ${SVG_W} ${SVG_H}`}
+      style={{ width:'100%', height:'100%', display:'block', userSelect:'none' }}>
       <defs>
-        {/* Sky gradient */}
         <linearGradient id="skyG" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%"   stopColor={sky[0]}/>
           <stop offset="55%"  stopColor={sky[1]}/>
           <stop offset="100%" stopColor={sky[2]}/>
         </linearGradient>
-        {/* Floor gradient */}
-        <linearGradient id="floorG" x1="0" y1="0" x2="0" y2="1">
+        <linearGradient id="floorGrad" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%"   stopColor="#F5E8CC"/>
-          <stop offset="100%" stopColor="#E0CC9C"/>
+          <stop offset="100%" stopColor="#E2CE9E"/>
         </linearGradient>
-        {/* Floor tile pattern */}
-        <pattern id="tile" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
-          <rect width="40" height="40" fill="url(#floorG)"/>
-          <rect width="40" height="40" fill="none" stroke="#D4B878" strokeWidth="0.5" opacity="0.5"/>
-        </pattern>
-        {/* Window clip */}
-        <clipPath id="wClip">
-          <polygon points={`${winX},0 ${W},0 ${W},${H} ${winX},${H}`}/>
-        </clipPath>
-        {/* Room clip */}
-        <clipPath id="roomClip">
-          <rect x="0" y="0" width={roomW} height={H}/>
+        <clipPath id={winClipId}>
+          <polygon points={winPointsStr}/>
         </clipPath>
       </defs>
 
-      {/* ── CEILING ── */}
-      <rect x={0} y={0} width={roomW} height={ceilY} fill="#D0C4AD"/>
-      <line x1={0} y1={ceilY} x2={roomW} y2={ceilY} stroke="#1a1a1a" strokeWidth={2.5}/>
-
-      {/* ── BACK WALL ── */}
-      <rect x={0} y={ceilY} width={roomW} height={wallBotY - ceilY} fill="#F4EDE0"/>
-      {/* Subtle wallpaper lines */}
-      {Array.from({ length: 16 }, (_, i) => (
-        <line key={i} x1={i * 50} y1={ceilY} x2={i * 50} y2={wallBotY}
-          stroke="#E8DCCa" strokeWidth="0.7" opacity="0.5"/>
-      ))}
-      {/* WHinIE watermark */}
-      <text x={roomW / 2} y={(ceilY + wallBotY) / 2 + 20} textAnchor="middle"
-        fontSize={62} fill="rgba(180,148,100,0.07)"
-        fontFamily="Georgia,serif" fontStyle="italic" fontWeight="bold">
-        WHinIE
-      </text>
-      {/* Baseboard */}
-      <rect x={0} y={wallBotY - 14} width={roomW} height={14} fill="#C8B890" stroke="#B0A078" strokeWidth="0.8"/>
+      {/* ── BACK WALL ── warm cream */}
+      <polygon points={bwPointsStr} fill="#F4EDE0" stroke="#1a1a1a" strokeWidth={1.5}/>
+      {/* Wallpaper vertical stripes */}
+      {Array.from({ length: ROOM_W }, (_, i) => {
+        const [ax, ay] = iso(i, 0, 0);
+        const [bx, by] = iso(i, 0, ROOM_H);
+        return <line key={i} x1={ax} y1={ay} x2={bx} y2={by}
+          stroke="#E8DCCa" strokeWidth={0.6} opacity={0.45}/>;
+      })}
+      {/* Baseboard on back wall */}
+      <polygon fill="#C8B890" stroke="#B0A078" strokeWidth={0.7}
+        points={p([0,0,0],[ROOM_W,0,0],[ROOM_W,0,0.16],[0,0,0.16])}/>
 
       {/* ── WALL CLOCKS ── */}
-      <WallClock cx={120} cy={110} r={28} offset={8}             label="台灣 GMT+8"/>
-      <WallClock cx={roomW/2} cy={110} r={28} offset={transitOffset} label={transitLabel}/>
-      <WallClock cx={roomW - 120} cy={110} r={28} offset={1}    label="愛爾蘭 GMT+1"/>
+      <WallClock wx={1.5} wz={2.1} offset={8}             label="台灣 GMT+8"/>
+      <WallClock wx={4.0} wz={2.1} offset={transitOffset} label={transitLabel}/>
+      <WallClock wx={6.5} wz={2.1} offset={1}             label="愛爾蘭 GMT+1"/>
 
-      {/* ── FLOOR ── */}
-      <polygon points={`0,${wallBotY} ${roomW},${wallBotY} ${W},${H} 0,${H}`} fill="url(#tile)"/>
-      {/* Floor perspective lines */}
-      {[0.15, 0.3, 0.5, 0.7, 0.85].map((t, i) => (
-        <line key={`fv${i}`}
-          x1={t * roomW} y1={wallBotY}
-          x2={t * roomW + (W - roomW) * t} y2={H}
-          stroke="#C4A860" strokeWidth="0.6" opacity="0.4"/>
-      ))}
-      {[0.25, 0.55, 0.8].map((t, i) => (
-        <line key={`fh${i}`}
-          x1={0} y1={wallBotY + (H - wallBotY) * t}
-          x2={roomW + (W - roomW) * t} y2={wallBotY + (H - wallBotY) * t}
-          stroke="#C4A860" strokeWidth="0.5" opacity="0.4"/>
-      ))}
+      {/* WHinIE watermark on back wall */}
+      {(() => {
+        const [tx, ty] = iso(ROOM_W / 2, 0, 1.0);
+        return (
+          <text x={tx} y={ty} textAnchor="middle" fontSize={48}
+            fill="rgba(180,148,100,0.06)" fontFamily="Georgia,serif" fontStyle="italic" fontWeight="bold">
+            WHinIE
+          </text>
+        );
+      })()}
 
-      {/* ── AIRPORT WINDOW (20% right, minimal frame) ── */}
-      <rect x={winX} y={0} width={W - winX} height={H} fill="url(#skyG)"/>
-      {/* Weather */}
-      <WeatherOverlay weather={weather} winX={winX} W={W} H={H}/>
-      {/* Distant city/runway silhouette */}
-      <g clipPath="url(#wClip)">
-        {/* Horizon */}
-        <rect x={winX} y={H * 0.62} width={W - winX} height={H * 0.08} fill="#2A2A2A" opacity={0.9}/>
-        {/* Runway lights */}
-        {[0, 1, 2, 3, 4].map(i => (
-          <circle key={i} cx={winX + 18 + i * 28} cy={H * 0.64} r={2}
-            fill="#FFD700" opacity={0.85}/>
-        ))}
-        {/* Ground */}
-        <rect x={winX} y={H * 0.68} width={W - winX} height={H * 0.32} fill="#1C1C1C" opacity={0.95}/>
-        {/* Airport building silhouette */}
-        <rect x={winX + 10} y={H * 0.50} width={60} height={H * 0.12} fill="#1a1a2a" opacity={0.85}/>
-        <rect x={winX + 25} y={H * 0.44} width={30} height={H * 0.08} fill="#222233" opacity={0.85}/>
-        {/* Building windows */}
-        {[0,1,2,3].map(i => [0,1,2].map(j => (
-          <rect key={`w${i}${j}`}
-            x={winX + 14 + i * 14} y={H * 0.52 + j * 12}
-            width={8} height={8}
-            fill="#FFE060" opacity={0.7}/>
-        )))}
-        {/* Parked plane silhouette */}
-        <g transform={`translate(${winX + 8}, ${H * 0.60})`} opacity={0.7}>
-          <ellipse cx={46} cy={0} rx={50} ry={6} fill="#C8C8C8"/>
-          <polygon points="10,-2 58,-2 62,4 6,4" fill="#D0D0D0"/>
-          <polygon points="2,-2 10,0 14,4" fill="#007A33"/>
-          <line x1={8} y1={1} x2={88} y2={1} stroke="#007A33" strokeWidth={1.5}/>
-        </g>
-      </g>
-      {/* Minimal window frame — just 2 thin vertical mullions */}
-      <line x1={winX + (W - winX) * 0.33} y1={0} x2={winX + (W - winX) * 0.33} y2={H}
-        stroke="#D8C8A0" strokeWidth={2.5} opacity={0.6}/>
-      <line x1={winX + (W - winX) * 0.67} y1={0} x2={winX + (W - winX) * 0.67} y2={H}
-        stroke="#D8C8A0" strokeWidth={2.5} opacity={0.6}/>
-      {/* Window outer frame */}
-      <line x1={winX} y1={0} x2={winX} y2={H} stroke="#1a1a1a" strokeWidth={3}/>
+      {/* ── LEFT WALL ── slightly darker */}
+      <polygon points={lwPointsStr} fill="#EAE0CC" stroke="#1a1a1a" strokeWidth={1.5}/>
+      {/* Left wall baseboard */}
+      <polygon fill="#C0B080" stroke="#A89868" strokeWidth={0.7}
+        points={p([0,0,0],[0,ROOM_D,0],[0,ROOM_D,0.16],[0,0,0.16])}/>
 
-      {/* ── FURNITURE ── */}
-      <g clipPath="url(#roomClip)">
-        {placedItems.map(item => {
-          const Comp = F[item.type];
-          if (!Comp) return null;
-          const isSelected = editMode && item.id === selectedId;
-          return (
-            <g key={item.id}
-              transform={`translate(${item.x},${item.y})`}
-              onClick={() => editMode && onItemClick(item.id)}
-              style={{ cursor: editMode ? 'pointer' : 'default' }}
-            >
-              {isSelected && (
-                <rect x={-8} y={-60} width={200} height={120}
-                  fill="none" stroke="#FFD700" strokeWidth={2}
-                  strokeDasharray="6,3" rx={4}/>
-              )}
-              <Comp x={0} y={0} rotation={item.rotation}/>
-            </g>
-          );
+      {/* ── AIRPORT WINDOW (right wall) ── sky gradient */}
+      <polygon points={winPointsStr} fill="url(#skyG)"/>
+
+      {/* Airport scene inside window */}
+      <g clipPath={`url(#${winClipId})`}>
+        {/* Clouds */}
+        {weather !== 'rain' && (
+          <>
+            <ellipse cx={iso(ROOM_W, 1.0, 2.5)[0]} cy={iso(ROOM_W, 1.0, 2.5)[1]}
+              rx={28} ry={11} fill="rgba(230,235,240,0.72)"/>
+            <ellipse cx={iso(ROOM_W, 1.5, 2.7)[0]} cy={iso(ROOM_W, 1.5, 2.7)[1]}
+              rx={20} ry={15} fill="rgba(230,235,240,0.72)"/>
+            <ellipse cx={iso(ROOM_W, 3.5, 2.6)[0]} cy={iso(ROOM_W, 3.5, 2.6)[1]}
+              rx={24} ry={10} fill="rgba(225,230,235,0.6)"/>
+          </>
+        )}
+        {/* Rain streaks */}
+        {weather === 'rain' && Array.from({ length: 12 }, (_, i) => {
+          const ry = 0.3 + i * 0.35;
+          const [ax, ay] = iso(ROOM_W, ry, 2.5);
+          const [bx, by] = iso(ROOM_W, ry + 0.15, 2.0);
+          return <line key={i} x1={ax} y1={ay} x2={bx} y2={by}
+            stroke="rgba(180,210,240,0.55)" strokeWidth={1} strokeLinecap="round"/>;
         })}
+        {/* Horizon / ground */}
+        <polygon fill="#1C1C1C" opacity={0.9}
+          points={p([ROOM_W,0,0.5],[ROOM_W,ROOM_D,0.5],[ROOM_W,ROOM_D,0],[ROOM_W,0,0])}/>
+        {/* Airport building silhouette */}
+        <polygon fill="#1a1a2a" opacity={0.88}
+          points={p([ROOM_W,0.5,0.5],[ROOM_W,2.5,0.5],[ROOM_W,2.5,1.2],[ROOM_W,0.5,1.2])}/>
+        {/* Building windows */}
+        {[0,1,2,3].map(row => [0,1,2].map(col => {
+          const [wx, wy] = iso(ROOM_W, 0.7 + row * 0.45, 0.62 + col * 0.2);
+          return <rect key={`${row}${col}`} x={wx - 4} y={wy - 3} width={8} height={6}
+            fill="#FFE060" opacity={0.75}/>;
+        }))}
+        {/* Runway lights */}
+        {[0.4, 1.2, 2.0, 2.8, 3.6].map((ry, i) => {
+          const [rx, ry2] = iso(ROOM_W, ry, 0.52);
+          return <circle key={i} cx={rx} cy={ry2} r={2.5} fill="#FFD700" opacity={0.9}/>;
+        })}
+        {/* Parked plane */}
+        <polygon fill="#C8C8C8" stroke="#A8A8A8" strokeWidth={0.6}
+          points={p([ROOM_W,1.2,0.7],[ROOM_W,3.2,0.7],[ROOM_W,3.2,0.82],[ROOM_W,1.2,0.82])}/>
+        <polygon fill="#007A33"
+          points={p([ROOM_W,1.1,0.7],[ROOM_W,1.4,0.7],[ROOM_W,1.4,0.76],[ROOM_W,1.1,0.76])}/>
       </g>
+      {/* Minimal window frame: just outline + 1 horizontal divider */}
+      <polygon points={winPointsStr} fill="none" stroke="#1a1a1a" strokeWidth={2.5}/>
+      {(() => {
+        const [ax, ay] = iso(ROOM_W, 0, 1.5);
+        const [bx, by] = iso(ROOM_W, ROOM_D, 1.5);
+        return <line x1={ax} y1={ay} x2={bx} y2={by} stroke="#C8B890" strokeWidth={1.5} opacity={0.6}/>;
+      })()}
 
-      {/* ── ROOM OUTLINES ── */}
-      <line x1={0} y1={ceilY} x2={0} y2={H}          stroke="#1a1a1a" strokeWidth={3}/>
-      <line x1={0} y1={wallBotY} x2={winX} y2={wallBotY} stroke="#1a1a1a" strokeWidth={2.5}/>
-      <line x1={winX} y1={ceilY} x2={winX} y2={wallBotY} stroke="#1a1a1a" strokeWidth={3}/>
-      <line x1={0} y1={0} x2={roomW} y2={0}           stroke="#1a1a1a" strokeWidth={2}/>
+      {/* ── FLOOR TILES ── */}
+      {Array.from({ length: ROOM_D }, (_, gy) =>
+        Array.from({ length: ROOM_W }, (_, gx) => {
+          const even = (gx + gy) % 2 === 0;
+          const [ax, ay] = iso(gx,   gy,   0);
+          const [bx, by] = iso(gx+1, gy,   0);
+          const [cx, cy] = iso(gx+1, gy+1, 0);
+          const [dx, dy] = iso(gx,   gy+1, 0);
+          return (
+            <polygon key={`${gx}-${gy}`}
+              points={`${ax},${ay} ${bx},${by} ${cx},${cy} ${dx},${dy}`}
+              fill={even ? '#F0E4C8' : '#E4D4B0'}
+              stroke="#D4C090" strokeWidth={0.5}/>
+          );
+        })
+      )}
 
-      {/* Edit mode overlay hint */}
+      {/* ── ROOM EDGES ── */}
+      {/* Floor outline */}
+      <polygon points={floorStr} fill="none" stroke="#1a1a1a" strokeWidth={2}/>
+      {/* Vertical edges */}
+      {(() => {
+        const [ax, ay] = iso(0, 0, 0); const [bx, by] = iso(0, 0, ROOM_H);
+        const [cx, cy] = iso(0, ROOM_D, 0); const [dx, dy] = iso(0, ROOM_D, ROOM_H);
+        return (
+          <>
+            <line x1={ax} y1={ay} x2={bx} y2={by} stroke="#1a1a1a" strokeWidth={2.5}/>
+            <line x1={cx} y1={cy} x2={dx} y2={dy} stroke="#1a1a1a" strokeWidth={2.5}/>
+          </>
+        );
+      })()}
+
+      {/* ── FURNITURE in Z-order ── */}
+      {sortedItems.map(item => {
+        const Comp = Furniture[item.type];
+        if (!Comp) return null;
+        const isSelected = editMode && item.id === selectedId;
+
+        // Compute rough screen bounding center for selection indicator
+        const [sx, sy] = iso(item.gx + 0.5, item.gy + 0.5, 0.5);
+
+        return (
+          <g key={item.id}
+            onClick={() => editMode && onItemClick(item.id)}
+            style={{ cursor: editMode ? 'pointer' : 'default' }}>
+            {isSelected && (
+              <circle cx={sx} cy={sy} r={28}
+                fill="none" stroke="#FFD700" strokeWidth={2.5}
+                strokeDasharray="6,3"/>
+            )}
+            <Comp gx={item.gx} gy={item.gy} gz={item.gz}/>
+          </g>
+        );
+      })}
+
+      {/* Edit hint */}
       {editMode && (
-        <text x={roomW / 2} y={H - 12} textAnchor="middle" fontSize={10}
-          fill="rgba(0,0,0,0.4)" fontFamily="'Noto Sans TC', sans-serif">
-          點擊道具可收回抽屜・點擊空白處放置選中道具
+        <text x={SVG_W / 2} y={SVG_H - 10} textAnchor="middle" fontSize={9}
+          fill="rgba(0,0,0,0.35)" fontFamily="'Noto Sans TC',sans-serif">
+          點擊畫面放置道具 · 點擊道具選取 · 儲存後退出
         </text>
       )}
     </svg>
@@ -680,65 +863,57 @@ function RoomSVG({
 }
 
 // ══════════════════════════════════════════════════════════════
-// FURNITURE DRAWER (Edit Mode)
+// FURNITURE DRAWER  (Edit Mode)
 // ══════════════════════════════════════════════════════════════
 function FurnitureDrawer({
-  ownedItems, onPickItem, roomGold, onExpand,
+  ownedItems, onPickItem, gold, onExpand,
 }: {
   ownedItems: OwnedItem[];
   onPickItem: (type: FurnitureType) => void;
-  roomGold: number;
+  gold: number;
   onExpand: () => void;
 }) {
   return (
     <div style={{
-      position: 'absolute', bottom: 0, left: 0, right: 0,
-      background: 'rgba(253,251,247,0.96)',
-      border: '3px solid #000', borderBottom: 'none',
-      boxShadow: '0 -4px 0 #000',
-      padding: '6px 10px 4px',
+      position:'absolute', bottom:0, left:0, right:0,
+      background:'rgba(253,251,247,0.97)',
+      border:'3px solid #000', borderBottom:'none',
+      boxShadow:'0 -4px 0 #000',
+      padding:'5px 10px 4px',
+      zIndex: 30,
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <div style={{ fontSize: 9, fontWeight: 900, ...ZH, letterSpacing: '0.1em', flexShrink: 0 }}>
-          🎒 道具抽屜
-        </div>
-        <div style={{
-          flex: 1, display: 'flex', gap: 5, overflowX: 'auto',
-          paddingBottom: 2,
-        }}>
+      <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+        <div style={{ fontSize:9, fontWeight:900, ...ZH, flexShrink:0 }}>🎒 道具抽屜</div>
+        <div style={{ flex:1, display:'flex', gap:5, overflowX:'auto', paddingBottom:2 }}>
           {ownedItems.length === 0 && (
-            <div style={{ fontSize: 9, color: '#888', ...ZH, padding: '4px 8px' }}>
+            <div style={{ fontSize:9, color:'#888', ...ZH, padding:'4px 8px' }}>
               所有道具已放置 ✓
             </div>
           )}
-          {ownedItems.map(item => {
-            const PreviewComp = F[item.type];
-            return (
-              <button key={item.type} onClick={() => onPickItem(item.type)} style={{
-                flexShrink: 0, width: 52, height: 48,
-                border: '2px solid #000', boxShadow: '2px 2px 0 #000',
-                background: '#FDFBF7', cursor: 'pointer', padding: 0,
-                display: 'flex', flexDirection: 'column', alignItems: 'center',
-                justifyContent: 'center', gap: 1,
-              }}>
-                <svg width={36} height={28} viewBox="-20 -30 80 70">
-                  <PreviewComp x={0} y={0}/>
-                </svg>
-                <div style={{ fontSize: 7, fontWeight: 700, ...ZH, lineHeight: 1 }}>
-                  {item.label}
-                </div>
-              </button>
-            );
-          })}
+          {ownedItems.map(item => (
+            <button key={item.type} onClick={() => onPickItem(item.type)} style={{
+              flexShrink:0, width:54, height:48,
+              border:'2px solid #000', boxShadow:'2px 2px 0 #000',
+              background:'#FDFBF7', cursor:'pointer', padding:'2px 0 0',
+              display:'flex', flexDirection:'column', alignItems:'center',
+              justifyContent:'center', gap:1,
+            }}>
+              <span style={{ fontSize:16 }}>
+                {({ sofa:'🛋️', bed:'🛏️', desk:'🖥️', wardrobe:'🚪', bookshelf:'📚',
+                   island:'🏝️', microwave:'📦', oven:'♨️', sink:'🚰',
+                   rug:'🪑', guitar:'🎸', backpack:'🎒', plant:'🌿' } as Record<string,string>)[item.type] ?? '📦'}
+              </span>
+              <div style={{ fontSize:7, fontWeight:700, ...ZH }}>{item.label}</div>
+            </button>
+          ))}
         </div>
         <button onClick={onExpand} style={{
-          flexShrink: 0, padding: '5px 10px',
-          border: '2.5px solid #000', boxShadow: '3px 3px 0 #000',
-          background: '#FFD700', cursor: 'pointer',
-          fontSize: 10, fontWeight: 900, ...ZH,
-          whiteSpace: 'nowrap',
+          flexShrink:0, padding:'5px 10px',
+          border:'2.5px solid #000', boxShadow:'3px 3px 0 #000',
+          background:'#FFD700', cursor:'pointer',
+          fontSize:10, fontWeight:900, ...ZH, whiteSpace:'nowrap',
         }}>
-          🔨 擴建 ({roomGold} 💰)
+          🔨 擴建 ({gold}💰)
         </button>
       </div>
     </div>
@@ -755,63 +930,53 @@ function HUDOverlay() {
   const avatarUrl = buildAvatarUrl(player.avatar);
   const [tooltip, setTooltip] = useState<string | null>(null);
 
-  let statusBg = 'rgba(232,228,216,0.90)';
+  let statusBg   = 'rgba(232,228,216,0.88)';
   let statusIcon = '🛰️';
-  let statusLine1 = '台灣整備中';
-  let statusLine2 = `基地充能第 ${Math.max(dayStatus.days, 1)} 天`;
-  let tooltipText = '冒險不急著出發，先整備裝備吧！點擊可補輸入日期。';
-  let glowing = false;
+  let statusL1   = '台灣整備中';
+  let statusL2   = `基地充能第 ${Math.max(dayStatus.days, 1)} 天`;
+  let tip        = '冒險不急著出發，先整備裝備吧！點擊可補輸入日期。';
+  let glowing    = false;
 
   if (dayStatus.type === 'countdown') {
-    statusBg = 'rgba(255,248,220,0.92)';
-    statusIcon = '✈️';
-    statusLine1 = `出發倒數 D-${dayStatus.days}`;
-    statusLine2 = player.arrivalDate;
-    tooltipText = '檢查你的背包，飛機即將起飛！';
+    statusBg='rgba(255,248,220,0.90)'; statusIcon='✈️';
+    statusL1=`出發倒數 D-${dayStatus.days}`; statusL2=player.arrivalDate;
+    tip='檢查你的背包，飛機即將起飛！';
   } else if (dayStatus.type === 'arrived') {
-    statusBg = 'rgba(228,244,228,0.92)';
-    statusIcon = '☘️';
-    statusLine1 = `登陸愛爾蘭：Day ${dayStatus.days}`;
-    statusLine2 = `${player.arrivalDate} 抵達`;
-    tooltipText = '你已踏上翡翠島！雙幣記帳已解鎖。';
-    glowing = true;
+    statusBg='rgba(228,244,228,0.90)'; statusIcon='☘️';
+    statusL1=`登陸愛爾蘭：Day ${dayStatus.days}`; statusL2=`${player.arrivalDate} 抵達`;
+    tip='你已踏上翡翠島！雙幣記帳已解鎖。'; glowing=true;
   }
 
   return (
     <div style={{
-      position: 'absolute', top: '50%', left: '42%',
-      transform: 'translate(-50%, -50%)',
-      display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
-      pointerEvents: 'none',
+      position:'absolute', top:'50%', left:'44%',
+      transform:'translate(-50%,-50%)',
+      display:'flex', flexDirection:'column', alignItems:'center', gap:6,
+      pointerEvents:'none',
     }}>
       {/* Avatar + Name */}
-      <div style={{
-        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
-        pointerEvents: 'auto',
-      }}>
+      <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:3, pointerEvents:'auto' }}>
         <div style={{
-          width: 52, height: 52,
-          border: '3px solid #000', boxShadow: '3px 3px 0 #000',
-          background: '#b6e3f4', overflow: 'hidden', borderRadius: 2,
+          width:52, height:52,
+          border:'3px solid #000', boxShadow:'3px 3px 0 #000',
+          background:'#b6e3f4', overflow:'hidden', borderRadius:2,
         }}>
-          <img src={avatarUrl} alt="" style={{ width: '100%', display: 'block' }}/>
+          <img src={avatarUrl} alt="" style={{ width:'100%', display:'block' }}/>
         </div>
         <div style={{
-          background: 'rgba(253,251,247,0.90)',
-          border: '2.5px solid #000', boxShadow: '2px 2px 0 #000',
-          padding: '1px 10px',
-          fontSize: 13, fontWeight: 900, ...ZH,
+          background:'rgba(253,251,247,0.90)',
+          border:'2.5px solid #000', boxShadow:'2px 2px 0 #000',
+          padding:'1px 10px', fontSize:13, fontWeight:900, ...ZH,
         }}>
           {player.name || '旅行者'}
         </div>
       </div>
 
-      {/* Day counter */}
+      {/* ⏰ Day counter */}
       <div style={{
-        fontSize: 22, fontWeight: 900, color: 'rgba(44,26,8,0.85)',
-        fontFamily: "'Itim', cursive",
-        textShadow: '2px 2px 0 rgba(255,255,255,0.7)',
-        letterSpacing: '0.04em',
+        fontSize:22, fontWeight:900, color:'rgba(44,26,8,0.82)',
+        fontFamily:"'Itim',cursive",
+        textShadow:'2px 2px 0 rgba(255,255,255,0.7)',
       }}>
         ⏰ Day {Math.max(dayStatus.days, 1)}
       </div>
@@ -819,40 +984,33 @@ function HUDOverlay() {
       {/* Status card */}
       <div
         style={{
-          background: statusBg,
-          border: '3px solid #000', boxShadow: '3px 3px 0 #000',
-          padding: '5px 14px', textAlign: 'center',
-          animation: glowing ? 'hudPulse 2s ease-in-out infinite' : undefined,
-          pointerEvents: 'auto', cursor: 'help', position: 'relative',
+          background:statusBg, border:'3px solid #000', boxShadow:'3px 3px 0 #000',
+          padding:'5px 14px', textAlign:'center', position:'relative',
+          animation:glowing ? 'hudPulse 2s ease-in-out infinite' : undefined,
+          pointerEvents:'auto', cursor:'help',
         }}
-        onMouseEnter={() => setTooltip(tooltipText)}
+        onMouseEnter={() => setTooltip(tip)}
         onMouseLeave={() => setTooltip(null)}
       >
-        <div style={{ fontSize: 12, fontWeight: 900, ...ZH }}>
-          {statusIcon} {statusLine1}
-        </div>
-        <div style={{ fontSize: 8, color: '#666', marginTop: 1, ...ZH }}>
-          {statusLine2}
-        </div>
+        <div style={{ fontSize:12, fontWeight:900, ...ZH }}>{statusIcon} {statusL1}</div>
+        <div style={{ fontSize:8, color:'#666', marginTop:1, ...ZH }}>{statusL2}</div>
         {tooltip && (
           <div style={{
-            position: 'absolute', bottom: '110%', left: '50%', transform: 'translateX(-50%)',
-            background: '#1a1a1a', color: '#fff', padding: '4px 10px',
-            fontSize: 9, ...ZH, whiteSpace: 'nowrap',
-            border: '1.5px solid #444', boxShadow: '2px 2px 0 #555',
-            zIndex: 100,
+            position:'absolute', bottom:'110%', left:'50%', transform:'translateX(-50%)',
+            background:'#1a1a1a', color:'#fff', padding:'4px 10px',
+            fontSize:9, ...ZH, whiteSpace:'nowrap',
+            border:'1.5px solid #444', boxShadow:'2px 2px 0 #555', zIndex:100,
           }}>
             {tooltip}
           </div>
         )}
       </div>
 
-      {/* Gold display */}
+      {/* 💰 Gold */}
       <div style={{
-        fontSize: 28, fontWeight: 900,
-        color: 'rgba(180,120,0,0.85)',
-        fontFamily: "'Itim', cursive",
-        textShadow: '2px 2px 0 rgba(255,255,255,0.7), -1px -1px 0 rgba(0,0,0,0.2)',
+        fontSize:28, fontWeight:900, color:'rgba(180,120,0,0.82)',
+        fontFamily:"'Itim',cursive",
+        textShadow:'2px 2px 0 rgba(255,255,255,0.7),-1px -1px 0 rgba(0,0,0,0.15)',
       }}>
         💰 {totalXP}
       </div>
@@ -860,11 +1018,9 @@ function HUDOverlay() {
       {/* Flight tag */}
       {player.flightNumber && (
         <div style={{
-          background: 'rgba(0,0,0,0.80)',
-          border: '2px solid #FFD700', boxShadow: '2px 2px 0 rgba(0,0,0,0.5)',
-          padding: '2px 10px',
-          fontSize: 11, color: '#FFD700', fontWeight: 700, ...EN,
-          pointerEvents: 'auto',
+          background:'rgba(0,0,0,0.78)', border:'2px solid #FFD700',
+          padding:'2px 10px', fontSize:11, color:'#FFD700', fontWeight:700, ...EN,
+          pointerEvents:'auto',
         }}>
           {player.flightNumber}{player.flightTime ? ` @ ${player.flightTime}` : ''}
         </div>
@@ -879,131 +1035,94 @@ function HUDOverlay() {
 export function HomeScreen() {
   const { derived } = useGame();
 
-  const [editMode,     setEditMode]     = useState(false);
-  const [placedItems,  setPlacedItems]  = useState<PlacedItem[]>(DEFAULT_PLACED);
-  const [ownedItems,   setOwnedItems]   = useState<OwnedItem[]>(DEFAULT_OWNED);
-  const [selectedId,   setSelectedId]   = useState<string | null>(null);
-  const [pendingType,  setPendingType]  = useState<FurnitureType | null>(null);
-  const [roomScale,    setRoomScale]    = useState(1);
-  const [gold]                         = useState(0); // future: from GameContext
-  const [panOffset,    setPanOffset]    = useState({ x: 0, y: 0 });
-  const panStart                       = useRef<{ x: number; y: number; ox: number; oy: number } | null>(null);
-  const containerRef                   = useRef<HTMLDivElement>(null);
+  const [editMode,    setEditMode]    = useState(false);
+  const [placedItems, setPlacedItems] = useState<PlacedItem[]>(DEFAULT_PLACED);
+  const [ownedItems,  setOwnedItems]  = useState<OwnedItem[]>(DEFAULT_OWNED);
+  const [selectedId,  setSelectedId]  = useState<string | null>(null);
+  const [pendingType, setPendingType] = useState<FurnitureType | null>(null);
+  const [gold]                        = useState(0);
+  const [panOffset,   setPanOffset]   = useState({ x: 0, y: 0 });
+  const panRef                        = useRef<{ x:number; y:number; ox:number; oy:number } | null>(null);
+  const containerRef                  = useRef<HTMLDivElement>(null);
 
   const transitOffset = derived.transitTz.offset ?? 8;
   const transitLabel  = derived.transitTz.name !== '中轉機場'
-    ? derived.transitTz.name.slice(0, 6)
-    : '中轉';
+    ? derived.transitTz.name.slice(0, 7) : '中轉';
 
-  // ── Pick item from drawer ──
   const handlePickItem = useCallback((type: FurnitureType) => {
     setPendingType(type);
   }, []);
 
-  // ── Click item on canvas (edit mode) ──
-  const handleCanvasItemClick = useCallback((id: string) => {
-    if (pendingType) return; // placing new item takes priority
+  const handleItemClick = useCallback((id: string) => {
+    if (pendingType) return;
     setSelectedId(prev => prev === id ? null : id);
   }, [pendingType]);
 
-  // ── Click canvas background — place pending item ──
   const handleCanvasClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if (!editMode) return;
+    if (!editMode || !pendingType) return;
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const [gx, gy] = screenToGrid(e.clientX, e.clientY, rect, SVG_W, SVG_H);
+    const cGx = Math.max(0, Math.min(ROOM_W - 1, gx));
+    const cGy = Math.max(0, Math.min(ROOM_D - 1, gy));
+    setPlacedItems(prev => [...prev, {
+      id: `p_${pendingType}_${Date.now()}`,
+      type: pendingType, gx: cGx, gy: cGy, rotation: 0,
+    }]);
+    setOwnedItems(prev => {
+      const idx = prev.findIndex(o => o.type === pendingType);
+      if (idx === -1) return prev;
+      return [...prev.slice(0, idx), ...prev.slice(idx + 1)];
+    });
+    setPendingType(null);
+  }, [editMode, pendingType]);
 
-    if (selectedId && !pendingType) {
-      // Return selected item to drawer
-      const item = placedItems.find(p => p.id === selectedId);
-      if (item) {
-        setPlacedItems(prev => prev.filter(p => p.id !== selectedId));
-        setOwnedItems(prev => {
-          if (prev.some(o => o.type === item.type)) return prev;
-          const cat = CATALOG.find(c => c.type === item.type);
-          return cat ? [...prev, cat] : prev;
-        });
-        setSelectedId(null);
-      }
-      return;
-    }
+  const returnSelected = useCallback(() => {
+    if (!selectedId) return;
+    const item = placedItems.find(p => p.id === selectedId);
+    if (!item) return;
+    setPlacedItems(prev => prev.filter(p => p.id !== selectedId));
+    setOwnedItems(prev => {
+      if (prev.some(o => o.type === item.type)) return prev;
+      const cat = CATALOG.find(c => c.type === item.type);
+      return cat ? [...prev, cat] : prev;
+    });
+    setSelectedId(null);
+  }, [selectedId, placedItems]);
 
-    if (pendingType) {
-      const rect = containerRef.current?.getBoundingClientRect();
-      if (!rect) return;
-      const scaleX = 800 / rect.width;
-      const scaleY = 460 / rect.height;
-      const x = (e.clientX - rect.left) * scaleX - panOffset.x;
-      const y = (e.clientY - rect.top)  * scaleY - panOffset.y;
-      const newItem: PlacedItem = {
-        id: `p_${pendingType}_${Date.now()}`,
-        type: pendingType, x, y, rotation: 0,
-      };
-      setPlacedItems(prev => [...prev, newItem]);
-      setOwnedItems(prev => {
-        const idx = prev.findIndex(o => o.type === pendingType);
-        if (idx === -1) return prev;
-        const next = [...prev];
-        next.splice(idx, 1);
-        return next;
-      });
-      setPendingType(null);
-    }
-  }, [editMode, pendingType, selectedId, placedItems, panOffset]);
-
-  // ── Room expand ──
   const handleExpand = useCallback(() => {
-    const cost = 50;
-    if (gold < cost) {
-      alert(`需要 ${cost} 💰 才能擴建！（目前：${gold}）`);
-      return;
-    }
-    setRoomScale(prev => prev + 0.25);
+    alert(`需要 50 💰 才能擴建！（目前：${gold}）`);
   }, [gold]);
 
-  // ── Panning (mouse) ──
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (editMode) return;
-    panStart.current = { x: e.clientX, y: e.clientY, ox: panOffset.x, oy: panOffset.y };
+    panRef.current = { x: e.clientX, y: e.clientY, ox: panOffset.x, oy: panOffset.y };
   }, [editMode, panOffset]);
 
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (!panStart.current) return;
-    const dx = e.clientX - panStart.current.x;
-    const dy = e.clientY - panStart.current.y;
-    setPanOffset({ x: panStart.current.ox + dx, y: panStart.current.oy + dy });
+    if (!panRef.current) return;
+    setPanOffset({
+      x: panRef.current.ox + e.clientX - panRef.current.x,
+      y: panRef.current.oy + e.clientY - panRef.current.y,
+    });
   }, []);
 
-  const handleMouseUp = useCallback(() => { panStart.current = null; }, []);
-
-  // ── Save layout ──
-  const handleSave = useCallback(() => {
-    setEditMode(false);
-    setSelectedId(null);
-    setPendingType(null);
-  }, []);
-
-  const drawerOpen = editMode;
+  const handleMouseUp = useCallback(() => { panRef.current = null; }, []);
 
   return (
     <>
       <style>{`
         @keyframes hudPulse {
-          0%,100% { box-shadow: 3px 3px 0 #000; }
-          50%      { box-shadow: 3px 3px 0 #22c55e, 0 0 16px rgba(34,197,94,0.45); }
-        }
-        @keyframes roomPulse {
-          0%,100% { opacity: 1; }
-          50%      { opacity: 0.85; }
+          0%,100% { box-shadow:3px 3px 0 #000; }
+          50%      { box-shadow:3px 3px 0 #22c55e,0 0 16px rgba(34,197,94,0.45); }
         }
       `}</style>
 
-      <div
-        ref={containerRef}
+      <div ref={containerRef}
         style={{
-          width: '100%', height: '100%',
-          position: 'relative', overflow: 'hidden',
-          cursor: editMode
-            ? (pendingType ? 'crosshair' : 'default')
-            : (panStart.current ? 'grabbing' : 'grab'),
-          background: '#1a0d06',
+          width:'100%', height:'100%', position:'relative', overflow:'hidden',
+          background:'#0A0A18',
+          cursor: editMode ? (pendingType ? 'crosshair' : 'default') : 'grab',
         }}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
@@ -1011,80 +1130,73 @@ export function HomeScreen() {
         onMouseLeave={handleMouseUp}
         onClick={handleCanvasClick}
       >
-        {/* ── Scrollable room canvas ── */}
+        {/* Scrollable / pannable canvas */}
         <div style={{
-          width: '100%', height: drawerOpen ? 'calc(100% - 68px)' : '100%',
-          transform: `scale(${roomScale}) translate(${panOffset.x}px, ${panOffset.y}px)`,
-          transformOrigin: '0 0',
-          position: 'relative',
+          width:'100%',
+          height: editMode ? 'calc(100% - 64px)' : '100%',
+          transform: `translate(${panOffset.x}px,${panOffset.y}px)`,
+          position:'relative',
         }}>
           <RoomSVG
             placedItems={placedItems}
             editMode={editMode}
             selectedId={selectedId}
-            onItemClick={handleCanvasItemClick}
-            roomScale={roomScale}
+            onItemClick={handleItemClick}
             transitOffset={transitOffset}
             transitLabel={transitLabel}
           />
-
-          {/* ── Floating HUD ── */}
           {!editMode && <HUDOverlay />}
         </div>
 
-        {/* ── Edit mode controls (top-right) ── */}
+        {/* Edit controls (top-right) */}
         <div style={{
-          position: 'absolute', top: 8, right: 8,
-          display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'flex-end',
-          zIndex: 20,
+          position:'absolute', top:8, right:8, zIndex:20,
+          display:'flex', flexDirection:'column', gap:4, alignItems:'flex-end',
         }}>
           {!editMode ? (
             <button onClick={() => setEditMode(true)} style={{
-              padding: '6px 12px',
-              border: '2.5px solid #000', boxShadow: '3px 3px 0 #000',
-              background: '#FDFBF7', cursor: 'pointer',
-              fontSize: 10, fontWeight: 900, ...ZH,
+              padding:'6px 12px', border:'2.5px solid #000', boxShadow:'3px 3px 0 #000',
+              background:'#FDFBF7', cursor:'pointer', fontSize:10, fontWeight:900, ...ZH,
             }}>
               ✏️ 編輯小屋
             </button>
           ) : (
             <>
-              <button onClick={handleSave} style={{
-                padding: '6px 14px',
-                border: '2.5px solid #000', boxShadow: '3px 3px 0 #22c55e',
-                background: '#22c55e', color: '#fff', cursor: 'pointer',
-                fontSize: 10, fontWeight: 900, ...ZH,
-              }}>
+              <button onClick={() => { setEditMode(false); setSelectedId(null); setPendingType(null); }}
+                style={{
+                  padding:'6px 14px', border:'2.5px solid #000', boxShadow:'3px 3px 0 #22c55e',
+                  background:'#22c55e', color:'#fff', cursor:'pointer',
+                  fontSize:10, fontWeight:900, ...ZH,
+                }}>
                 ✓ 儲存佈置
               </button>
               {selectedId && (
-                <button onClick={() => handleCanvasItemClick(selectedId)} style={{
-                  padding: '5px 10px',
-                  border: '2.5px solid #000', boxShadow: '2px 2px 0 #C0392B',
-                  background: '#FDFBF7', cursor: 'pointer',
-                  fontSize: 9, fontWeight: 900, ...ZH,
+                <button onClick={returnSelected} style={{
+                  padding:'5px 10px', border:'2.5px solid #C0392B',
+                  boxShadow:'2px 2px 0 #C0392B', background:'#FDFBF7',
+                  cursor:'pointer', fontSize:9, fontWeight:900, ...ZH,
                 }}>
                   ↩ 收回道具
                 </button>
               )}
               {pendingType && (
                 <div style={{
-                  padding: '4px 10px', fontSize: 9, fontWeight: 900, ...ZH,
-                  background: '#FFD700', border: '2px solid #000',
+                  padding:'4px 10px', fontSize:9, fontWeight:900, ...ZH,
+                  background:'#FFD700', border:'2px solid #000',
                 }}>
-                  點擊畫面放置：{CATALOG.find(c => c.type === pendingType)?.label}
+                  點擊地板放置：{CATALOG.find(c => c.type === pendingType)?.label}
                 </div>
               )}
             </>
           )}
         </div>
 
-        {/* ── Furniture Drawer ── */}
-        {drawerOpen && (
+        {/* Furniture Drawer */}
+        {editMode && (
           <FurnitureDrawer
             ownedItems={ownedItems}
             onPickItem={handlePickItem}
-            roomGold={gold}
+            gold={gold}
             onExpand={handleExpand}
           />
         )}
