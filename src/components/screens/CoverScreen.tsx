@@ -1,147 +1,85 @@
 import React from 'react';
+import { ComposableMap, Geographies, Geography, Marker, Line } from 'react-simple-maps';
 import { useGame } from '../../context/GameContext';
 import { ZH, EN } from '../../data/constants';
 
-// ─── World Map SVG ────────────────────────────────────────────────────────────
-// ViewBox 0 0 800 420, equirectangular projection
-// x = (lon+180)/360×800,  y = (85-lat)/170×420
-// Taiwan  (25°N, 121°E) → (669, 141)
-// Ireland (53°N,  -8°E) → (382,  79)
+const GEO_URL = 'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json';
+
+const TW: [number, number] = [121, 25];
+const IE: [number, number] = [-8, 53];
+
+// ─── World Map ────────────────────────────────────────────────────────────────
 function WorldMap() {
-  const LAND = '#8dc04a';
-  const LAND_S = '#5a8a2e';
-  const OCEAN = '#6bbde3';
-
   return (
-    <svg viewBox="0 0 800 420" style={{ width: '100%', height: '100%', display: 'block' }}>
-      <rect width="800" height="420" fill={OCEAN} />
+    <div style={{ width: '100%', height: '100%', background: '#6bbde3', position: 'relative' }}>
+      <ComposableMap
+        projection="geoEquirectangular"
+        projectionConfig={{ scale: 153, center: [20, 20] }}
+        style={{ width: '100%', height: '100%' }}
+      >
+        <Geographies geography={GEO_URL}>
+          {({ geographies }) =>
+            geographies.map(geo => (
+              <Geography
+                key={geo.rsmKey}
+                geography={geo}
+                fill="#8dc04a"
+                stroke="#5a8a2e"
+                strokeWidth={0.5}
+                style={{
+                  default: { outline: 'none' },
+                  hover:   { outline: 'none' },
+                  pressed: { outline: 'none' },
+                }}
+              />
+            ))
+          }
+        </Geographies>
 
-      {/* vintage grid */}
-      {[80,160,240,320,400,480,560,640,720].map(x =>
-        <line key={`vg${x}`} x1={x} y1={0} x2={x} y2={420} stroke="rgba(0,0,100,0.07)" strokeWidth="0.5" />)}
-      {[60,120,180,240,300,360].map(y =>
-        <line key={`hg${y}`} x1={0} y1={y} x2={800} y2={y} stroke="rgba(0,0,100,0.07)" strokeWidth="0.5" />)}
+        {/* Flight arc */}
+        <Line
+          from={TW}
+          to={IE}
+          stroke="#1a1a1a"
+          strokeWidth={1.8}
+          strokeDasharray="5,4"
+          strokeLinecap="round"
+        />
 
-      {/* ── Continents (simplified polygons) ── */}
+        {/* Taiwan pin */}
+        <Marker coordinates={TW}>
+          <circle r={6} fill="#e74c3c" stroke="#c0392b" strokeWidth={1.5} />
+          <circle r={2.5} cx={-2} cy={-2} fill="rgba(255,255,255,0.5)" />
+          <text y={16} textAnchor="middle" fontSize={8} fontWeight="bold" fill="#1a1a1a" fontFamily="sans-serif">台灣</text>
+        </Marker>
 
-      {/* North America */}
-      <path fill={LAND} stroke={LAND_S} strokeWidth="0.8" d="
-        M 55,42 L 95,30 L 135,32 L 165,28 L 192,36 L 205,50 L 208,66
-        L 198,80 L 185,96 L 178,115 L 182,138 L 178,160 L 165,180
-        L 150,198 L 138,215 L 125,208 L 112,192 L 100,175
-        L 88,158 L 76,142 L 68,124 L 66,104 L 70,82 L 60,62 Z" />
+        {/* Ireland pin */}
+        <Marker coordinates={IE}>
+          <circle r={6} fill="#e74c3c" stroke="#c0392b" strokeWidth={1.5} />
+          <circle r={2.5} cx={-2} cy={-2} fill="rgba(255,255,255,0.5)" />
+          <text y={16} textAnchor="middle" fontSize={8} fontWeight="bold" fill="#1a1a1a" fontFamily="sans-serif">愛爾蘭</text>
+        </Marker>
+      </ComposableMap>
 
-      {/* Greenland */}
-      <path fill={LAND} stroke={LAND_S} strokeWidth="0.8" d="
-        M 210,18 L 238,12 L 258,20 L 262,35 L 245,46 L 220,48 L 208,36 Z" />
-
-      {/* Central America */}
-      <path fill={LAND} stroke={LAND_S} strokeWidth="0.8" d="
-        M 150,198 L 162,205 L 168,218 L 162,230 L 152,232 L 144,222 Z" />
-
-      {/* South America */}
-      <path fill={LAND} stroke={LAND_S} strokeWidth="0.8" d="
-        M 162,238 L 185,228 L 210,235 L 225,252 L 232,272 L 235,298
-        L 228,325 L 216,350 L 202,370 L 188,375 L 174,368
-        L 162,350 L 154,325 L 150,298 L 150,270 L 154,250 Z" />
-
-      {/* Europe */}
-      <path fill={LAND} stroke={LAND_S} strokeWidth="0.8" d="
-        M 338,80 L 355,65 L 372,58 L 390,60 L 404,70 L 408,82
-        L 400,92 L 385,100 L 368,104 L 352,98 L 340,88 Z" />
-
-      {/* Scandinavia */}
-      <path fill={LAND} stroke={LAND_S} strokeWidth="0.8" d="
-        M 370,55 L 384,42 L 396,34 L 410,40 L 413,54 L 404,65
-        L 390,68 L 375,62 Z" />
-
-      {/* UK */}
-      <path fill={LAND} stroke={LAND_S} strokeWidth="0.8" d="
-        M 346,65 L 354,60 L 358,68 L 354,76 L 346,74 Z" />
-
-      {/* Ireland (small, near pin) */}
-      <path fill={LAND} stroke={LAND_S} strokeWidth="0.8" d="
-        M 337,68 L 344,64 L 347,70 L 343,76 L 336,74 Z" />
-
-      {/* Eurasia main body */}
-      <path fill={LAND} stroke={LAND_S} strokeWidth="0.8" d="
-        M 345,82 L 390,68 L 435,62 L 478,64 L 518,68 L 556,72
-        L 592,76 L 626,84 L 656,96 L 680,112 L 700,130
-        L 710,152 L 705,172 L 688,186 L 664,196 L 636,202
-        L 608,205 L 578,204 L 550,200 L 522,194 L 498,186
-        L 475,178 L 455,168 L 436,156 L 418,144 L 402,130
-        L 388,116 L 372,104 L 356,96 L 344,90 Z" />
-
-      {/* India */}
-      <path fill={LAND} stroke={LAND_S} strokeWidth="0.8" d="
-        M 550,148 L 570,142 L 584,154 L 588,174 L 580,198
-        L 564,212 L 550,210 L 540,196 L 537,174 L 542,156 Z" />
-
-      {/* Indochina */}
-      <path fill={LAND} stroke={LAND_S} strokeWidth="0.8" d="
-        M 622,164 L 638,158 L 650,168 L 646,186 L 634,196 L 620,190 L 614,176 Z" />
-
-      {/* Africa */}
-      <path fill={LAND} stroke={LAND_S} strokeWidth="0.8" d="
-        M 358,130 L 392,120 L 424,124 L 442,138 L 448,158 L 445,182
-        L 438,208 L 427,234 L 416,260 L 408,285 L 402,312
-        L 396,338 L 388,356 L 378,358 L 368,346 L 360,320
-        L 355,292 L 353,264 L 352,236 L 350,208 L 348,182
-        L 350,158 L 354,140 Z" />
-
-      {/* Arabian Peninsula */}
-      <path fill={LAND} stroke={LAND_S} strokeWidth="0.8" d="
-        M 452,124 L 474,116 L 495,122 L 502,138 L 496,158
-        L 478,166 L 460,160 L 450,145 Z" />
-
-      {/* Australia */}
-      <path fill={LAND} stroke={LAND_S} strokeWidth="0.8" d="
-        M 640,262 L 668,252 L 698,255 L 722,268 L 732,286
-        L 728,308 L 712,320 L 685,324 L 658,318 L 640,305
-        L 632,286 L 634,270 Z" />
-
-      {/* Japan */}
-      <path fill={LAND} stroke={LAND_S} strokeWidth="0.8" d="
-        M 698,96 L 707,90 L 714,98 L 711,110 L 702,114 L 696,106 Z" />
-
-      {/* ── TRAVEL JOURNAL watermark ── */}
-      <text x="400" y="215" textAnchor="middle"
-        fill="rgba(0,0,0,0.07)" fontSize="58" fontStyle="italic"
-        fontFamily="'Georgia', serif" letterSpacing="6" fontWeight="bold">TRAVEL</text>
-      <text x="400" y="278" textAnchor="middle"
-        fill="rgba(0,0,0,0.07)" fontSize="58" fontStyle="italic"
-        fontFamily="'Georgia', serif" letterSpacing="6" fontWeight="bold">JOURNAL</text>
-
-      {/* ── Flight path: Taiwan(669,141) → Ireland(382,79) ── */}
-      {/* Control point high north: (490, 14) for a nice arc */}
-      <path d="M 669,141 Q 500,14 382,79"
-        stroke="#1a1a1a" strokeWidth="1.8" strokeDasharray="5,4"
-        fill="none" opacity="0.7" />
-
-      {/* ── 3D Pins ── */}
-      {/* Taiwan pin */}
-      <ellipse cx={669} cy={150} rx={5} ry={2} fill="rgba(0,0,0,0.2)" />
-      <path d="M 669,115 L 673,141 L 665,141 Z" fill="#c0392b" />
-      <circle cx={669} cy={112} r={10} fill="#e74c3c" stroke="#c0392b" strokeWidth="1.5" />
-      <circle cx={666} cy={109} r={3.5} fill="rgba(255,255,255,0.45)" />
-      <text x="669" y="143" textAnchor="middle" fontSize="8" fill="#333" fontFamily="sans-serif"
-        fontWeight="700" dy="10">台灣</text>
-
-      {/* Ireland pin */}
-      <ellipse cx={382} cy={88} rx={5} ry={2} fill="rgba(0,0,0,0.2)" />
-      <path d="M 382,54 L 386,79 L 378,79 Z" fill="#c0392b" />
-      <circle cx={382} cy={51} r={10} fill="#e74c3c" stroke="#c0392b" strokeWidth="1.5" />
-      <circle cx={379} cy={48} r={3.5} fill="rgba(255,255,255,0.45)" />
-      <text x="382" y="81" textAnchor="middle" fontSize="8" fill="#333" fontFamily="sans-serif"
-        fontWeight="700" dy="10">愛爾蘭</text>
-
-      {/* ── Plane at midpoint of bezier (t=0.5) ── */}
-      {/* P(0.5) = 0.25×(669,141) + 0.5×(500,14) + 0.25×(382,79) = (513, 62) */}
-      {/* Tangent direction: going left+slightly down → rotate ~200° */}
-      <g transform="translate(513,57) rotate(200)">
-        <text fontSize="22" textAnchor="middle" dominantBaseline="middle">✈</text>
-      </g>
-    </svg>
+      {/* TRAVEL JOURNAL watermark */}
+      <div style={{
+        position: 'absolute', inset: 0,
+        display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center',
+        pointerEvents: 'none',
+      }}>
+        <div style={{
+          fontSize: 52, fontWeight: 900, fontStyle: 'italic',
+          fontFamily: "'Georgia', serif", letterSpacing: '0.15em',
+          color: 'rgba(0,0,0,0.06)', lineHeight: 1.1, userSelect: 'none',
+        }}>TRAVEL</div>
+        <div style={{
+          fontSize: 52, fontWeight: 900, fontStyle: 'italic',
+          fontFamily: "'Georgia', serif", letterSpacing: '0.15em',
+          color: 'rgba(0,0,0,0.06)', lineHeight: 1.1, userSelect: 'none',
+        }}>JOURNAL</div>
+      </div>
+    </div>
   );
 }
 
@@ -207,7 +145,6 @@ export function CoverScreen() {
               ☘ 冒險者登入
             </div>
 
-            {/* Social login buttons */}
             <button onClick={() => handleLogin('google')} style={{
               display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center',
               padding: '7px 12px', border: '2px solid #000',
