@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { GameProvider, useGame } from './context/GameContext';
 import { NotebookContainer } from './components/layout/NotebookContainer';
 import { ParticlesBurst } from './components/shared/ParticlesBurst';
+import { CoverScreen }       from './components/screens/CoverScreen';
 import { SetupScreen }       from './components/screens/SetupScreen';
 import { HomeScreen }        from './components/screens/HomeScreen';
 import { TaskScreen }        from './components/screens/TaskScreen';
@@ -74,6 +75,8 @@ function ScreenRouter() {
 
 // ─── App Inner (needs context) ────────────────────────────────────────────────
 function AppInner() {
+  const { state } = useGame();
+
   // Inject global CSS once
   useEffect(() => {
     const existing = document.getElementById('whinie-global-css');
@@ -84,6 +87,9 @@ function AppInner() {
     document.head.appendChild(style);
     return () => { document.getElementById('whinie-global-css')?.remove(); };
   }, []);
+
+  // Cover screen renders outside the notebook
+  if (state.currentScreen === 'COVER') return <CoverScreen />;
 
   return (
     <>

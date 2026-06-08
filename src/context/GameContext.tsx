@@ -26,7 +26,7 @@ const INIT_PLAYER: PlayerProfile = {
 };
 
 const INITIAL_STATE: GameState = {
-  currentScreen:  'SETUP',
+  currentScreen:  'COVER',
   player:         INIT_PLAYER,
   completedTasks: new Set(),
   completedDaily: new Set(),

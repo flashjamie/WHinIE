@@ -1,5 +1,6 @@
 // ─── Screen & Navigation ──────────────────────────────────────────────────────
 export type ScreenId =
+  | 'COVER'
   | 'SETUP'
   | 'HOME'
   | 'AIB'
