@@ -25,21 +25,28 @@ declare module 'react-simple-maps' {
     children: (props: GeographiesChildProps) => ReactNode;
   }
 
-  export interface GeographyProps extends SVGProps<SVGPathElement> {
+  export interface GeographyStyle {
+    default?: { outline?: string; fill?: string; stroke?: string; strokeWidth?: number; opacity?: number };
+    hover?:   { outline?: string; fill?: string; stroke?: string; strokeWidth?: number; opacity?: number };
+    pressed?: { outline?: string; fill?: string; stroke?: string; strokeWidth?: number; opacity?: number };
+  }
+
+  export interface GeographyProps {
     geography: any;
-    style?: {
-      default?: React.CSSProperties & { outline?: string };
-      hover?: React.CSSProperties & { outline?: string };
-      pressed?: React.CSSProperties & { outline?: string };
-    };
+    fill?: string;
+    stroke?: string;
+    strokeWidth?: number;
+    style?: GeographyStyle;
+    [key: string]: any;
   }
 
   export interface MarkerProps {
     coordinates: [number, number];
     children?: ReactNode;
+    [key: string]: any;
   }
 
-  export interface LineProps extends SVGProps<SVGPathElement> {
+  export interface LineProps {
     from: [number, number];
     to: [number, number];
     stroke?: string;
@@ -47,6 +54,7 @@ declare module 'react-simple-maps' {
     strokeDasharray?: string;
     strokeLinecap?: 'butt' | 'round' | 'square';
     fill?: string;
+    [key: string]: any;
   }
 
   export interface MapContextValue {
