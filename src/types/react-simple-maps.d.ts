@@ -64,7 +64,7 @@ declare module 'react-simple-maps' {
     height: number;
   }
 
-  export function useMap(): MapContextValue;
+  export function useMapContext(): MapContextValue;
 
   export const ComposableMap: ComponentType<ComposableMapProps>;
   export const Geographies: ComponentType<GeographiesProps>;

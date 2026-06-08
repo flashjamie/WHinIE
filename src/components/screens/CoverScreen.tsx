@@ -1,5 +1,5 @@
 import React from 'react';
-import { ComposableMap, Geographies, Geography, Marker, useMap } from 'react-simple-maps';
+import { ComposableMap, Geographies, Geography, Marker, useMapContext } from 'react-simple-maps';
 import { useGame } from '../../context/GameContext';
 import { ZH, EN } from '../../data/constants';
 
@@ -10,7 +10,7 @@ const IE: [number, number] = [-8, 53];
 
 // ─── Flight Arc + Plane ───────────────────────────────────────────────────────
 function FlightArc() {
-  const { projection } = useMap();
+  const { projection } = useMapContext();
 
   const pTW = projection(TW);
   const pIE = projection(IE);
