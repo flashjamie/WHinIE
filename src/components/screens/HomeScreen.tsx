@@ -434,7 +434,7 @@ const Furniture: Record<FurnitureType, React.FC<FurnitureProps>> = {
         const [sx, sy] = iso(gx + 0.64, gy + 0.65, gz + 0.18);
         return (
           <text x={sx} y={sy} fontSize={5} fill="#00FF88"
-            fontFamily="monospace" textAnchor="middle">12:00</text>
+            textAnchor="middle">12:00</text>
         );
       })()}
     </g>
@@ -729,7 +729,7 @@ function RoomSVG({
         const [tx, ty] = iso(ROOM_W / 2, 0, 1.0);
         return (
           <text x={tx} y={ty} textAnchor="middle" fontSize={48}
-            fill="rgba(180,148,100,0.06)" fontFamily="Georgia,serif" fontStyle="italic" fontWeight="bold">
+            fill="rgba(180,148,100,0.06)" fontStyle="italic" fontWeight="bold">
             WHinIE
           </text>
         );

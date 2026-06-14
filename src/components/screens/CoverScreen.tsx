@@ -106,13 +106,13 @@ function WorldMap() {
           <circle r={5} fill="#8B3A2A" stroke="#F2EBD9" strokeWidth={1.5} />
           <circle r={2} cx={-1.5} cy={-1.5} fill="rgba(255,255,255,0.4)" />
           <text y={14} textAnchor="middle" fontSize={7} fontWeight="bold"
-            fill="#4A3010" fontFamily="Georgia, serif">台灣</text>
+            fill="#4A3010">台灣</text>
         </Marker>
         <Marker coordinates={IE}>
           <circle r={5} fill="#8B3A2A" stroke="#F2EBD9" strokeWidth={1.5} />
           <circle r={2} cx={-1.5} cy={-1.5} fill="rgba(255,255,255,0.4)" />
           <text y={14} textAnchor="middle" fontSize={7} fontWeight="bold"
-            fill="#4A3010" fontFamily="Georgia, serif">愛爾蘭</text>
+            fill="#4A3010">愛爾蘭</text>
         </Marker>
       </ComposableMap>
     </div>
@@ -293,20 +293,17 @@ export function CoverScreen() {
 
               <div style={{
                 fontSize: 28, fontWeight: 900, letterSpacing: '0.1em', lineHeight: 1,
-                fontFamily: "'Georgia', 'Times New Roman', serif",
                 color: '#C9A96E',
                 textShadow: '0 1px 4px rgba(0,0,0,0.6), 0 0 20px rgba(201,169,110,0.25)',
               }}>TRAVEL</div>
               <div style={{
                 fontSize: 28, fontWeight: 900, letterSpacing: '0.1em', lineHeight: 1,
-                fontFamily: "'Georgia', 'Times New Roman', serif",
                 color: '#C9A96E',
                 textShadow: '0 1px 4px rgba(0,0,0,0.6), 0 0 20px rgba(201,169,110,0.25)',
               }}>JOURNAL</div>
               <div style={{
                 fontSize: 8, letterSpacing: '0.28em', marginTop: 5,
                 color: 'rgba(201,169,110,0.6)',
-                fontFamily: "'Georgia', serif",
               }}>WORKING HOLIDAY · IRELAND</div>
 
               <div style={{ marginTop:14 }}>
@@ -319,7 +316,6 @@ export function CoverScreen() {
                     color: '#C9A96E',
                     border: '1.5px solid rgba(201,169,110,0.7)',
                     cursor: 'pointer',
-                    fontFamily: "'Georgia', serif",
                     fontSize: 11, fontWeight: 700,
                     letterSpacing: '0.2em',
                     boxShadow: '0 0 12px rgba(201,169,110,0.15)',
