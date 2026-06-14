@@ -5,7 +5,7 @@
  */
 
 import type {
-  Task, DailyTask, ShopItem, BagItem,
+  Task, DailyTask, BagItem,
   RandomEvent, Badge, BankStep, GuildPost,
   AvatarConfig, ScreenId,
 } from '../types';
@@ -184,32 +184,6 @@ export const DAILY_TASKS: DailyTask[] = [
   { id: 'daily_english',  icon: '📝', label: '學習 5 個新英語單詞',  xp: 30  },
   { id: 'daily_cafe',     icon: '☕', label: '發現一家好咖啡館',     xp: 15  },
   { id: 'daily_rain',     icon: '☔', label: '帶傘出門（都柏林必備）',xp: 10  },
-];
-
-// ─── 商店.md – Dunnes Store 清單 ──────────────────────────────────────────────
-export const SHOP_ITEMS: ShopItem[] = [
-  // Essential
-  { id: 's_bread',    icon: '🍞', name: "Brennan's White Bread",   nameZh: '白吐司',       price: 1.29, category: 'essential', tip: '愛爾蘭必備主食' },
-  { id: 's_eggs',     icon: '🥚', name: 'Free Range Eggs (6pk)',    nameZh: '放養雞蛋',     price: 2.49, category: 'essential' },
-  { id: 's_milk',     icon: '🥛', name: 'Avonmore Milk 2L',         nameZh: '鮮奶 2L',      price: 1.89, category: 'essential' },
-  { id: 's_oats',     icon: '🌾', name: "Flahavan's Oats 1kg",      nameZh: '燕麥片',       price: 2.49, category: 'essential', tip: '愛爾蘭國民早餐' },
-  { id: 's_butter',   icon: '🧈', name: 'Kerrygold Butter 200g',    nameZh: '金牌奶油',     price: 2.79, category: 'essential', tip: '愛爾蘭驕傲' },
-  // Fresh
-  { id: 's_potato',   icon: '🥔', name: 'Washed Potatoes 2kg',      nameZh: '馬鈴薯',       price: 2.99, category: 'fresh' },
-  { id: 's_chicken',  icon: '🍗', name: 'Chicken Fillets 500g',      nameZh: '雞胸肉',       price: 5.99, category: 'fresh' },
-  { id: 's_tomato',   icon: '🍅', name: 'Tomatoes 6pk',              nameZh: '番茄',         price: 1.99, category: 'fresh' },
-  { id: 's_garlic',   icon: '🧄', name: 'Garlic Bulb',               nameZh: '蒜頭',         price: 0.79, category: 'fresh' },
-  { id: 's_onion',    icon: '🧅', name: 'Brown Onions 1kg',          nameZh: '洋蔥',         price: 1.29, category: 'fresh' },
-  { id: 's_banana',   icon: '🍌', name: 'Bananas (bunch)',           nameZh: '香蕉',         price: 1.09, category: 'fresh' },
-  // Snack
-  { id: 's_tayto',    icon: '🥔', name: 'Tayto Cheese & Onion',      nameZh: '泰托洋芋片',   price: 1.49, category: 'snack', tip: '愛爾蘭人的國寶零食' },
-  { id: 's_chocolate',icon: '🍫', name: 'Cadbury Dairy Milk 200g',   nameZh: '吉百利巧克力', price: 2.49, category: 'snack' },
-  { id: 's_tea',      icon: '🫖', name: "Barry's Tea 80 bags",       nameZh: '愛爾蘭紅茶',   price: 3.29, category: 'snack', tip: '不懂 Barry's Tea 就不懂愛爾蘭' },
-  // Household
-  { id: 's_soy',      icon: '🧴', name: 'Soy Sauce',                 nameZh: '醬油',         price: 1.99, category: 'household' },
-  { id: 's_rice',     icon: '🍚', name: 'Long Grain Rice 1kg',       nameZh: '長粒米',       price: 1.69, category: 'household' },
-  { id: 's_noodle',   icon: '🍜', name: 'Egg Noodles 375g',          nameZh: '雞蛋麵',       price: 1.99, category: 'household' },
-  { id: 's_umbrella', icon: '☂️', name: 'Compact Umbrella',          nameZh: '折疊傘（必備）', price: 6.99, category: 'household', tip: '愛爾蘭天氣隨時變，一定要買' },
 ];
 
 // ─── 背包.md – Bag Items ──────────────────────────────────────────────────────

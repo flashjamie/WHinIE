@@ -8,7 +8,6 @@ export interface GameState {
   player:          PlayerProfile;
   completedTasks:  Set<string>;
   completedDaily:  Set<string>;
-  cartItems:       Record<string, number>; // shopItemId → quantity
   showParticles:   boolean;
   activeEvent:     string | null;          // RandomEvent id
   unlockedBadges:  Set<string>;
@@ -30,7 +29,6 @@ const INITIAL_STATE: GameState = {
   player:         INIT_PLAYER,
   completedTasks: new Set(),
   completedDaily: new Set(),
-  cartItems:      {},
   showParticles:  false,
   activeEvent:    null,
   unlockedBadges: new Set(),
@@ -49,9 +47,6 @@ type Action =
   | { type: 'SET_AVATAR';      cfg: Partial<AvatarConfig> }
   | { type: 'TOGGLE_TASK';     id: string }
   | { type: 'TOGGLE_DAILY';    id: string }
-  | { type: 'CART_ADD';        id: string }
-  | { type: 'CART_REMOVE';     id: string }
-  | { type: 'CART_CLEAR' }
   | { type: 'SHOW_PARTICLES' }
   | { type: 'HIDE_PARTICLES' }
   | { type: 'SET_EVENT';       id: string | null }
@@ -106,21 +101,6 @@ function reducer(state: GameState, action: Action): GameState {
       return { ...state, completedDaily: next };
     }
 
-    case 'CART_ADD': {
-      const q = (state.cartItems[action.id] ?? 0) + 1;
-      return { ...state, cartItems: { ...state.cartItems, [action.id]: q } };
-    }
-
-    case 'CART_REMOVE': {
-      const q = (state.cartItems[action.id] ?? 1) - 1;
-      const next = { ...state.cartItems };
-      if (q <= 0) delete next[action.id]; else next[action.id] = q;
-      return { ...state, cartItems: next };
-    }
-
-    case 'CART_CLEAR':
-      return { ...state, cartItems: {} };
-
     case 'SHOW_PARTICLES':
       return { ...state, showParticles: true };
 
@@ -157,7 +137,6 @@ export interface GameDerived {
   houseDone:          boolean;
   pubVisited:         boolean;
   rainSurvived:       boolean;
-  cartTotal:          number;
   totalXP:            number;
 }
 
@@ -172,7 +151,7 @@ interface GameContextValue {
 const GameContext = createContext<GameContextValue | null>(null);
 
 // ─── Provider ─────────────────────────────────────────────────────────────────
-import { MAIN_TASKS, SHOP_ITEMS } from '../data/constants';
+import { MAIN_TASKS } from '../data/constants';
 
 export function GameProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(reducer, INITIAL_STATE);
@@ -181,18 +160,13 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     dispatch({ type: 'NAVIGATE', screen });
   }, []);
 
-  const { player, completedTasks, cartItems } = state;
+  const { player, completedTasks } = state;
 
   const dayStatus         = getDayStatus(player.arrivalDate);
   const transitTz         = resolveTransitTz(player.transitHubs, player.airlines);
   const hasArrived        = dayStatus.type === 'arrived';
   const hasComplexRouting = player.transitHubs.length > 1
     || (player.transitHubs.length >= 1 && player.airlines.length > 1);
-
-  const cartTotal = Object.entries(cartItems).reduce((sum, [id, qty]) => {
-    const item = SHOP_ITEMS.find(s => s.id === id);
-    return sum + (item?.price ?? 0) * qty;
-  }, 0);
 
   const totalXP = MAIN_TASKS
     .filter(t => completedTasks.has(t.id))
@@ -213,7 +187,6 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     houseDone:       completedTasks.has('ie_house'),
     pubVisited:      state.unlockedBadges.has('pub_first'),
     rainSurvived:    state.unlockedBadges.has('rain_survivor'),
-    cartTotal,
     totalXP,
   };
 

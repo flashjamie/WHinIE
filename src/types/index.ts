@@ -58,18 +58,6 @@ export interface DailyTask {
   xp:    number;
 }
 
-// ─── Shop / Dunnes ────────────────────────────────────────────────────────────
-export type ShopCategory = 'essential' | 'snack' | 'fresh' | 'household';
-export interface ShopItem {
-  id:       string;
-  icon:     string;
-  name:     string;
-  nameZh:   string;
-  price:    number;   // EUR
-  category: ShopCategory;
-  tip?:     string;
-}
-
 // ─── Bag ──────────────────────────────────────────────────────────────────────
 export type BagSlot = 'document' | 'card' | 'gear' | 'misc';
 export interface BagItem {
