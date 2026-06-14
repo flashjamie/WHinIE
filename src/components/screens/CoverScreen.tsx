@@ -60,7 +60,7 @@ function WorldMap() {
     <div style={{ width: '100%', height: '100%', background: '#F2EBD9', position: 'relative' }}>
       <ComposableMap
         projection="geoEquirectangular"
-        projectionConfig={{ scale: 220, center: [55, 30] }}
+        projectionConfig={{ scale: 340, center: [65, 35] }}
         style={{ width: '100%', height: '100%' }}
       >
         <Geographies geography={GEO_URL}>
