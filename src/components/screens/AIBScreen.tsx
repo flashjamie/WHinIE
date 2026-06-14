@@ -82,11 +82,10 @@ function LedgerTab({
   const totalExpense = entries.filter(e => e.type === 'expense').reduce((s,e) => s+e.eur, 0);
 
   return (
-    <div style={{ display:'flex', flexDirection:'column', height:'100%', overflow:'hidden' }}>
+    <div style={{ display:'flex', flexDirection:'column' }}>
 
       {/* ── Add Form ── */}
       <div style={{
-        flexShrink: 0,
         padding: '8px 12px',
         borderBottom: '3px solid #000',
         background: '#f5f0e6',
@@ -162,8 +161,8 @@ function LedgerTab({
         )}
       </div>
 
-      {/* ── Entry list (only this scrolls) ── */}
-      <div style={{ flex:1, overflowY:'auto', padding:'6px 12px', display:'flex', flexDirection:'column', gap:5 }}>
+      {/* ── Entry list ── */}
+      <div style={{ padding:'6px 12px', display:'flex', flexDirection:'column', gap:5 }}>
         {[...entries].sort((a,b) => b.date.localeCompare(a.date)).map(e => (
           <div key={e.id} style={{
             display:'flex', alignItems:'center', gap:8,
@@ -197,7 +196,7 @@ function LedgerTab({
 
       {/* ── Footer totals ── */}
       <div style={{
-        flexShrink:0, borderTop:'3px solid #000',
+        borderTop:'3px solid #000',
         background:'#1a1a1a', color:'#fff',
         padding:'6px 14px', display:'flex', gap:16, alignItems:'center',
         fontSize:11, fontWeight:700,
@@ -280,11 +279,11 @@ function ReportTab({ entries, rate }: { entries: Entry[]; rate: number }) {
   const totalOutFiltered = filtered.filter(e=>e.type==='expense').reduce((s,e)=>s+e.eur,0);
 
   return (
-    <div style={{ display:'flex', flexDirection:'column', height:'100%', overflow:'hidden' }}>
+    <div style={{ display:'flex', flexDirection:'column' }}>
 
       {/* ── Survival runway ── */}
       <div style={{
-        flexShrink:0, margin:'8px 12px 0',
+        margin:'8px 12px 0',
         border:'3px solid #000', boxShadow:'4px 4px 0 #000',
         background: runway < 30 ? '#FDECEA' : runway < 60 ? '#FFF9E6' : '#E8F5EC',
         padding:'8px 12px',
@@ -322,7 +321,7 @@ function ReportTab({ entries, rate }: { entries: Entry[]; rate: number }) {
 
       {/* ── Filters ── */}
       <div style={{
-        flexShrink:0, padding:'8px 12px 6px',
+        padding:'8px 12px 6px',
         borderBottom:'3px solid #000', display:'flex', flexDirection:'column', gap:6,
       }}>
         {/* Search */}
@@ -381,8 +380,8 @@ function ReportTab({ entries, rate }: { entries: Entry[]; rate: number }) {
         </div>
       </div>
 
-      {/* ── Charts + list (scrollable) ── */}
-      <div style={{ flex:1, overflowY:'auto', padding:'8px 12px', display:'flex', flexDirection:'column', gap:8 }}>
+      {/* ── Charts + list ── */}
+      <div style={{ padding:'8px 12px', display:'flex', flexDirection:'column', gap:8 }}>
 
         {/* Weekly bars */}
         {weeklyExpenses.length > 0 && (
@@ -487,7 +486,7 @@ function ReportTab({ entries, rate }: { entries: Entry[]; rate: number }) {
 
       {/* Footer summary */}
       <div style={{
-        flexShrink:0, borderTop:'3px solid #000',
+        borderTop:'3px solid #000',
         background:'#1a1a1a', padding:'5px 12px',
         display:'flex', gap:12, fontSize:10, fontWeight:700, color:'#fff',
       }}>
@@ -515,7 +514,7 @@ export function AIBScreen() {
   }, []);
 
   return (
-    <div style={{ height:'100%', display:'flex', flexDirection:'column', overflow:'hidden' }}>
+    <div style={{ display:'flex', flexDirection:'column' }}>
 
       {/* ── Header ── */}
       <div style={{
@@ -580,8 +579,8 @@ export function AIBScreen() {
         ))}
       </div>
 
-      {/* ── Content (fills remaining height, no outer scroll) ── */}
-      <div style={{ flex:1, overflow:'hidden', display:'flex', flexDirection:'column' }}>
+      {/* ── Content ── */}
+      <div>
         {tab === 'ledger' && (
           <LedgerTab entries={entries} onAdd={addEntry} onDelete={delEntry} rate={rate} />
         )}

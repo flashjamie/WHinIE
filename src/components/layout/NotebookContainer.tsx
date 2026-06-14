@@ -167,7 +167,7 @@ export function NotebookContainer({ children }: { children: React.ReactNode }) {
           {/* Content */}
           <div style={{
             position: 'absolute', inset: 0, zIndex: 3,
-            overflow: 'hidden',
+            overflowY: 'auto',
           }}>
             {children}
           </div>
