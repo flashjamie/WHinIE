@@ -178,6 +178,30 @@ function SellerForm({ onSubmit, onBack }: {
 
   return (
     <div style={{ height:'100%', display:'flex', flexDirection:'column', overflow:'hidden' }}>
+      {/* Success toast overlay */}
+      {successMsg && (
+        <div style={{
+          position:'absolute', inset:0, zIndex:200,
+          display:'flex', alignItems:'center', justifyContent:'center',
+          background:'rgba(0,0,0,0.45)',
+          pointerEvents:'none',
+        }}>
+          <div style={{
+            background:'rgba(0,60,20,0.88)',
+            border:'3px solid #00A651', boxShadow:'6px 6px 0 rgba(0,0,0,0.4)',
+            padding:'20px 28px', maxWidth:260, textAlign:'center',
+            display:'flex', flexDirection:'column', alignItems:'center', gap:10,
+          }}>
+            <span style={{ fontSize:36 }}>✅</span>
+            <span style={{ fontSize:13, fontWeight:900, color:'#fff', lineHeight:1.4, ...ZH }}>
+              上架成功！
+            </span>
+            <span style={{ fontSize:10, color:'#a8f0a8', ...ZH }}>
+              {successMsg.replace('✅', '').trim()}
+            </span>
+          </div>
+        </div>
+      )}
       {/* Header */}
       <div style={{
         flexShrink:0, background:'#000', color:'#FFD700',
@@ -294,13 +318,6 @@ function SellerForm({ onSubmit, onBack }: {
         </div>
 
         {/* Error */}
-        {successMsg && (
-          <div style={{
-            padding:'6px 10px', background:'#E8F5EC',
-            border:'2px solid #00A651', fontSize:10, color:'#005A2B',
-            fontWeight:700, ...ZH,
-          }}>{successMsg}</div>
-        )}
         {error && (
           <div style={{
             padding:'6px 10px', background:'#FDECEA',
