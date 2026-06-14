@@ -277,9 +277,7 @@ export function buildAvatarUrl(cfg: AvatarConfig): string {
   const rearHair     = REAR_HAIR_OPTIONS[cfg.rearHairIdx ?? 0]?.value ?? '';
   const outfit       = OUTFIT_OPTIONS[cfg.outfitIdx]?.value          ?? 'tShirt';
   const eyes         = EYES_OPTIONS[cfg.eyesIdx]?.value              ?? 'happy';
-  const eyebrows     = EYEBROWS_OPTIONS[cfg.eyebrowsIdx ?? 0]?.value ?? 'up';
   const mouth        = MOUTH_OPTIONS[cfg.mouthIdx]?.value            ?? 'smile';
-  const beard        = BEARD_OPTIONS[cfg.beardIdx ?? 0]?.value       ?? '';
   const hairColor    = HAIR_COLOR_OPTIONS[cfg.hairColorIdx ?? 0]?.value     ?? '2c1b18';
   const skinColor    = SKIN_COLOR_OPTIONS[cfg.skinColorIdx ?? 0]?.value     ?? 'f8d5c2';
   const clothesColor = CLOTHES_COLOR_OPTIONS[cfg.clothesColorIdx ?? 0]?.value ?? '264653';
