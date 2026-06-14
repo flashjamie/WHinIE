@@ -84,7 +84,7 @@ export function AvatarCustomizer() {
   );
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: 8 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
       {/* Polaroid Frame */}
       <div style={{
         position: 'relative', background: '#fff',
@@ -125,7 +125,7 @@ export function AvatarCustomizer() {
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(4,1fr)',
-        gap: 4, overflowY: 'auto', flex: 1,
+        gap: 4,
       }}>
         {isColorTab ? colorOptions.map((opt, idx) => (
           <button key={opt.value + idx} onClick={() => setIdx(idx)} style={{
