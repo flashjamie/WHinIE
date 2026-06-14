@@ -65,7 +65,7 @@ function ScreenRouter() {
     case 'HOME':        return <HomeScreen />;
     case 'TASK':        return <TaskScreen />;
     case 'COLLECTIONS': return <CollectionsScreen />;
-    case 'DUNNES':      return <DunnesScreen />;
+    case 'DUNNES':      return <ThriftScreen />;
     case 'BAG':         return <BagScreen />;
     case 'AIB':         return <AIBScreen />;
     case 'GUILD':       return <GuildScreen />;

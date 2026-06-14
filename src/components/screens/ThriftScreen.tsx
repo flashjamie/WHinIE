@@ -587,8 +587,8 @@ function RoleGate({ onSelect }: { onSelect: (role: 'buyer' | 'seller') => void }
   );
 }
 
-// ─── Dunnes Screen Root ───────────────────────────────────────────────────────
-export function DunnesScreen() {
+// ─── Thrift Screen Root ───────────────────────────────────────────────────────
+export function ThriftScreen() {
   const { derived, dispatch } = useGame();
   const gold = derived.totalXP;
 
