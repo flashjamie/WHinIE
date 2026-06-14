@@ -21,19 +21,7 @@ interface Entry {
   date:     string; // YYYY-MM-DD
 }
 
-const SEED: Entry[] = [
-  { id:'1', type:'income',  eur:300,  category:'薪資', desc:'週薪', date:'2026-05-15' },
-  { id:'2', type:'income',  eur:300,  category:'薪資', desc:'週薪', date:'2026-05-08' },
-  { id:'3', type:'income',  eur:300,  category:'薪資', desc:'週薪', date:'2026-05-01' },
-  { id:'4', type:'income',  eur:100,  category:'薪資', desc:'額外班', date:'2026-05-20' },
-  { id:'5', type:'expense', eur:500,  category:'房租', desc:'五月房租', date:'2026-05-08' },
-  { id:'6', type:'expense', eur:61,   category:'餐飲', desc:'Lidl 採購', date:'2026-05-12' },
-  { id:'7', type:'expense', eur:45,   category:'娛樂', desc:'電影票+酒吧', date:'2026-05-06' },
-  { id:'8', type:'expense', eur:15,   category:'醫療', desc:'藥局', date:'2026-05-11' },
-  { id:'9', type:'expense', eur:22,   category:'交通', desc:'Leap Card 加值', date:'2026-05-14' },
-  { id:'10',type:'expense', eur:18,   category:'通訊', desc:'SIM 月費', date:'2026-05-03' },
-  { id:'11',type:'expense', eur:10,   category:'餐飲', desc:'咖啡廳', date:'2026-05-18' },
-];
+const SEED: Entry[] = [];
 
 // week start (Mon) for a date
 function weekStart(dateStr: string): string {
