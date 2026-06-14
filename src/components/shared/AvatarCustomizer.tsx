@@ -129,34 +129,34 @@ export function AvatarCustomizer() {
       }}>
         {isColorTab ? colorOptions.map((opt, idx) => (
           <button key={opt.value + idx} onClick={() => setIdx(idx)} style={{
-            padding: '6px 4px',
+            padding: '4px 2px',
             border: `2px solid ${currentIdx === idx ? '#000' : '#ccc'}`,
             boxShadow: currentIdx === idx ? 'none' : '2px 2px 0 #000',
             background: currentIdx === idx ? '#FFD700' : '#FDFBF7',
             cursor: 'pointer',
-            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
             transform: currentIdx === idx ? 'translate(2px,2px)' : 'none',
             transition: 'all 0.1s',
           }}>
             <div style={{
-              width: 24, height: 24, borderRadius: '50%',
+              width: 18, height: 18, borderRadius: '50%',
               background: opt.swatch,
               border: '2px solid #000',
             }} />
-            <span style={{ fontSize: 8, ...ZH }}>{opt.label}</span>
+            <span style={{ fontSize: 7, ...ZH }}>{opt.label}</span>
           </button>
         )) : emojiOptions.map((opt, idx) => (
           <button key={opt.value + idx} onClick={() => setIdx(idx)} style={{
-            padding: '5px 3px',
+            padding: '3px 2px',
             border: '2px solid #000',
             boxShadow: currentIdx === idx ? 'none' : '2px 2px 0 #000',
             background: currentIdx === idx ? '#FFD700' : '#FDFBF7',
-            cursor: 'pointer', fontSize: 9,
-            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
+            cursor: 'pointer', fontSize: 8,
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1,
             transform: currentIdx === idx ? 'translate(2px,2px)' : 'none',
             transition: 'all 0.1s', ...ZH,
           }}>
-            <span style={{ fontSize: 18, lineHeight: 1 }}>{opt.emoji}</span>
+            <span style={{ fontSize: 15, lineHeight: 1 }}>{opt.emoji}</span>
             <span>{opt.label}</span>
           </button>
         ))}

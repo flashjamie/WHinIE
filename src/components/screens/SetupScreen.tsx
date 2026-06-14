@@ -69,6 +69,7 @@ export function SetupScreen() {
           background: 'linear-gradient(170deg,#f0ece0 0%,#FDFBF7 80%)',
           borderBottom: '3px solid #000',
           padding: '12px 16px',
+          minHeight: '58%',
         }}>
           <div style={{ fontSize: 11, fontWeight: 900, letterSpacing: '0.08em', marginBottom: 10, ...ZH }}>
             🎭 角色外觀
