@@ -1,5 +1,7 @@
 import React, { useState, useCallback } from 'react';
-import { ComposableMap, Geographies, Geography, Marker, useMapContext } from 'react-simple-maps';
+import { ComposableMap as _ComposableMap, Geographies, Geography, Marker as _Marker, useMapContext } from 'react-simple-maps';
+const ComposableMap = _ComposableMap as React.ComponentType<any>;
+const Marker        = _Marker        as React.ComponentType<any>;
 import { useGame } from '../../context/GameContext';
 
 const GEO_URL = 'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json';
@@ -94,7 +96,6 @@ function CoverMap() {
         ))}
       </Geographies>
       <FlightArc />
-      {/* @ts-ignore react-simple-maps Marker children type */}
       <Marker coordinates={TW}>
         <circle r={4} fill="#C9A96E" stroke="rgba(255,255,255,0.5)" strokeWidth={1} />
         <text y={13} textAnchor="middle" fontSize={6} fontWeight="bold" fill="rgba(201,169,110,0.9)">台灣</text>
