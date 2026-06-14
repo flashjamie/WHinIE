@@ -1,6 +1,11 @@
-import React, { useState, useRef, useMemo, useCallback } from 'react';
+import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import { useGame } from '../../context/GameContext';
 import { ZH, EN } from '../../data/constants';
+import {
+  collection, addDoc, onSnapshot, serverTimestamp,
+  query, orderBy,
+} from 'firebase/firestore';
+import { db } from '../../data/firebase';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Condition      = '全新' | '二手';
@@ -704,17 +709,44 @@ export function ThriftScreen() {
   const { derived } = useGame();
   const gold = derived.totalXP;
 
-  const [role,   setRole]   = useState<'buyer' | 'seller' | null>(null);
-  const [items,  setItems]  = useState<ThriftItem[]>(SEED);
+  const [role,    setRole]    = useState<'buyer' | 'seller' | null>(null);
+  const [items,   setItems]   = useState<ThriftItem[]>(SEED);
+  const [synced,  setSynced]  = useState(false);
+  const [syncErr, setSyncErr] = useState(false);
 
-  const handleSell = useCallback((data: Omit<ThriftItem,'id'|'isSold'|'sellerId'>) => {
-    const newItem: ThriftItem = {
-      ...data,
-      id:       `u_${Date.now()}`,
-      sellerId: 'me',
-      isSold:   false,
-    };
-    setItems(prev => [newItem, ...prev]);
+  // ── Firestore real-time listener ──────────────────────────────────────────
+  useEffect(() => {
+    let unsub: (() => void) | undefined;
+    try {
+      const q = query(collection(db, 'thrift_items'), orderBy('createdAt', 'desc'));
+      unsub = onSnapshot(q,
+        snap => {
+          const docs = snap.docs.map(d => ({ id: d.id, ...d.data() } as ThriftItem));
+          // Merge: Firestore items + keep local SEED that aren't overridden
+          setItems(docs.length > 0 ? docs : SEED);
+          setSynced(true);
+        },
+        () => { setSyncErr(true); }
+      );
+    } catch { setSyncErr(true); }
+    return () => unsub?.();
+  }, []);
+
+  // ── Add item to Firestore ─────────────────────────────────────────────────
+  const handleSell = useCallback(async (data: Omit<ThriftItem,'id'|'isSold'|'sellerId'>) => {
+    try {
+      await addDoc(collection(db, 'thrift_items'), {
+        ...data,
+        sellerId:  'me',
+        isSold:    false,
+        createdAt: serverTimestamp(),
+      });
+    } catch {
+      // Firestore unavailable — fall back to local state
+      setItems(prev => [{
+        ...data, id: `u_${Date.now()}`, sellerId: 'me', isSold: false,
+      }, ...prev]);
+    }
     // Stay on seller form — success toast handled inside SellerForm
   }, []);
 
@@ -742,8 +774,14 @@ export function ThriftScreen() {
           <div style={{
             background:'#2a2a2a', border:'1.5px solid #555',
             padding:'2px 8px', fontSize:8, color:'#aaa', ...ZH,
+            display:'flex', alignItems:'center', gap:4,
           }}>
+            <span style={{
+              width:6, height:6, borderRadius:'50%', flexShrink:0,
+              background: syncErr ? '#E74C3C' : synced ? '#00A651' : '#F59E0B',
+            }}/>
             {items.filter(i=>!i.isSold).length} 件在售
+            {syncErr && <span style={{ color:'#E74C3C' }}>（離線）</span>}
           </div>
         </div>
       </div>
