@@ -819,8 +819,8 @@ function RoleGate({ onSelect }: { onSelect: (role: 'buyer' | 'seller') => void }
 
 // ─── Thrift Screen Root ───────────────────────────────────────────────────────
 export function ThriftScreen() {
-  const { derived } = useGame();
-  const gold = derived.totalXP;
+  const { derived, navigate } = useGame();
+  const balance = derived.aibBalance;
 
   const [role,    setRole]    = useState<'buyer' | 'seller' | null>(null);
   const [items,   setItems]   = useState<ThriftItem[]>(SEED);
@@ -896,12 +896,13 @@ export function ThriftScreen() {
           <div style={{ fontSize:8, color:'#C9A96E', ...ZH }}>離愛二手出清市集</div>
         </div>
         <div style={{ marginLeft:'auto', display:'flex', gap:6, alignItems:'center' }}>
-          <div style={{
+          <button onClick={() => navigate('AIB')} style={{
             background:'#2a2a2a', border:'1.5px solid #FFD700',
-            padding:'2px 8px', fontSize:9, fontWeight:700, ...EN,
+            padding:'2px 8px', fontSize:9, fontWeight:700,
+            cursor:'pointer', color:'#FFD700', ...EN,
           }}>
-            <span style={{ color:'#FFD700' }}>💰 {gold} XP</span>
-          </div>
+            💰 {balance >= 0 ? '+' : ''}€{balance.toFixed(2)}
+          </button>
           <div style={{
             background:'#2a2a2a', border:'1.5px solid #555',
             padding:'2px 8px', fontSize:8, color:'#aaa', ...ZH,

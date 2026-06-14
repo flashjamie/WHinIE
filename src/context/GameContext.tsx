@@ -2,6 +2,17 @@ import React, { createContext, useContext, useReducer, useCallback } from 'react
 import type { ScreenId, PlayerProfile, AvatarConfig, Gender } from '../types';
 import { DEFAULT_AVATAR, getDayStatus, resolveTransitTz } from '../data/constants';
 
+// ─── AIB Entry type (shared) ──────────────────────────────────────────────────
+export type AibEntryType = 'income' | 'expense';
+export interface AibEntry {
+  id:       string;
+  type:     AibEntryType;
+  eur:      number;
+  category: string;
+  desc:     string;
+  date:     string;
+}
+
 // ─── State Shape ──────────────────────────────────────────────────────────────
 export interface GameState {
   currentScreen:   ScreenId;
@@ -11,6 +22,7 @@ export interface GameState {
   showParticles:   boolean;
   activeEvent:     string | null;          // RandomEvent id
   unlockedBadges:  Set<string>;
+  aibEntries:      AibEntry[];
 }
 
 const INIT_PLAYER: PlayerProfile = {
@@ -32,6 +44,7 @@ const INITIAL_STATE: GameState = {
   showParticles:  false,
   activeEvent:    null,
   unlockedBadges: new Set(),
+  aibEntries:     [],
 };
 
 // ─── Actions ──────────────────────────────────────────────────────────────────
@@ -50,7 +63,9 @@ type Action =
   | { type: 'SHOW_PARTICLES' }
   | { type: 'HIDE_PARTICLES' }
   | { type: 'SET_EVENT';       id: string | null }
-  | { type: 'UNLOCK_BADGE';    id: string };
+  | { type: 'UNLOCK_BADGE';    id: string }
+  | { type: 'ADD_AIB_ENTRY';  entry: AibEntry }
+  | { type: 'DEL_AIB_ENTRY';  id: string };
 
 function reducer(state: GameState, action: Action): GameState {
   switch (action.type) {
@@ -116,6 +131,12 @@ function reducer(state: GameState, action: Action): GameState {
       return { ...state, unlockedBadges: next };
     }
 
+    case 'ADD_AIB_ENTRY':
+      return { ...state, aibEntries: [action.entry, ...state.aibEntries] };
+
+    case 'DEL_AIB_ENTRY':
+      return { ...state, aibEntries: state.aibEntries.filter(e => e.id !== action.id) };
+
     default:
       return state;
   }
@@ -138,6 +159,7 @@ export interface GameDerived {
   pubVisited:         boolean;
   rainSurvived:       boolean;
   totalXP:            number;
+  aibBalance:         number;
 }
 
 // ─── Context ──────────────────────────────────────────────────────────────────
@@ -172,6 +194,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     .filter(t => completedTasks.has(t.id))
     .reduce((s, t) => s + t.xp, 0);
 
+  const aibBalance = state.aibEntries.reduce(
+    (s, e) => s + (e.type === 'income' ? e.eur : -e.eur), 0
+  );
+
   const derived: GameDerived = {
     dayStatus,
     transitTz,
@@ -188,6 +214,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     pubVisited:      state.unlockedBadges.has('pub_first'),
     rainSurvived:    state.unlockedBadges.has('rain_survivor'),
     totalXP,
+    aibBalance,
   };
 
   return (

@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { ZH, EN } from '../../data/constants';
+import { useGame } from '../../context/GameContext';
+import type { AibEntry } from '../../context/GameContext';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type EntryType = 'income' | 'expense';
@@ -12,16 +14,7 @@ const CAT_ICON: Record<Category, string> = {
   醫療:'💊', 娛樂:'🎮', 薪資:'💰', 其他:'📦',超市:'🛒'
 };
 
-interface Entry {
-  id:       string;
-  type:     EntryType;
-  eur:      number;
-  category: Category;
-  desc:     string;
-  date:     string; // YYYY-MM-DD
-}
-
-const SEED: Entry[] = [];
+type Entry = AibEntry;
 
 // week start (Mon) for a date
 function weekStart(dateStr: string): string {
@@ -237,7 +230,7 @@ function ReportTab({ entries, rate }: { entries: Entry[]; rate: number }) {
   const filtered = useMemo(() => entries.filter(e => {
     if (typeFilter === 'income'  && e.type !== 'income')  return false;
     if (typeFilter === 'expense' && e.type !== 'expense') return false;
-    if (catFilter.size > 0 && !catFilter.has(e.category)) return false;
+    if (catFilter.size > 0 && !catFilter.has(e.category as any)) return false;
     if (search && !e.desc.toLowerCase().includes(search.toLowerCase()) &&
         !e.category.includes(search)) return false;
     return true;
@@ -595,16 +588,17 @@ function ReportTab({ entries, rate }: { entries: Entry[]; rate: number }) {
 // ─── AIB Screen Root ──────────────────────────────────────────────────────────
 export function AIBScreen() {
   const { rate, live, date } = useExchangeRate();
-  const [tab,     setTab]     = useState<'ledger'|'report'>('ledger');
-  const [entries, setEntries] = useState<Entry[]>(SEED);
+  const { state, dispatch }  = useGame();
+  const [tab, setTab]        = useState<'ledger'|'report'>('ledger');
+  const entries = state.aibEntries as Entry[];
 
   const addEntry = useCallback((e: Omit<Entry,'id'>) => {
-    setEntries(prev => [{ ...e, id: Date.now().toString() }, ...prev]);
-  }, []);
+    dispatch({ type: 'ADD_AIB_ENTRY', entry: { ...e, id: Date.now().toString() } });
+  }, [dispatch]);
 
   const delEntry = useCallback((id: string) => {
-    setEntries(prev => prev.filter(e => e.id !== id));
-  }, []);
+    dispatch({ type: 'DEL_AIB_ENTRY', id });
+  }, [dispatch]);
 
   return (
     <div style={{ display:'flex', flexDirection:'column' }}>
