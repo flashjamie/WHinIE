@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useGame } from '../../context/GameContext';
 import { AvatarCustomizer } from '../shared/AvatarCustomizer';
 import { MultiSelectDropdown } from '../shared/MultiSelectDropdown';
@@ -15,15 +15,31 @@ const labelBase: React.CSSProperties = {
   fontSize: 10, fontWeight: 700, marginBottom: 4,
   display: 'block', letterSpacing: '0.06em', ...ZH,
 };
+const disabledInput: React.CSSProperties = {
+  ...inputBase,
+  background: '#E8E4DA', color: '#aaa',
+  boxShadow: 'none', border: '2.5px solid #ccc',
+  pointerEvents: 'none' as const,
+};
 
 export function SetupScreen() {
   const { state, dispatch, navigate } = useGame();
   const { player } = state;
 
-  const set = (type: Parameters<typeof dispatch>[0]['type'], value: string) =>
-    dispatch({ type: type as never, value } as never);
+  const [isFlightTBD, setIsFlightTBD] = useState(false);
+
+  // Validation
+  const isFormValid =
+    player.name.trim() !== '' &&
+    player.gender !== '' &&
+    (isFlightTBD || (
+      player.arrivalDate !== '' &&
+      player.flightTime !== '' &&
+      player.flightNumber !== ''
+    ));
 
   const handleSubmit = () => {
+    if (!isFormValid) return;
     dispatch({ type: 'NAVIGATE', screen: 'HOME' });
   };
 
@@ -105,42 +121,70 @@ export function SetupScreen() {
             </div>
           </div>
 
-          {/* 3. Logistics Core Group */}
+          {/* 3. 出發航班資訊 */}
           <div style={{
             border: '3px solid #000', boxShadow: '4px 4px 0 #000',
             padding: 9, background: '#f0ece0',
           }}>
+            {/* Section header */}
             <div style={{
-              fontSize: 10, fontWeight: 900, marginBottom: 8,
-              display: 'flex', alignItems: 'center', gap: 5,
-              letterSpacing: '0.06em', ...ZH,
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              marginBottom: 8,
             }}>
-              <span style={{ fontSize: 14 }}>🛫</span>
-              跨境後勤動態排程核心
+              <div style={{
+                fontSize: 10, fontWeight: 900,
+                display: 'flex', alignItems: 'center', gap: 5,
+                letterSpacing: '0.06em', ...ZH,
+              }}>
+                <span style={{ fontSize: 14 }}>🛫</span>
+                出發航班資訊
+              </div>
+
+              {/* TBD checkbox */}
+              <label style={{
+                display: 'flex', alignItems: 'center', gap: 5,
+                cursor: 'pointer', fontSize: 10, fontWeight: 700, ...ZH,
+              }}>
+                <div
+                  onClick={() => setIsFlightTBD(v => !v)}
+                  style={{
+                    width: 16, height: 16,
+                    border: '2px solid #000',
+                    background: isFlightTBD ? '#FF6B35' : '#FDFBF7',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    cursor: 'pointer', flexShrink: 0,
+                  }}
+                >
+                  {isFlightTBD && <span style={{ color: '#fff', fontSize: 11, fontWeight: 900, lineHeight: 1 }}>✓</span>}
+                </div>
+                尚未確定
+              </label>
             </div>
 
             {/* Date + Time */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7, marginBottom: 7 }}>
               <div>
-                <label style={{ ...labelBase, fontSize: 9 }}>啟程日期</label>
+                <label style={{ ...labelBase, fontSize: 9, color: isFlightTBD ? '#aaa' : '#000' }}>啟程日期</label>
                 <input type="date"
                   value={player.arrivalDate}
-                  onChange={e => dispatch({ type: 'SET_ARRIVAL_DATE', value: e.target.value })}
-                  style={{ ...inputBase, fontSize: 12, padding: '5px 7px' }}
+                  onChange={e => !isFlightTBD && dispatch({ type: 'SET_ARRIVAL_DATE', value: e.target.value })}
+                  disabled={isFlightTBD}
+                  style={isFlightTBD ? { ...disabledInput, fontSize: 12, padding: '5px 7px' } : { ...inputBase, fontSize: 12, padding: '5px 7px' }}
                 />
               </div>
               <div>
-                <label style={{ ...labelBase, fontSize: 9 }}>班機時間 (24h)</label>
+                <label style={{ ...labelBase, fontSize: 9, color: isFlightTBD ? '#aaa' : '#000' }}>班機時間 (24h)</label>
                 <input type="time"
                   value={player.flightTime}
-                  onChange={e => dispatch({ type: 'SET_FLIGHT_TIME', value: e.target.value })}
-                  style={{ ...inputBase, fontSize: 12, padding: '5px 7px', ...EN }}
+                  onChange={e => !isFlightTBD && dispatch({ type: 'SET_FLIGHT_TIME', value: e.target.value })}
+                  disabled={isFlightTBD}
+                  style={isFlightTBD ? { ...disabledInput, fontSize: 12, padding: '5px 7px', ...EN } : { ...inputBase, fontSize: 12, padding: '5px 7px', ...EN }}
                 />
               </div>
             </div>
 
             {/* Transit Hubs */}
-            <div style={{ marginBottom: 7 }}>
+            <div style={{ marginBottom: 7, opacity: isFlightTBD ? 0.4 : 1, pointerEvents: isFlightTBD ? 'none' : 'auto' }}>
               <MultiSelectDropdown
                 label="中轉地點 (Transit Hub)"
                 options={TRANSIT_HUB_OPTIONS}
@@ -151,7 +195,7 @@ export function SetupScreen() {
             </div>
 
             {/* Airlines */}
-            <div style={{ marginBottom: 7 }}>
+            <div style={{ marginBottom: 7, opacity: isFlightTBD ? 0.4 : 1, pointerEvents: isFlightTBD ? 'none' : 'auto' }}>
               <MultiSelectDropdown
                 label="航空公司 (Airlines)"
                 options={AIRLINE_OPTIONS}
@@ -163,19 +207,31 @@ export function SetupScreen() {
 
             {/* Flight Number */}
             <div>
-              <label style={{ ...labelBase, fontSize: 9 }}>航班編號 (Flight No.)</label>
+              <label style={{ ...labelBase, fontSize: 9, color: isFlightTBD ? '#aaa' : '#000' }}>航班編號 (Flight No.)</label>
               <input
                 value={player.flightNumber}
                 onChange={e =>
-                  dispatch({
+                  !isFlightTBD && dispatch({
                     type: 'SET_FLIGHT_NUM',
                     value: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8),
                   })
                 }
+                disabled={isFlightTBD}
                 placeholder="例如: EK367 或 BR087..."
-                style={{ ...inputBase, fontSize: 12, padding: '5px 7px', ...EN }}
+                style={isFlightTBD ? { ...disabledInput, fontSize: 12, padding: '5px 7px', ...EN } : { ...inputBase, fontSize: 12, padding: '5px 7px', ...EN }}
               />
             </div>
+
+            {/* TBD notice */}
+            {isFlightTBD && (
+              <div style={{
+                marginTop: 8, padding: '5px 8px',
+                background: '#FFE082', border: '2px solid #F59E0B',
+                fontSize: 9, ...ZH, color: '#7C5A00',
+              }}>
+                ⏳ 航班資訊未定，稍後可在此補填。
+              </div>
+            )}
           </div>
         </div>
 
@@ -184,24 +240,40 @@ export function SetupScreen() {
           <button
             onClick={handleSubmit}
             onMouseDown={e => {
+              if (!isFormValid) return;
               const b = e.currentTarget;
               b.style.transform = 'translate(4px,4px)';
               b.style.boxShadow = 'none';
             }}
             onMouseUp={e => {
+              if (!isFormValid) return;
               const b = e.currentTarget;
               b.style.transform = 'none';
               b.style.boxShadow = '6px 6px 0 #000';
             }}
             style={{
               width: '100%', padding: 13,
-              background: 'rgba(124,58,237,0.55)',
-              border: '3px solid #000', boxShadow: '6px 6px 0 #000',
-              color: '#fff', fontSize: 15, fontWeight: 900, cursor: 'pointer',
-              letterSpacing: '0.06em', transition: 'all 0.1s', ...ZH,
+              background: isFormValid ? 'rgba(124,58,237,0.55)' : 'rgba(180,180,180,0.5)',
+              border: '3px solid #000',
+              boxShadow: isFormValid ? '6px 6px 0 #000' : 'none',
+              color: isFormValid ? '#fff' : '#aaa',
+              fontSize: 15, fontWeight: 900,
+              cursor: isFormValid ? 'pointer' : 'not-allowed',
+              opacity: isFormValid ? 1 : 0.5,
+              letterSpacing: '0.06em', transition: 'all 0.1s',
+              pointerEvents: isFormValid ? 'auto' : 'none',
+              ...ZH,
             }}>
             👾 啟動愛爾蘭冒險
           </button>
+          {!isFormValid && (
+            <div style={{
+              textAlign: 'center', fontSize: 9, marginTop: 4,
+              color: '#E74C3C', ...ZH,
+            }}>
+              ✗ 請填寫姓名、性別，以及航班資訊（或勾選「尚未確定」）
+            </div>
+          )}
         </div>
       </div>
     </div>
