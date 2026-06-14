@@ -1,98 +1,113 @@
-import React from 'react';
+import React, { useRef, useState, useCallback } from 'react';
 import { ComposableMap, Geographies, Geography, Marker, useMapContext } from 'react-simple-maps';
 import { useGame } from '../../context/GameContext';
 import { ZH, EN } from '../../data/constants';
 
 const GEO_URL = 'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json';
-
 const TW: [number, number] = [121, 25];
 const IE: [number, number] = [-8, 53];
 
-// ─── Flight Arc + Plane ───────────────────────────────────────────────────────
+// ─── Web Audio page-turn synthesizer ─────────────────────────────────────────
+function playPageTurn() {
+  try {
+    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+
+    // Layer 1: filtered noise burst (main rustle)
+    const bufLen  = ctx.sampleRate * 0.35;
+    const buffer  = ctx.createBuffer(1, bufLen, ctx.sampleRate);
+    const data    = buffer.getChannelData(0);
+    for (let i = 0; i < bufLen; i++) data[i] = (Math.random() * 2 - 1);
+
+    const source  = ctx.createBufferSource();
+    source.buffer = buffer;
+
+    const filter  = ctx.createBiquadFilter();
+    filter.type   = 'bandpass';
+    filter.frequency.setValueAtTime(2400, ctx.currentTime);
+    filter.frequency.linearRampToValueAtTime(800, ctx.currentTime + 0.3);
+    filter.Q.value = 0.8;
+
+    const gain    = ctx.createGain();
+    gain.gain.setValueAtTime(0, ctx.currentTime);
+    gain.gain.linearRampToValueAtTime(0.55, ctx.currentTime + 0.04);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.32);
+
+    source.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+    source.start();
+
+    // Layer 2: second softer swish slightly delayed
+    const buf2   = ctx.createBuffer(1, bufLen, ctx.sampleRate);
+    const d2     = buf2.getChannelData(0);
+    for (let i = 0; i < bufLen; i++) d2[i] = (Math.random() * 2 - 1);
+    const src2   = ctx.createBufferSource();
+    src2.buffer  = buf2;
+    const f2     = ctx.createBiquadFilter();
+    f2.type      = 'lowpass';
+    f2.frequency.value = 1200;
+    const g2     = ctx.createGain();
+    g2.gain.setValueAtTime(0, ctx.currentTime + 0.08);
+    g2.gain.linearRampToValueAtTime(0.25, ctx.currentTime + 0.14);
+    g2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.38);
+    src2.connect(f2); f2.connect(g2); g2.connect(ctx.destination);
+    src2.start(ctx.currentTime + 0.08);
+
+    setTimeout(() => ctx.close(), 600);
+  } catch {}
+}
+
+// ─── Flight Arc ───────────────────────────────────────────────────────────────
 function FlightArc() {
   const { projection } = useMapContext();
-
   const pTW = projection(TW);
   const pIE = projection(IE);
   if (!pTW || !pIE) return null;
-
   const [x1, y1] = pTW;
   const [x2, y2] = pIE;
-
-  // Control point: lift midpoint upward for parabolic arc
   const cpX = (x1 + x2) / 2;
-  const cpY = (Math.min(y1, y2) + (y1 + y2) / 2) / 2 - 55;
-
-  // Midpoint on bezier at t=0.5
-  const mx = 0.25 * x1 + 0.5 * cpX + 0.25 * x2;
-  const my = 0.25 * y1 + 0.5 * cpY + 0.25 * y2;
-
-  // Tangent at t=0.5 → heading angle
-  const tx = (cpX - x1) * 0.5 + (x2 - cpX) * 0.5;
-  const ty = (cpY - y1) * 0.5 + (y2 - cpY) * 0.5;
+  const cpY = (Math.min(y1, y2) + (y1 + y2) / 2) / 2 - 40;
+  const mx  = 0.25 * x1 + 0.5 * cpX + 0.25 * x2;
+  const my  = 0.25 * y1 + 0.5 * cpY + 0.25 * y2;
+  const tx  = (cpX - x1) * 0.5 + (x2 - cpX) * 0.5;
+  const ty  = (cpY - y1) * 0.5 + (y2 - cpY) * 0.5;
   const angle = Math.atan2(ty, tx) * (180 / Math.PI);
-
   return (
     <g>
-      <path
-        d={`M ${x1},${y1} Q ${cpX},${cpY} ${x2},${y2}`}
-        stroke="#7A5C2E"
-        strokeWidth={1.5}
-        strokeDasharray="5,4"
-        strokeLinecap="round"
-        fill="none"
-      />
+      <path d={`M ${x1},${y1} Q ${cpX},${cpY} ${x2},${y2}`}
+        stroke="#7A5C2E" strokeWidth={1.5} strokeDasharray="5,4"
+        strokeLinecap="round" fill="none" />
       <g transform={`translate(${mx},${my}) rotate(${angle})`}>
-        <text
-          textAnchor="middle"
-          dominantBaseline="middle"
-          fontSize={14}
-          style={{ userSelect: 'none' }}
-        >✈</text>
+        <text textAnchor="middle" dominantBaseline="middle"
+          fontSize={13} style={{ userSelect:'none' }}>✈</text>
       </g>
     </g>
   );
 }
 
-// ─── World Map ────────────────────────────────────────────────────────────────
 function WorldMap() {
   return (
-    <div style={{ width: '100%', height: '100%', background: '#F2EBD9', position: 'relative' }}>
+    <div style={{ width:'100%', height:'100%', background:'#F2EBD9', position:'relative' }}>
       <ComposableMap
         projection="geoEquirectangular"
         projectionConfig={{ scale: 340, center: [65, 35] }}
-        style={{ width: '100%', height: '100%' }}
+        style={{ width:'100%', height:'100%' }}
       >
         <Geographies geography={GEO_URL}>
-          {({ geographies }) =>
-            geographies.map(geo => (
-              <Geography
-                key={geo.rsmKey}
-                geography={geo}
-                fill="#C4A87A"
-                stroke="#F2EBD9"
-                strokeWidth={0.8}
-                style={{
-                  default: { outline: 'none' },
-                  hover:   { outline: 'none' },
-                  pressed: { outline: 'none' },
-                }}
-              />
-            ))
-          }
+          {({ geographies }) => geographies.map(geo => (
+            <Geography key={geo.rsmKey} geography={geo}
+              fill="#C4A87A" stroke="#F2EBD9" strokeWidth={0.8}
+              style={{ default:{outline:'none'}, hover:{outline:'none'}, pressed:{outline:'none'} }}
+            />
+          ))}
         </Geographies>
-
         <FlightArc />
-
-        {/* Taiwan pin */}
         <Marker coordinates={TW}>
           <circle r={5} fill="#8B3A2A" stroke="#F2EBD9" strokeWidth={1.5} />
           <circle r={2} cx={-1.5} cy={-1.5} fill="rgba(255,255,255,0.4)" />
           <text y={14} textAnchor="middle" fontSize={7} fontWeight="bold"
             fill="#4A3010" fontFamily="Georgia, serif">台灣</text>
         </Marker>
-
-        {/* Ireland pin */}
         <Marker coordinates={IE}>
           <circle r={5} fill="#8B3A2A" stroke="#F2EBD9" strokeWidth={1.5} />
           <circle r={2} cx={-1.5} cy={-1.5} fill="rgba(255,255,255,0.4)" />
@@ -106,152 +121,255 @@ function WorldMap() {
 
 // ─── Cover Screen ─────────────────────────────────────────────────────────────
 export function CoverScreen() {
-  const { state, navigate } = useGame();
-  const [showLogin, setShowLogin] = React.useState(false);
+  const { state, navigate }  = useGame();
+  const [phase, setPhase]    = useState<'closed' | 'opening' | 'open'>('closed');
+  const [showInner, setShowInner] = useState(false);
 
-  const handleLogin = (_provider: string) => {
-    navigate(!state.player.name ? 'SETUP' : 'HOME');
-  };
+  const handleOpen = useCallback(() => {
+    if (phase !== 'closed') return;
+    playPageTurn();
+    setPhase('opening');
+    // Reveal inner content halfway through the flip
+    setTimeout(() => setShowInner(true), 280);
+    // After animation completes, navigate
+    setTimeout(() => {
+      navigate(!state.player.name ? 'SETUP' : 'HOME');
+    }, 750);
+  }, [phase, state.player.name, navigate]);
 
   return (
     <div style={{
       position: 'fixed', inset: 0,
-      background: '#2C1A08',
+      background: 'radial-gradient(ellipse at 40% 50%, #3D1F0A 0%, #1A0D06 70%)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      padding: 12,
     }}>
-      {/* Portrait book frame */}
+      <style>{`
+        @keyframes bookOpen {
+          0%   { transform: perspective(1200px) rotateY(0deg);   }
+          100% { transform: perspective(1200px) rotateY(-170deg); }
+        }
+        @keyframes pageRifle {
+          0%   { transform: perspective(1200px) rotateY(0deg); }
+          30%  { transform: perspective(1200px) rotateY(-40deg); }
+          60%  { transform: perspective(1200px) rotateY(-120deg); }
+          100% { transform: perspective(1200px) rotateY(-170deg); }
+        }
+        @keyframes shadowPulse {
+          0%   { opacity: 0.7; }
+          50%  { opacity: 0.3; }
+          100% { opacity: 0.1; }
+        }
+        @keyframes pageShadow {
+          0%   { opacity:0; }
+          20%  { opacity:0.4; }
+          80%  { opacity:0.3; }
+          100% { opacity:0; }
+        }
+      `}</style>
+
+      {/* Book scene wrapper — provides 3D perspective */}
       <div style={{
+        position: 'relative',
         width: '100%', maxWidth: 430,
         height: '100%', maxHeight: 900,
-        display: 'flex', flexDirection: 'column',
-        position: 'relative', overflow: 'hidden',
-        background: '#F2EBD9',
-        boxShadow: 'inset 6px 0 18px rgba(0,0,0,0.18), 10px 10px 0 #1A0D06, 0 0 50px rgba(0,0,0,0.6)',
-        border: '1px solid #B8A882',
-        borderRadius: 2,
+        perspective: '1200px',
+        perspectiveOrigin: '50% 50%',
       }}>
 
-        {/* Linen texture overlay */}
-        <div style={{
-          position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'none',
-          backgroundImage: `repeating-linear-gradient(
-            0deg, transparent, transparent 2px,
-            rgba(180,160,120,0.06) 2px, rgba(180,160,120,0.06) 4px
-          ), repeating-linear-gradient(
-            90deg, transparent, transparent 3px,
-            rgba(180,160,120,0.04) 3px, rgba(180,160,120,0.04) 6px
-          )`,
-        }} />
+        {/* ── BACK (inner content revealed after flip) ── */}
+        {showInner && (
+          <div style={{
+            position: 'absolute', inset: 0,
+            background: '#F5EDD6',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            borderRadius: 2,
+            border: '2px solid #2A1208',
+          }}>
+            <div style={{ fontSize: 32, opacity: 0.3 }}>☘️</div>
+          </div>
+        )}
 
-        {/* Top spine strip */}
-        <div style={{
-          height: 12, flexShrink: 0, zIndex: 2,
-          background: 'linear-gradient(180deg, #3D2008, #2C1A08)',
-          borderBottom: '1px solid #1A0D06',
-        }} />
+        {/* ── FRONT COVER (the book cover that flips) ── */}
+        <div
+          onClick={handleOpen}
+          style={{
+            position: 'absolute', inset: 0,
+            transformOrigin: 'left center',
+            transformStyle: 'preserve-3d',
+            animation: phase === 'opening'
+              ? 'pageRifle 0.72s cubic-bezier(0.4,0,0.2,1) forwards'
+              : 'none',
+            cursor: phase === 'closed' ? 'pointer' : 'default',
+            borderRadius: 2,
+            // Book cover drop shadow
+            filter: 'drop-shadow(12px 12px 24px rgba(0,0,0,0.85))',
+          }}
+        >
+          {/* Cover face */}
+          <div style={{
+            position: 'absolute', inset: 0,
+            backfaceVisibility: 'hidden',
+            display: 'flex', flexDirection: 'column',
+            background: 'linear-gradient(160deg, #4A2510 0%, #3A1C0C 40%, #2C1208 100%)',
+            borderRadius: 2,
+            border: '2px solid #1A0A04',
+            overflow: 'hidden',
+          }}>
+            {/* Leather texture lines */}
+            <div style={{
+              position: 'absolute', inset: 0, pointerEvents: 'none',
+              backgroundImage: `repeating-linear-gradient(
+                170deg,
+                transparent 0px, transparent 4px,
+                rgba(255,255,255,0.022) 4px, rgba(255,255,255,0.022) 5px
+              ), repeating-linear-gradient(
+                80deg,
+                transparent 0px, transparent 8px,
+                rgba(0,0,0,0.06) 8px, rgba(0,0,0,0.06) 9px
+              )`,
+            }} />
 
-        {/* Map — top 55% */}
-        <div style={{ flex: 1, position: 'relative', overflow: 'hidden', zIndex: 0, minHeight: 0 }}>
-          <WorldMap />
-        </div>
+            {/* Left spine shadow */}
+            <div style={{
+              position:'absolute', left:0, top:0, bottom:0, width:18,
+              background:'linear-gradient(to right, rgba(0,0,0,0.55), rgba(0,0,0,0.18) 60%, transparent)',
+              pointerEvents:'none',
+            }} />
 
-        {/* Bottom panel */}
-        <div style={{
-          background: '#F2EBD9',
-          borderTop: '1.5px solid rgba(180,150,100,0.4)',
-          padding: '16px 24px 20px',
-          zIndex: 3,
-          flexShrink: 0,
-          paddingBottom: 'max(20px, env(safe-area-inset-bottom, 20px))',
-        }}>
-          {!showLogin ? (
-            <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
-              <div>
-                <div style={{
-                  fontSize: 32, fontWeight: 900, letterSpacing: '0.08em', lineHeight: 1,
-                  fontFamily: "'Georgia', 'Times New Roman', serif",
-                  color: '#2C1A08',
-                }}>TRAVEL</div>
-                <div style={{
-                  fontSize: 32, fontWeight: 900, letterSpacing: '0.08em', lineHeight: 1,
-                  fontFamily: "'Georgia', 'Times New Roman', serif",
-                  color: '#2C1A08',
-                }}>JOURNAL</div>
-                <div style={{
-                  fontSize: 9, letterSpacing: '0.25em', marginTop: 5,
-                  color: '#7A5C2E', fontFamily: "'Georgia', serif",
-                }}>WORKING HOLIDAY · IRELAND</div>
-              </div>
+            {/* Gold border frame */}
+            <div style={{
+              position: 'absolute', inset: 12,
+              border: '1.5px solid rgba(201,169,110,0.55)',
+              borderRadius: 1,
+              pointerEvents: 'none',
+            }} />
+            <div style={{
+              position: 'absolute', inset: 16,
+              border: '0.5px solid rgba(201,169,110,0.25)',
+              borderRadius: 1,
+              pointerEvents: 'none',
+            }} />
 
-              <button onClick={() => setShowLogin(true)} style={{
-                padding: '10px 18px',
-                background: '#2C1A08',
-                color: '#F2EBD9',
-                border: '2px solid #2C1A08',
-                cursor: 'pointer',
+            {/* Corner ornaments */}
+            {[
+              { top:8, left:8 },
+              { top:8, right:8 },
+              { bottom:8, left:8 },
+              { bottom:8, right:8 },
+            ].map((pos, i) => (
+              <div key={i} style={{
+                position:'absolute', ...pos,
+                width:16, height:16,
+                color:'rgba(201,169,110,0.7)',
+                fontSize:14, lineHeight:'14px',
+                display:'flex', alignItems:'center', justifyContent:'center',
+                pointerEvents:'none',
+              }}>✦</div>
+            ))}
+
+            {/* Map in upper area */}
+            <div style={{ flex:1, overflow:'hidden', position:'relative', margin:'28px 20px 8px' }}>
+              {/* Sepia overlay on map */}
+              <div style={{
+                position:'absolute', inset:0,
+                background:'rgba(60,28,8,0.18)',
+                zIndex:1, pointerEvents:'none',
+                mixBlendMode:'multiply',
+              }} />
+              <WorldMap />
+            </div>
+
+            {/* Bottom text area */}
+            <div style={{
+              padding:'14px 24px 22px',
+              background:'linear-gradient(0deg, rgba(0,0,0,0.35) 0%, transparent 100%)',
+              flexShrink:0,
+            }}>
+              {/* Thin gold line */}
+              <div style={{
+                height:1, background:'linear-gradient(90deg, transparent, rgba(201,169,110,0.7), transparent)',
+                marginBottom:12,
+              }} />
+
+              <div style={{
+                fontSize: 28, fontWeight: 900, letterSpacing: '0.1em', lineHeight: 1,
+                fontFamily: "'Georgia', 'Times New Roman', serif",
+                color: '#C9A96E',
+                textShadow: '0 1px 4px rgba(0,0,0,0.6), 0 0 20px rgba(201,169,110,0.25)',
+              }}>TRAVEL</div>
+              <div style={{
+                fontSize: 28, fontWeight: 900, letterSpacing: '0.1em', lineHeight: 1,
+                fontFamily: "'Georgia', 'Times New Roman', serif",
+                color: '#C9A96E',
+                textShadow: '0 1px 4px rgba(0,0,0,0.6), 0 0 20px rgba(201,169,110,0.25)',
+              }}>JOURNAL</div>
+              <div style={{
+                fontSize: 8, letterSpacing: '0.28em', marginTop: 5,
+                color: 'rgba(201,169,110,0.6)',
                 fontFamily: "'Georgia', serif",
-                fontSize: 11, fontWeight: 700,
-                letterSpacing: '0.15em',
-                boxShadow: '4px 4px 0 #7A5C2E',
-                transition: 'all 0.1s',
-              }}
-                onMouseDown={e => { e.currentTarget.style.transform = 'translate(4px,4px)'; e.currentTarget.style.boxShadow = 'none'; }}
-                onMouseUp={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '4px 4px 0 #7A5C2E'; }}
-              >
-                OPEN ☘
-              </button>
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.2em', color: '#2C1A08', ...ZH }}>
-                  ☘ 冒險者登入
-                </div>
-                <button onClick={() => setShowLogin(false)} style={{
-                  background: 'none', border: 'none', cursor: 'pointer',
-                  color: '#7A5C2E', fontSize: 18, lineHeight: 1,
-                }}>←</button>
-              </div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button onClick={() => handleLogin('google')} style={{
-                  flex: 1, display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center',
-                  padding: '10px 8px', border: '2px solid #2C1A08',
-                  boxShadow: '3px 3px 0 #7A5C2E', background: '#fff',
-                  cursor: 'pointer', fontWeight: 700, fontSize: 11, ...EN,
-                }}
-                  onMouseDown={e => { e.currentTarget.style.transform = 'translate(3px,3px)'; e.currentTarget.style.boxShadow = 'none'; }}
-                  onMouseUp={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '3px 3px 0 #7A5C2E'; }}
+              }}>WORKING HOLIDAY · IRELAND</div>
+
+              <div style={{ marginTop:14 }}>
+                {/* OPEN button */}
+                <button
+                  onClick={e => { e.stopPropagation(); handleOpen(); }}
+                  style={{
+                    padding: '9px 22px',
+                    background: 'transparent',
+                    color: '#C9A96E',
+                    border: '1.5px solid rgba(201,169,110,0.7)',
+                    cursor: 'pointer',
+                    fontFamily: "'Georgia', serif",
+                    fontSize: 11, fontWeight: 700,
+                    letterSpacing: '0.2em',
+                    boxShadow: '0 0 12px rgba(201,169,110,0.15)',
+                    transition: 'all 0.2s',
+                    pointerEvents: phase === 'closed' ? 'auto' : 'none',
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.background = 'rgba(201,169,110,0.12)';
+                    e.currentTarget.style.boxShadow = '0 0 20px rgba(201,169,110,0.35)';
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.background = 'transparent';
+                    e.currentTarget.style.boxShadow = '0 0 12px rgba(201,169,110,0.15)';
+                  }}
                 >
-                  <svg width="14" height="14" viewBox="0 0 24 24">
-                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                  </svg>
-                  Google 登入
-                </button>
-                <button onClick={() => handleLogin('apple')} style={{
-                  flex: 1, display: 'flex', alignItems: 'center', gap: 6, justifyContent: 'center',
-                  padding: '10px 8px', border: '2px solid #2C1A08',
-                  boxShadow: '3px 3px 0 #7A5C2E', background: '#2C1A08',
-                  cursor: 'pointer', fontWeight: 700, fontSize: 11, color: '#F2EBD9', ...EN,
-                }}
-                  onMouseDown={e => { e.currentTarget.style.transform = 'translate(3px,3px)'; e.currentTarget.style.boxShadow = 'none'; }}
-                  onMouseUp={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '3px 3px 0 #7A5C2E'; }}
-                >
-                  <svg width="12" height="14" viewBox="0 0 814 1000" fill="#F2EBD9">
-                    <path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76 0-103.7 40.8-165.9 40.8s-105-37.5-148.4-106c-43.3-68.8-68.7-136.3-68.7-200.9 0-178.7 171.2-283.7 338.7-283.7 82.1 0 150.3 37.5 201.9 37.5 49.4 0 126.7-40.8 220.9-40.8 36.5 0 86.5 3.5 122.7 40.2zm-352.4-87.5c19.1-22.3 35.6-53.5 35.6-84.7 0-4.5-.4-9-1.2-12.6-33.6 1.3-73.9 22.3-97.6 47.8-18.4 20.5-37.1 51.7-37.1 83.3 0 4.9.7 9.8 1 11.5 2.1.4 5.2.7 8.2.7 30.5 0 68.9-20.1 91.1-45.9z"/>
-                  </svg>
-                  Apple 登入
+                  OPEN ☘
                 </button>
               </div>
-              <div style={{ fontSize: 8, color: '#9A8060', ...ZH }}>
-                登入即同意服務條款 · Prototype 版本
-              </div>
             </div>
-          )}
+
+            {/* Fore-edge (right side of book, pages visible) */}
+            <div style={{
+              position:'absolute', right:-6, top:8, bottom:8,
+              width:6,
+              background:'repeating-linear-gradient(0deg, #F5EDD6 0px, #E8DFC8 1px, #F2EBD9 2px)',
+              borderRadius:'0 2px 2px 0',
+              boxShadow:'2px 0 4px rgba(0,0,0,0.4)',
+            }} />
+          </div>
+
+          {/* Cover back face (seen during flip) */}
+          <div style={{
+            position:'absolute', inset:0,
+            backfaceVisibility:'hidden',
+            transform:'rotateY(180deg)',
+            background:'linear-gradient(160deg, #3A1C0C, #2C1208)',
+            borderRadius:2,
+          }} />
         </div>
+
+        {/* Page-turn sweep shadow */}
+        {phase === 'opening' && (
+          <div style={{
+            position:'absolute', inset:0,
+            background:'linear-gradient(90deg, rgba(0,0,0,0.5) 0%, transparent 60%)',
+            pointerEvents:'none',
+            animation:'pageShadow 0.72s ease forwards',
+            borderRadius:2,
+          }} />
+        )}
       </div>
     </div>
   );
