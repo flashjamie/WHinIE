@@ -122,42 +122,39 @@ export function AvatarCustomizer() {
       {tabRow(['hairColor', 'skinColor', 'clothesColor'])}
 
       {/* Options grid */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(4,1fr)',
-        gap: 4,
-      }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
         {isColorTab ? colorOptions.map((opt, idx) => (
           <button key={opt.value + idx} onClick={() => setIdx(idx)} style={{
-            padding: '4px 2px',
+            width: 'calc(25% - 3px)',
+            padding: '5px 2px',
             border: `2px solid ${currentIdx === idx ? '#000' : '#ccc'}`,
             boxShadow: currentIdx === idx ? 'none' : '2px 2px 0 #000',
             background: currentIdx === idx ? '#FFD700' : '#FDFBF7',
             cursor: 'pointer',
-            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
             transform: currentIdx === idx ? 'translate(2px,2px)' : 'none',
             transition: 'all 0.1s',
           }}>
             <div style={{
               width: 18, height: 18, borderRadius: '50%',
-              background: opt.swatch,
-              border: '2px solid #000',
+              background: opt.swatch, border: '2px solid #000',
             }} />
             <span style={{ fontSize: 7, ...ZH }}>{opt.label}</span>
           </button>
         )) : emojiOptions.map((opt, idx) => (
           <button key={opt.value + idx} onClick={() => setIdx(idx)} style={{
-            padding: '3px 2px',
+            width: 'calc(25% - 3px)',
+            padding: '5px 2px',
             border: '2px solid #000',
             boxShadow: currentIdx === idx ? 'none' : '2px 2px 0 #000',
             background: currentIdx === idx ? '#FFD700' : '#FDFBF7',
-            cursor: 'pointer', fontSize: 8,
-            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1,
+            cursor: 'pointer',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
             transform: currentIdx === idx ? 'translate(2px,2px)' : 'none',
             transition: 'all 0.1s', ...ZH,
           }}>
-            <span style={{ fontSize: 15, lineHeight: 1 }}>{opt.emoji}</span>
-            <span>{opt.label}</span>
+            <span style={{ fontSize: 20, lineHeight: 1.2 }}>{opt.emoji}</span>
+            <span style={{ fontSize: 9 }}>{opt.label}</span>
           </button>
         ))}
       </div>
