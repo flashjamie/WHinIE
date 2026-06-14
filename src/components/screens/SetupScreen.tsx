@@ -62,7 +62,7 @@ export function SetupScreen() {
       </div>
 
       {/* ── Scrollable body ── */}
-      <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 0 }}>
+      <div style={{ flex: 1, overflowY: 'auto' }}>
 
         {/* Avatar section */}
         <div style={{
