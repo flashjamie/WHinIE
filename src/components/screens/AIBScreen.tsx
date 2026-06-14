@@ -216,6 +216,11 @@ function ReportTab({ entries, rate }: { entries: Entry[]; rate: number }) {
   const [search,      setSearch]      = useState('');
   const [typeFilter,  setTypeFilter]  = useState<'all'|'income'|'expense'>('all');
   const [catFilter,   setCatFilter]   = useState<Set<Category>>(new Set());
+  const [chartMode,   setChartMode]   = useState<'week'|'month'>('week');
+  // selectedMonth: 'YYYY-MM' for week mode navigation
+  const [selectedMonth, setSelectedMonth] = useState<string>(() => new Date().toISOString().slice(0,7));
+  // selectedMonthOffset for month mode (0 = current 6 months, -6 = prev 6 months...)
+  const [monthOffset, setMonthOffset] = useState(0);
 
   const toggleCat = useCallback((c: Category) => {
     setCatFilter(prev => {
@@ -238,28 +243,52 @@ function ReportTab({ entries, rate }: { entries: Entry[]; rate: number }) {
     return true;
   }), [entries, typeFilter, catFilter, search]);
 
-  // Weekly groups (expenses only for chart)
-  const weeklyExpenses = useMemo(() => {
-    const map: Record<string, number> = {};
-    filtered.filter(e => e.type === 'expense').forEach(e => {
+  // ── Chart data: week mode (weeks within selectedMonth) ──
+  const weekChartData = useMemo(() => {
+    const map: Record<string, { exp: number; inc: number }> = {};
+    entries.forEach(e => {
+      if (e.date.slice(0,7) !== selectedMonth) return;
       const ws = weekStart(e.date);
-      map[ws] = (map[ws] ?? 0) + e.eur;
+      if (!map[ws]) map[ws] = { exp:0, inc:0 };
+      if (e.type === 'expense') map[ws].exp += e.eur;
+      else                       map[ws].inc += e.eur;
     });
-    return Object.entries(map)
-      .sort(([a],[b]) => b.localeCompare(a))
-      .slice(0, 5);
-  }, [filtered]);
+    return Object.entries(map).sort(([a],[b]) => a.localeCompare(b));
+  }, [entries, selectedMonth]);
 
-  const weeklyIncome = useMemo(() => {
-    const map: Record<string, number> = {};
-    filtered.filter(e => e.type === 'income').forEach(e => {
-      const ws = weekStart(e.date);
-      map[ws] = (map[ws] ?? 0) + e.eur;
+  // ── Chart data: month mode (6 months window) ──
+  const monthChartData = useMemo(() => {
+    const now = new Date();
+    const months: string[] = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() + monthOffset - i, 1);
+      months.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
+    }
+    return months.map(m => {
+      const exp = entries.filter(e => e.type==='expense' && e.date.slice(0,7)===m).reduce((s,e)=>s+e.eur,0);
+      const inc = entries.filter(e => e.type==='income'  && e.date.slice(0,7)===m).reduce((s,e)=>s+e.eur,0);
+      return { month: m, label: m.slice(5), exp, inc };
     });
-    return map;
-  }, [filtered]);
+  }, [entries, monthOffset]);
 
-  const maxExpense = Math.max(...weeklyExpenses.map(([,v]) => v), 1);
+  const maxWeek  = Math.max(...weekChartData.map(([,v])=>Math.max(v.exp,v.inc)), 1);
+  const maxMonth = Math.max(...monthChartData.map(r=>Math.max(r.exp,r.inc)), 1);
+
+  // Month nav helpers
+  const prevMonth = () => {
+    const [y,m] = selectedMonth.split('-').map(Number);
+    const d = new Date(y, m-2, 1);
+    setSelectedMonth(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
+  };
+  const nextMonth = () => {
+    const [y,m] = selectedMonth.split('-').map(Number);
+    const d = new Date(y, m, 1);
+    setSelectedMonth(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
+  };
+  const monthLabel = (ym: string) => {
+    const [y,m] = ym.split('-');
+    return `${y}年${parseInt(m)}月`;
+  };
 
   // Survival runway
   const last7 = useMemo(() => {
@@ -269,7 +298,7 @@ function ReportTab({ entries, rate }: { entries: Entry[]; rate: number }) {
       .reduce((s,e) => s+e.eur, 0);
   }, [entries]);
   const avgDaily  = last7 / 7;
-  const gold      = 900; // placeholder
+  const gold      = 900;
   const runway    = avgDaily > 0 ? Math.floor(gold / avgDaily) : 999;
   const runwayPct = Math.min(100, (runway / 180) * 100);
   const runwayColor = runway >= 60 ? '#00A651' : runway >= 30 ? '#F59E0B' : '#E74C3C';
@@ -383,67 +412,131 @@ function ReportTab({ entries, rate }: { entries: Entry[]; rate: number }) {
       {/* ── Charts + list ── */}
       <div style={{ padding:'8px 12px', display:'flex', flexDirection:'column', gap:8 }}>
 
-        {/* Weekly bars */}
-        {weeklyExpenses.length > 0 && (
-          <div style={{ border:'2.5px solid #000', boxShadow:'3px 3px 0 #000', overflow:'hidden' }}>
-            <div style={{
-              background:'#000', color:'#FFD700',
-              padding:'5px 10px', fontSize:9, fontWeight:900,
-              display:'flex', justifyContent:'space-between', ...ZH,
-            }}>
-              <span>📊 週累計統計條</span>
-              <span style={{ color:'#f87171' }}>■ 支出</span>
-              <span style={{ color:'#4ade80', marginLeft:8 }}>■ 收入</span>
+        {/* Chart block */}
+        <div style={{ border:'2.5px solid #000', boxShadow:'3px 3px 0 #000', overflow:'hidden' }}>
+          {/* Chart header */}
+          <div style={{
+            background:'#000', color:'#FFD700',
+            padding:'5px 10px', fontSize:9, fontWeight:900,
+            display:'flex', alignItems:'center', gap:6, ...ZH,
+          }}>
+            <span>📊 累計統計條</span>
+            <div style={{ marginLeft:'auto', display:'flex', gap:4 }}>
+              {(['week','month'] as const).map(m => (
+                <button key={m} onClick={() => setChartMode(m)} style={{
+                  padding:'2px 8px', border:'1.5px solid #FFD700',
+                  background: chartMode===m ? '#FFD700' : 'transparent',
+                  color: chartMode===m ? '#000' : '#FFD700',
+                  fontSize:8, fontWeight:900, cursor:'pointer', ...ZH,
+                }}>{m==='week'?'週視圖':'月視圖'}</button>
+              ))}
             </div>
-            <div style={{ padding:'8px 10px', display:'flex', flexDirection:'column', gap:6 }}>
-              {weeklyExpenses.map(([ws, exp]) => {
-                const inc = weeklyIncome[ws] ?? 0;
-                const pct = Math.round((exp / maxExpense) * 100);
-                return (
-                  <div key={ws} style={{ display:'flex', alignItems:'center', gap:8 }}>
-                    {/* Date label */}
-                    <div style={{ fontSize:9, color:'#555', flexShrink:0, width:34, ...EN }}>
-                      {fmt(ws)}
-                    </div>
-                    {/* Bar container */}
-                    <div style={{ flex:1, display:'flex', flexDirection:'column', gap:2 }}>
-                      {/* Expense bar */}
-                      <div style={{
-                        height:10, background:'#e8e4da',
-                        border:'2px solid #000', overflow:'hidden',
-                      }}>
-                        <div style={{
-                          height:'100%', width:`${pct}%`,
-                          background:'#F97316',
-                          borderRight: pct < 100 ? '1.5px solid #000' : 'none',
-                          transition:'width 0.4s ease',
-                        }}/>
-                      </div>
-                      {/* Income bar */}
-                      {inc > 0 && (
-                        <div style={{
-                          height:6, background:'#e8f5ec',
-                          border:'1.5px solid #000', overflow:'hidden',
-                        }}>
-                          <div style={{
-                            height:'100%',
-                            width:`${Math.min(100, Math.round((inc / maxExpense) * 100))}%`,
-                            background:'#00A651', transition:'width 0.4s ease',
-                          }}/>
-                        </div>
-                      )}
-                    </div>
-                    {/* Amount */}
-                    <div style={{ flexShrink:0, textAlign:'right', minWidth:44 }}>
-                      <div style={{ fontSize:10, fontWeight:700, color:'#E74C3C', ...EN }}>€{exp}</div>
-                      {inc > 0 && <div style={{ fontSize:8, color:'#00A651', ...EN }}>+€{inc}</div>}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            <span style={{ color:'#f87171', marginLeft:4 }}>■ 支出</span>
+            <span style={{ color:'#4ade80' }}>■ 收入</span>
           </div>
-        )}
+
+          {/* Week mode: nav by month */}
+          {chartMode === 'week' && (
+            <>
+              <div style={{
+                display:'flex', alignItems:'center', justifyContent:'space-between',
+                padding:'4px 10px', borderBottom:'1.5px solid #ccc', background:'#f5f0e6',
+              }}>
+                <button onClick={prevMonth} style={{
+                  padding:'2px 10px', border:'2px solid #000', background:'#fff',
+                  cursor:'pointer', fontSize:12, fontWeight:900,
+                }}>‹</button>
+                <span style={{ fontSize:10, fontWeight:700, ...ZH }}>{monthLabel(selectedMonth)}</span>
+                <button onClick={nextMonth} style={{
+                  padding:'2px 10px', border:'2px solid #000', background:'#fff',
+                  cursor:'pointer', fontSize:12, fontWeight:900,
+                }}>›</button>
+              </div>
+              <div style={{ padding:'8px 10px', display:'flex', flexDirection:'column', gap:6 }}>
+                {weekChartData.length === 0 && (
+                  <div style={{ textAlign:'center', color:'#aaa', fontSize:9, padding:'8px 0', ...ZH }}>本月無資料</div>
+                )}
+                {weekChartData.map(([ws, { exp, inc }]) => {
+                  const ePct = Math.round((exp / maxWeek) * 100);
+                  const iPct = Math.round((inc / maxWeek) * 100);
+                  return (
+                    <div key={ws} style={{ display:'flex', alignItems:'center', gap:8 }}>
+                      <div style={{ fontSize:9, color:'#555', flexShrink:0, width:36, ...EN }}>{fmt(ws)}</div>
+                      <div style={{ flex:1, display:'flex', flexDirection:'column', gap:2 }}>
+                        {exp > 0 && (
+                          <div style={{ height:10, background:'#e8e4da', border:'2px solid #000', overflow:'hidden' }}>
+                            <div style={{ height:'100%', width:`${ePct}%`, background:'#F97316', transition:'width 0.4s' }}/>
+                          </div>
+                        )}
+                        {inc > 0 && (
+                          <div style={{ height:8, background:'#e8f5ec', border:'1.5px solid #000', overflow:'hidden' }}>
+                            <div style={{ height:'100%', width:`${iPct}%`, background:'#00A651', transition:'width 0.4s' }}/>
+                          </div>
+                        )}
+                      </div>
+                      <div style={{ flexShrink:0, textAlign:'right', minWidth:48 }}>
+                        {exp > 0 && <div style={{ fontSize:10, fontWeight:700, color:'#E74C3C', ...EN }}>€{exp}</div>}
+                        {inc > 0 && <div style={{ fontSize:8, color:'#00A651', ...EN }}>+€{inc}</div>}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
+
+          {/* Month mode: nav by 6-month window */}
+          {chartMode === 'month' && (
+            <>
+              <div style={{
+                display:'flex', alignItems:'center', justifyContent:'space-between',
+                padding:'4px 10px', borderBottom:'1.5px solid #ccc', background:'#f5f0e6',
+              }}>
+                <button onClick={() => setMonthOffset(o => o - 6)} style={{
+                  padding:'2px 10px', border:'2px solid #000', background:'#fff',
+                  cursor:'pointer', fontSize:12, fontWeight:900,
+                }}>‹</button>
+                <span style={{ fontSize:9, fontWeight:700, ...ZH }}>
+                  {monthChartData[0]?.month.slice(0,7).replace('-','年')}月 ～ {monthChartData[5]?.month.slice(0,7).replace('-','年')}月
+                </span>
+                <button onClick={() => setMonthOffset(o => o + 6)} style={{
+                  padding:'2px 10px', border:'2px solid #000', background:'#fff',
+                  cursor:'pointer', fontSize:12, fontWeight:900,
+                }}>›</button>
+              </div>
+              <div style={{ padding:'8px 10px', display:'flex', flexDirection:'column', gap:6 }}>
+                {monthChartData.every(r => r.exp === 0 && r.inc === 0) && (
+                  <div style={{ textAlign:'center', color:'#aaa', fontSize:9, padding:'8px 0', ...ZH }}>此區間無資料</div>
+                )}
+                {monthChartData.map(({ month, label, exp, inc }) => {
+                  const ePct = Math.round((exp / maxMonth) * 100);
+                  const iPct = Math.round((inc / maxMonth) * 100);
+                  return (
+                    <div key={month} style={{ display:'flex', alignItems:'center', gap:8 }}>
+                      <div style={{ fontSize:9, color:'#555', flexShrink:0, width:36, ...EN }}>{label}</div>
+                      <div style={{ flex:1, display:'flex', flexDirection:'column', gap:2 }}>
+                        {exp > 0 && (
+                          <div style={{ height:10, background:'#e8e4da', border:'2px solid #000', overflow:'hidden' }}>
+                            <div style={{ height:'100%', width:`${ePct}%`, background:'#F97316', transition:'width 0.4s' }}/>
+                          </div>
+                        )}
+                        {inc > 0 && (
+                          <div style={{ height:8, background:'#e8f5ec', border:'1.5px solid #000', overflow:'hidden' }}>
+                            <div style={{ height:'100%', width:`${iPct}%`, background:'#00A651', transition:'width 0.4s' }}/>
+                          </div>
+                        )}
+                      </div>
+                      <div style={{ flexShrink:0, textAlign:'right', minWidth:52 }}>
+                        {exp > 0 && <div style={{ fontSize:10, fontWeight:700, color:'#E74C3C', ...EN }}>€{exp}</div>}
+                        {inc > 0 && <div style={{ fontSize:8, color:'#00A651', ...EN }}>+€{inc}</div>}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
+        </div>
 
         {/* Filtered detail list */}
         <div style={{ border:'2.5px solid #000', boxShadow:'3px 3px 0 #000', overflow:'hidden' }}>
