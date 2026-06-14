@@ -1,8 +1,9 @@
 import React, { useState, useCallback } from 'react';
 import { ComposableMap as _ComposableMap, Geographies, Geography, Marker as _Marker, useMapContext } from 'react-simple-maps';
+import { useGame } from '../../context/GameContext';
+
 const ComposableMap = _ComposableMap as React.ComponentType<any>;
 const Marker        = _Marker        as React.ComponentType<any>;
-import { useGame } from '../../context/GameContext';
 
 const GEO_URL = 'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json';
 const TW: [number, number] = [121, 25];
