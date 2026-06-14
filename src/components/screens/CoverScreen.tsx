@@ -264,7 +264,7 @@ export function CoverScreen() {
                 fontSize: 68,
                 lineHeight: 0.95,
                 color: '#C9A96E',
-                fontFamily: "'Pinyon Script', cursive",
+                fontFamily: "'Dynalight', cursive",
                 textShadow: '0 2px 8px rgba(0,0,0,0.8), 0 0 30px rgba(201,169,110,0.3)',
                 textAlign: 'center',
                 letterSpacing: '0.01em',
