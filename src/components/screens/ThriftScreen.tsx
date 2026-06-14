@@ -3,7 +3,7 @@ import { useGame } from '../../context/GameContext';
 import { ZH, EN } from '../../data/constants';
 import {
   collection, addDoc, onSnapshot, serverTimestamp,
-  query, orderBy,
+  query, orderBy, doc, updateDoc,
 } from 'firebase/firestore';
 import { db } from '../../data/firebase';
 
@@ -137,20 +137,24 @@ function ImageSlots({
 }
 
 // ─── Seller Form ──────────────────────────────────────────────────────────────
-function SellerForm({ onSubmit, onBack }: {
-  onSubmit: (item: Omit<ThriftItem,'id'|'isSold'|'sellerId'>) => void;
-  onBack: () => void;
+function SellerForm({ onSubmit, onBack, items, onUpdatePrice, onToggleSold }: {
+  onSubmit:       (item: Omit<ThriftItem,'id'|'isSold'|'sellerId'>) => void;
+  onBack:         () => void;
+  items:          ThriftItem[];
+  onUpdatePrice:  (id: string, price: number) => void;
+  onToggleSold:   (id: string, sold: boolean) => void;
 }) {
   const { state } = useGame();
-  const [category,  setCategory]  = useState<ThriftCategory>('電器');
-  const [name,      setName]      = useState('');
-  const [price,     setPrice]     = useState('');
-  const [images,    setImages]    = useState<string[]>([]);
-  const [condition, setCondition] = useState<Condition>('全新');
-  const [delivery,  setDelivery]  = useState<DeliveryMethod>('面交');
-  const [location,  setLocation]  = useState('');
-  const [contact,   setContact]   = useState('');
-  const [error,     setError]     = useState('');
+  const [sellerTab,  setSellerTab]  = useState<'new'|'mine'>('new');
+  const [category,   setCategory]   = useState<ThriftCategory>('電器');
+  const [name,       setName]       = useState('');
+  const [price,      setPrice]      = useState('');
+  const [images,     setImages]     = useState<string[]>([]);
+  const [condition,  setCondition]  = useState<Condition>('全新');
+  const [delivery,   setDelivery]   = useState<DeliveryMethod>('面交');
+  const [location,   setLocation]   = useState('');
+  const [contact,    setContact]    = useState('');
+  const [error,      setError]      = useState('');
 
   const [successMsg, setSuccessMsg] = useState('');
 
@@ -223,8 +227,30 @@ function SellerForm({ onSubmit, onBack }: {
         </span>
       </div>
 
-      {/* Form */}
-      <div style={{ flex:1, overflowY:'auto', padding:'10px 14px', display:'flex', flexDirection:'column', gap:10 }}>
+      {/* Tab bar */}
+      <div style={{ display:'flex', borderBottom:'3px solid #000', flexShrink:0 }}>
+        {([
+          { id:'new'  as const, label:'📦 新增上架' },
+          { id:'mine' as const, label:`🗂 我的商品（${items.filter(i=>i.sellerId==='me').length}）` },
+        ]).map((t, i) => (
+          <button key={t.id} onClick={() => setSellerTab(t.id)} style={{
+            flex:1, padding:'8px 4px', border:'none',
+            borderRight: i===0 ? '2px solid #000' : 'none',
+            background: sellerTab===t.id ? '#FFD700' : '#f5f0e6',
+            color: sellerTab===t.id ? '#000' : '#555',
+            fontWeight: sellerTab===t.id ? 900 : 400,
+            fontSize:10, cursor:'pointer', ...ZH,
+          }}>{t.label}</button>
+        ))}
+      </div>
+
+      {/* My listings tab */}
+      {sellerTab === 'mine' && (
+        <SellerListings items={items} onUpdatePrice={onUpdatePrice} onToggleSold={onToggleSold} />
+      )}
+
+      {/* New listing form */}
+      {sellerTab === 'new' && <div style={{ flex:1, overflowY:'auto', padding:'10px 14px', display:'flex', flexDirection:'column', gap:10 }}>
 
         {/* Category */}
         <div>
@@ -346,6 +372,93 @@ function SellerForm({ onSubmit, onBack }: {
           🚀 投放離愛出清市集
         </button>
       </div>
+      </div>}
+    </div>
+  );
+}
+
+// ─── Seller Listings (edit own items) ────────────────────────────────────────
+function SellerListings({
+  items, onUpdatePrice, onToggleSold,
+}: {
+  items: ThriftItem[];
+  onUpdatePrice: (id: string, price: number) => void;
+  onToggleSold:  (id: string, sold: boolean) => void;
+}) {
+  const [editingId,    setEditingId]    = useState<string | null>(null);
+  const [editingPrice, setEditingPrice] = useState('');
+  const myItems = items.filter(i => i.sellerId === 'me');
+
+  if (myItems.length === 0) return (
+    <div style={{ padding:'20px 14px', textAlign:'center', color:'#aaa', fontSize:11, ...ZH }}>
+      尚未上架任何商品
+    </div>
+  );
+
+  return (
+    <div style={{ display:'flex', flexDirection:'column', gap:8, padding:'10px 14px' }}>
+      {myItems.map(item => (
+        <div key={item.id} style={{
+          border:'2.5px solid #000', boxShadow:'3px 3px 0 #000',
+          background: item.isSold ? '#f0ece0' : '#FDFBF7',
+          padding:'8px 10px', display:'flex', flexDirection:'column', gap:6,
+        }}>
+          <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+            <span style={{ fontSize:14 }}>{CAT_ICON[item.category]}</span>
+            <div style={{ flex:1, minWidth:0 }}>
+              <div style={{ fontSize:11, fontWeight:900, ...ZH }}>{item.name}</div>
+              <div style={{ fontSize:8, color:'#888', ...ZH }}>📍 {item.location}</div>
+            </div>
+            {/* Sold toggle */}
+            <button onClick={() => onToggleSold(item.id, !item.isSold)} style={{
+              padding:'4px 8px', border:'2px solid #000', cursor:'pointer',
+              background: item.isSold ? '#E74C3C' : '#00A651',
+              color:'#fff', fontSize:9, fontWeight:900, flexShrink:0, ...ZH,
+            }}>
+              {item.isSold ? '已頂讓 ✓' : '在售中'}
+            </button>
+          </div>
+
+          {/* Price edit */}
+          <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+            <span style={{ fontSize:10, color:'#888', ...ZH }}>售價：</span>
+            {editingId === item.id ? (
+              <>
+                <input
+                  type="number" value={editingPrice}
+                  onChange={e => setEditingPrice(e.target.value)}
+                  style={{
+                    width:70, padding:'3px 6px', border:'2px solid #000',
+                    fontSize:12, outline:'none', ...EN,
+                  }}
+                  autoFocus
+                />
+                <span style={{ fontSize:11, ...EN }}>€</span>
+                <button onClick={() => {
+                  const n = parseFloat(editingPrice);
+                  if (n > 0) onUpdatePrice(item.id, n);
+                  setEditingId(null);
+                }} style={{
+                  padding:'3px 8px', border:'2px solid #000',
+                  background:'#FFD700', fontWeight:900, fontSize:10, cursor:'pointer', ...ZH,
+                }}>確認</button>
+                <button onClick={() => setEditingId(null)} style={{
+                  padding:'3px 8px', border:'2px solid #ccc',
+                  background:'#fff', fontSize:10, cursor:'pointer', ...ZH,
+                }}>取消</button>
+              </>
+            ) : (
+              <>
+                <span style={{ fontSize:14, fontWeight:900, color:'#003A70', ...EN }}>€{item.price}</span>
+                <button onClick={() => { setEditingId(item.id); setEditingPrice(String(item.price)); }} style={{
+                  padding:'3px 8px', border:'2px solid #555',
+                  background:'#fff', fontSize:9, cursor:'pointer', ...ZH,
+                }}>✏️ 改價</button>
+              </>
+            )}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -752,6 +865,22 @@ export function ThriftScreen() {
     // Stay on seller form — success toast handled inside SellerForm
   }, []);
 
+  const handleUpdatePrice = useCallback(async (id: string, price: number) => {
+    try {
+      await updateDoc(doc(db, 'thrift_items', id), { price });
+    } catch {
+      setItems(prev => prev.map(i => i.id === id ? { ...i, price } : i));
+    }
+  }, []);
+
+  const handleToggleSold = useCallback(async (id: string, isSold: boolean) => {
+    try {
+      await updateDoc(doc(db, 'thrift_items', id), { isSold });
+    } catch {
+      setItems(prev => prev.map(i => i.id === id ? { ...i, isSold } : i));
+    }
+  }, []);
+
   return (
     <div style={{ display:'flex', flexDirection:'column' }}>
       {/* Top bar (shown on all sub-views) */}
@@ -794,7 +923,13 @@ export function ThriftScreen() {
           <RoleGate onSelect={setRole} />
         )}
         {role === 'seller' && (
-          <SellerForm onSubmit={handleSell} onBack={() => setRole(null)} />
+          <SellerForm
+            onSubmit={handleSell}
+            onBack={() => setRole(null)}
+            items={items}
+            onUpdatePrice={handleUpdatePrice}
+            onToggleSold={handleToggleSold}
+          />
         )}
         {role === 'buyer' && (
           <BuyerView items={items} onBack={() => setRole(null)} />
