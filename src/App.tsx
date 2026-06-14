@@ -7,7 +7,7 @@ import { SetupScreen }       from './components/screens/SetupScreen';
 import { HomeScreen }        from './components/screens/HomeScreen';
 import { TaskScreen }        from './components/screens/TaskScreen';
 import { CollectionsScreen } from './components/screens/CollectionsScreen';
-import { DunnesScreen }      from './components/screens/DunnesScreen';
+import { ThriftScreen }      from './components/screens/ThriftScreen';
 import { BagScreen }         from './components/screens/BagScreen';
 import { AIBScreen }         from './components/screens/AIBScreen';
 import { GuildScreen }       from './components/screens/GuildScreen';
