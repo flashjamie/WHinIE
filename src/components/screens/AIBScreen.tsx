@@ -163,7 +163,7 @@ function LedgerTab({
             border:'2.5px solid #000', boxShadow:'2px 2px 0 #000',
             background: e.type==='income' ? '#f0faf4' : '#fff8f8',
           }}>
-            <span style={{ fontSize:18, flexShrink:0 }}>{CAT_ICON[e.category]}</span>
+            <span style={{ fontSize:18, flexShrink:0 }}>{CAT_ICON[e.category as Category]}</span>
             <div style={{ flex:1, minWidth:0 }}>
               <div style={{ fontSize:11, fontWeight:700, ...ZH }}>{e.desc || e.category}</div>
               <div style={{ fontSize:8, color:'#888', ...EN }}>
