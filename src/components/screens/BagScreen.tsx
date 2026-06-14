@@ -225,7 +225,7 @@ function CategoryBlock({
       {/* + 擴充背包 */}
       <div style={{ borderTop: '1.5px dashed #ccc', background: '#f5f0e8' }}>
         {showInput ? (
-          <div style={{ display: 'flex', gap: 0, padding: '5px 8px', alignItems: 'center', gap: 5 }}>
+          <div style={{ display: 'flex', gap: 5, padding: '5px 8px', alignItems: 'center' }}>
             <input
               autoFocus
               value={inputVal}
