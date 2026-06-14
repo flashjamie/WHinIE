@@ -141,6 +141,9 @@ export function CoverScreen() {
           80%  { opacity: 0.3; }
           100% { opacity: 0; }
         }
+        .cover-title, .cover-title * {
+          font-family: 'Dynalight', cursive !important;
+        }
         .cover-open-btn:hover {
           background: rgba(201,169,110,0.15) !important;
           box-shadow: 0 0 24px rgba(201,169,110,0.4) !important;
@@ -260,7 +263,7 @@ export function CoverScreen() {
                 marginBottom: 16,
               }} />
 
-              <div style={{
+              <div className="cover-title" style={{
                 fontSize: 68,
                 lineHeight: 0.95,
                 color: '#C9A96E',
