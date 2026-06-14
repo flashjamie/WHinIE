@@ -22,6 +22,9 @@ const GLOBAL_CSS = `
     --font-en:  'Itim', 'Cre Happiness', cursive;
     --font-zh:  'Noto Sans TC', 'Microsoft JhengHei UI', 'Microsoft JhengHei',
                 'PingFang TC', 'Heiti TC', sans-serif;
+    /* Combined: Itim handles Latin/numbers; CJK falls through to Noto Sans TC */
+    --font-all: 'Itim', 'Noto Sans TC', 'Microsoft JhengHei UI',
+                'PingFang TC', 'Heiti TC', sans-serif;
   }
 
   /* ── Reset ───────────────────────────────────────────────────── */
@@ -29,32 +32,20 @@ const GLOBAL_CSS = `
   html, body { width: 100%; height: 100%; overflow: hidden; background: #1a0d06; }
   #root { width: 100%; height: 100%; }
 
-  /* ── Global base font: Noto Sans TC + Itim stack ─────────────
-     Explicitly bans 新細明體 (PMingLiU) and 細明體 (MingLiU)
-     by never listing them anywhere in the cascade.            */
-  html {
-    font-family: var(--font-zh);
+  /* ── STRICT font enforcement on every element ────────────────
+     Itim covers Latin/numbers; Noto Sans TC covers CJK.
+     Any inline fontFamily with Georgia/serif/monospace/cursive
+     is overridden here. PMingLiU / MingLiU never appear.      */
+  *, *::before, *::after {
+    font-family: var(--font-all) !important;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     font-synthesis: none;
   }
 
-  /* Numbers and ASCII characters → Itim */
-  body {
-    font-family: var(--font-en), var(--font-zh);
-  }
-
-  /* ── Explicit attribute selectors ───────────────────────────── */
-  [data-zh], [data-zh] * {
-    font-family: var(--font-zh) !important;
-  }
-  [data-en], [data-en] * {
-    font-family: var(--font-en) !important;
-  }
-
-  /* ── Form elements inherit correctly ────────────────────────── */
-  input, textarea, select, button {
-    font-family: inherit;
+  /* SVG text elements also inherit */
+  text, tspan {
+    font-family: var(--font-all) !important;
   }
 
   /* ── High-contrast baseline ─────────────────────────────────── */
