@@ -415,7 +415,7 @@ function SellerListings({
               background: item.isSold ? '#E74C3C' : '#00A651',
               color:'#fff', fontSize:9, fontWeight:900, flexShrink:0, ...ZH,
             }}>
-              {item.isSold ? '已頂讓 ✓' : '在售中'}
+              {item.isSold ? '已售出 ✓' : '在售中'}
             </button>
           </div>
 
@@ -560,7 +560,7 @@ function ItemDetailModal({ item, onClose }: { item: ThriftItem; onClose: () => v
                 background:'#f0ece0', border:'2px solid #aaa',
                 padding:'6px 10px', textAlign:'center',
                 fontSize:11, fontWeight:900, color:'#888', ...ZH,
-              }}>— 此商品已頂讓 SOLD OUT —</div>
+              }}>— 此商品已售出 SOLD OUT —</div>
             )}
           </div>
         </div>
@@ -634,7 +634,7 @@ function ItemCard({ item, onOpen }: {
             fontSize:18, fontWeight:900, padding:'8px 14px',
             border:'3px solid #fff', letterSpacing:'0.1em',
             transform:'rotate(-12deg)', ...ZH,
-          }}>已頂讓<br/><span style={{ fontSize:11, ...EN }}>SOLD OUT</span></div>
+          }}>已售出<br/><span style={{ fontSize:11, ...EN }}>SOLD OUT</span></div>
         </div>
       )}
     </div>
