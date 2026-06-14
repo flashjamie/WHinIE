@@ -4,12 +4,12 @@ import { ZH, EN } from '../../data/constants';
 // ─── Types ────────────────────────────────────────────────────────────────────
 type EntryType = 'income' | 'expense';
 
-const CATEGORIES = ['房租','餐飲','交通','通訊','醫療','娛樂','薪資','其他'] as const;
+const CATEGORIES = ['房租','餐飲','交通','通訊','醫療','娛樂','薪資','其他','超市'] as const;
 type Category = typeof CATEGORIES[number];
 
 const CAT_ICON: Record<Category, string> = {
   房租:'🏠', 餐飲:'🍽️', 交通:'🚌', 通訊:'📱',
-  醫療:'💊', 娛樂:'🎮', 薪資:'💰', 其他:'📦',
+  醫療:'💊', 娛樂:'🎮', 薪資:'💰', 其他:'📦',超市:'🛒'
 };
 
 interface Entry {
