@@ -913,7 +913,7 @@ export function ThriftScreen() {
               background: syncErr ? '#E74C3C' : synced ? '#00A651' : '#F59E0B',
             }}/>
             {items.filter(i=>!i.isSold).length} 件在售
-            {syncErr && <span style={{ color:'#E74C3C' }}>（離線）</span>}
+            {syncErr && <span style={{ color:'#F59E0B' }}>（待同步）</span>}
           </div>
         </div>
       </div>

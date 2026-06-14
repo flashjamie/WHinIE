@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
+import { getFirestore, enableIndexedDbPersistence } from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey:            "AIzaSyAq_uxtaITFGxkmIlG7vlIZ6m8R701Azck",
@@ -12,3 +12,8 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
+
+// Enable offline persistence — writes are queued locally and synced when back online
+enableIndexedDbPersistence(db).catch(() => {
+  // Fails silently in non-supported environments (e.g. multiple tabs)
+});
