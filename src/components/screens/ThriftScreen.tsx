@@ -544,11 +544,11 @@ function BuyerView({ items, onBack }: {
   }), [items, search, catFilt, maxPrice]);
 
   return (
-    <div style={{ height:'100%', display:'flex', flexDirection:'column', overflow:'hidden' }}>
+    <div style={{ display:'flex', flexDirection:'column' }}>
       {selected && <ItemDetailModal item={selected} onClose={() => setSelected(null)} />}
       {/* Header */}
       <div style={{
-        flexShrink:0, background:'#000', color:'#FFD700',
+        background:'#000', color:'#FFD700',
         padding:'8px 14px', borderBottom:'3px solid #000',
         display:'flex', alignItems:'center', gap:8,
       }}>
@@ -609,7 +609,7 @@ function BuyerView({ items, onBack }: {
 
       {/* Grid */}
       <div style={{
-        flex:1, overflowY:'auto', padding:10,
+        padding:10,
         display:'grid', gridTemplateColumns:'repeat(2,1fr)', gap:10,
         alignContent:'start',
       }}>
@@ -719,10 +719,9 @@ export function ThriftScreen() {
   }, []);
 
   return (
-    <div style={{ height:'100%', display:'flex', flexDirection:'column', overflow:'hidden' }}>
+    <div style={{ display:'flex', flexDirection:'column' }}>
       {/* Top bar (shown on all sub-views) */}
       <div style={{
-        flexShrink:0,
         background:'linear-gradient(135deg,#1a1a1a,#2C1A08)',
         color:'#FFD700', padding:'7px 14px',
         borderBottom:'3px solid #000',
@@ -750,7 +749,7 @@ export function ThriftScreen() {
       </div>
 
       {/* Content */}
-      <div style={{ flex:1, overflow:'hidden' }}>
+      <div>
         {role === null && (
           <RoleGate onSelect={setRole} />
         )}
