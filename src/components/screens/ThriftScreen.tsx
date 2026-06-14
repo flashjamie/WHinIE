@@ -741,8 +741,10 @@ export function ThriftScreen() {
         isSold:    false,
         createdAt: serverTimestamp(),
       });
-    } catch {
-      // Firestore unavailable — fall back to local state
+    } catch (err: any) {
+      console.error('[Firestore write error]', err?.code, err?.message);
+      setSyncErr(true);
+      // Fall back to local state
       setItems(prev => [{
         ...data, id: `u_${Date.now()}`, sellerId: 'me', isSold: false,
       }, ...prev]);
