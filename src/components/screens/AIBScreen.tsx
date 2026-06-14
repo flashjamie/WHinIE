@@ -554,7 +554,7 @@ function ReportTab({ entries, rate }: { entries: Entry[]; rate: number }) {
               padding:'6px 10px', borderTop:'1px solid #e8e4da',
               background: e.type==='income' ? '#f0faf4' : '#FDFBF7',
             }}>
-              <span style={{ fontSize:14 }}>{CAT_ICON[e.category]}</span>
+              <span style={{ fontSize:14 }}>{CAT_ICON[e.category as Category]}</span>
               <div style={{ flex:1 }}>
                 <div style={{ fontSize:10, fontWeight:600, ...ZH }}>{e.desc}</div>
                 <div style={{ fontSize:8, color:'#aaa', ...EN }}>{e.category} · {e.date}</div>
