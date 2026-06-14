@@ -94,10 +94,12 @@ function CoverMap() {
         ))}
       </Geographies>
       <FlightArc />
+      {/* @ts-ignore react-simple-maps Marker children type */}
       <Marker coordinates={TW}>
         <circle r={4} fill="#C9A96E" stroke="rgba(255,255,255,0.5)" strokeWidth={1} />
         <text y={13} textAnchor="middle" fontSize={6} fontWeight="bold" fill="rgba(201,169,110,0.9)">台灣</text>
       </Marker>
+      {/* @ts-ignore react-simple-maps Marker children type */}
       <Marker coordinates={IE}>
         <circle r={4} fill="#C9A96E" stroke="rgba(255,255,255,0.5)" strokeWidth={1} />
         <text y={13} textAnchor="middle" fontSize={6} fontWeight="bold" fill="rgba(201,169,110,0.9)">愛爾蘭</text>

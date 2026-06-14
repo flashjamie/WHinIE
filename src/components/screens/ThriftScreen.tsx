@@ -250,7 +250,7 @@ function SellerForm({ onSubmit, onBack, items, onUpdatePrice, onToggleSold }: {
       )}
 
       {/* New listing form */}
-      {sellerTab === 'new' && <div style={{ flex:1, overflowY:'auto', padding:'10px 14px', display:'flex', flexDirection:'column', gap:10 }}>
+      {sellerTab === 'new' && <><div style={{ flex:1, overflowY:'auto', padding:'10px 14px', display:'flex', flexDirection:'column', gap:10 }}>
 
         {/* Category */}
         <div>
@@ -372,12 +372,12 @@ function SellerForm({ onSubmit, onBack, items, onUpdatePrice, onToggleSold }: {
           🚀 投放離愛出清市集
         </button>
       </div>
-      </div>}
+      </>}
     </div>
   );
 }
 
-// ─── Seller Listings (edit own items) ────────────────────────────────────────
+// ─── Seller Listings (edit own items)────────────────────────────────────────
 function SellerListings({
   items, onUpdatePrice, onToggleSold,
 }: {
