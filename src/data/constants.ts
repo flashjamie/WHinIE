@@ -14,10 +14,14 @@ import type {
 export const GOOGLE_FONTS_URL =
   "https://fonts.googleapis.com/css2?family=Itim&family=Noto+Sans+TC:wght@300;400;500;700;900&display=swap";
 
+// EN/number: Itim first, Cre Happiness fallback alias via CSS var, then generic
+// ZH: Noto Sans TC only — explicitly NO 新細明體 / PMingLiU
 export const ZH = {
-  fontFamily: "'Noto Sans TC', 'Microsoft JhengHei', sans-serif",
+  fontFamily: "'Noto Sans TC', 'Microsoft JhengHei UI', 'Microsoft JhengHei', 'PingFang TC', 'Heiti TC', sans-serif",
 } as const;
-export const EN = { fontFamily: "'Itim', cursive" } as const;
+export const EN = {
+  fontFamily: "'Itim', 'Cre Happiness', cursive",
+} as const;
 
 // ─── Tabs ─────────────────────────────────────────────────────────────────────
 

@@ -16,20 +16,56 @@ import { GOOGLE_FONTS_URL }  from './data/constants';
 // ─── Global CSS ───────────────────────────────────────────────────────────────
 const GLOBAL_CSS = `
   @import url('${GOOGLE_FONTS_URL}');
+
+  /* ── Font custom properties ─────────────────────────────────── */
+  :root {
+    --font-en:  'Itim', 'Cre Happiness', cursive;
+    --font-zh:  'Noto Sans TC', 'Microsoft JhengHei UI', 'Microsoft JhengHei',
+                'PingFang TC', 'Heiti TC', sans-serif;
+  }
+
+  /* ── Reset ───────────────────────────────────────────────────── */
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { width: 100%; height: 100%; overflow: hidden; background: #1a0d06; }
   #root { width: 100%; height: 100%; }
 
-  /* Font enforcement */
-  [data-zh] { font-family: 'Noto Sans TC', 'Microsoft JhengHei', sans-serif !important; }
-  [data-en] { font-family: 'Itim', cursive !important; }
+  /* ── Global base font: Noto Sans TC + Itim stack ─────────────
+     Explicitly bans 新細明體 (PMingLiU) and 細明體 (MingLiU)
+     by never listing them anywhere in the cascade.            */
+  html {
+    font-family: var(--font-zh);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-synthesis: none;
+  }
 
-  /* Scrollbar */
+  /* Numbers and ASCII characters → Itim */
+  body {
+    font-family: var(--font-en), var(--font-zh);
+  }
+
+  /* ── Explicit attribute selectors ───────────────────────────── */
+  [data-zh], [data-zh] * {
+    font-family: var(--font-zh) !important;
+  }
+  [data-en], [data-en] * {
+    font-family: var(--font-en) !important;
+  }
+
+  /* ── Form elements inherit correctly ────────────────────────── */
+  input, textarea, select, button {
+    font-family: inherit;
+  }
+
+  /* ── High-contrast baseline ─────────────────────────────────── */
+  * { color-scheme: light; }
+
+  /* ── Scrollbar ───────────────────────────────────────────────── */
   ::-webkit-scrollbar { width: 4px; }
   ::-webkit-scrollbar-track { background: #f0ece0; }
   ::-webkit-scrollbar-thumb { background: #888; border: 1px solid #000; }
 
-  /* Animations */
+  /* ── Animations ─────────────────────────────────────────────── */
   @keyframes blink {
     0%, 100% { opacity: 1; }
     50%       { opacity: 0; }
@@ -47,13 +83,12 @@ const GLOBAL_CSS = `
     to   { opacity: 1; transform: translateY(0); }
   }
 
-  /* Native date/time input */
+  /* ── Native date/time input ─────────────────────────────────── */
   input[type="date"]::-webkit-calendar-picker-indicator,
   input[type="time"]::-webkit-calendar-picker-indicator {
     cursor: pointer; opacity: 0.6;
   }
   input:focus { outline: none; }
-  button { font-family: inherit; }
 `;
 
 // ─── Screen Router ────────────────────────────────────────────────────────────
