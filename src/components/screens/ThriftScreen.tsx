@@ -147,6 +147,8 @@ function SellerForm({ onSubmit, onBack }: {
   const [contact,   setContact]   = useState('');
   const [error,     setError]     = useState('');
 
+  const [successMsg, setSuccessMsg] = useState('');
+
   const submit = () => {
     if (!name.trim())         { setError('請填寫商品名稱'); return; }
     if (!price || +price <= 0){ setError('請填寫有效價格'); return; }
@@ -157,6 +159,11 @@ function SellerForm({ onSubmit, onBack }: {
     onSubmit({ category, name: name.trim(), price: +price, images,
       condition, deliveryMethod: delivery,
       location: location.trim(), contact: contact.trim() });
+    // Reset form for next item, stay on seller page
+    setName(''); setPrice(''); setImages([]); setLocation(''); setContact('');
+    setCondition('全新'); setDelivery('面交'); setCategory('電器');
+    setSuccessMsg(`✅「${name.trim()}」已成功上架！可繼續新增下一件商品`);
+    setTimeout(() => setSuccessMsg(''), 3000);
   };
 
   const inputSt: React.CSSProperties = {
@@ -287,6 +294,13 @@ function SellerForm({ onSubmit, onBack }: {
         </div>
 
         {/* Error */}
+        {successMsg && (
+          <div style={{
+            padding:'6px 10px', background:'#E8F5EC',
+            border:'2px solid #00A651', fontSize:10, color:'#005A2B',
+            fontWeight:700, ...ZH,
+          }}>{successMsg}</div>
+        )}
         {error && (
           <div style={{
             padding:'6px 10px', background:'#FDECEA',
@@ -314,23 +328,127 @@ function SellerForm({ onSubmit, onBack }: {
   );
 }
 
-// ─── Item Card ────────────────────────────────────────────────────────────────
-function ItemCard({ item, gold, onBuy }: {
-  item: ThriftItem;
-  gold: number;
-  onBuy: (item: ThriftItem) => void;
-}) {
-  const canAfford = gold >= item.price;
-  const hasImg    = item.images.length > 0;
-
+// ─── Item Detail Modal ────────────────────────────────────────────────────────
+function ItemDetailModal({ item, onClose }: { item: ThriftItem; onClose: () => void }) {
+  const [imgIdx, setImgIdx] = useState(0);
   return (
     <div style={{
+      position:'fixed', inset:0, zIndex:999,
+      background:'rgba(0,0,0,0.75)',
+      display:'flex', alignItems:'center', justifyContent:'center',
+      padding:16,
+    }} onClick={onClose}>
+      <div style={{
+        background:'#FDFBF7', border:'3px solid #000', boxShadow:'8px 8px 0 #000',
+        width:'100%', maxWidth:340, maxHeight:'85vh',
+        display:'flex', flexDirection:'column', overflow:'hidden',
+      }} onClick={e => e.stopPropagation()}>
+        {/* Modal header */}
+        <div style={{
+          background:'#000', color:'#FFD700', padding:'8px 12px',
+          display:'flex', alignItems:'center', gap:8, flexShrink:0,
+        }}>
+          <span style={{ fontSize:12, fontWeight:900, flex:1, ...ZH }}>{item.name}</span>
+          <button onClick={onClose} style={{
+            background:'none', border:'none', color:'#FFD700',
+            fontSize:18, cursor:'pointer', lineHeight:1,
+          }}>✕</button>
+        </div>
+
+        <div style={{ overflowY:'auto', flex:1 }}>
+          {/* Images */}
+          {item.images.length > 0 ? (
+            <div>
+              <img src={item.images[imgIdx]}
+                style={{ width:'100%', aspectRatio:'4/3', objectFit:'cover', display:'block' }} alt="" />
+              {item.images.length > 1 && (
+                <div style={{ display:'flex', gap:4, padding:'6px 8px', background:'#000' }}>
+                  {item.images.map((src, i) => (
+                    <img key={i} src={src} onClick={() => setImgIdx(i)}
+                      style={{
+                        width:36, height:36, objectFit:'cover', cursor:'pointer',
+                        border: i===imgIdx ? '2.5px solid #FFD700' : '2px solid #555',
+                        opacity: i===imgIdx ? 1 : 0.6,
+                      }} alt="" />
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div style={{
+              width:'100%', aspectRatio:'4/3', background:'#e8e4da',
+              display:'flex', alignItems:'center', justifyContent:'center', fontSize:48,
+            }}>{CAT_ICON[item.category]}</div>
+          )}
+
+          {/* Details */}
+          <div style={{ padding:'10px 12px', display:'flex', flexDirection:'column', gap:8 }}>
+            {/* Price + badges */}
+            <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+              <span style={{ fontSize:22, fontWeight:900, color:'#003A70', ...EN }}>€{item.price}</span>
+              <span style={{
+                background: item.condition==='全新' ? '#00A651' : '#F59E0B',
+                color:'#fff', fontSize:9, fontWeight:900, padding:'2px 7px',
+                border:'1.5px solid #000', ...ZH,
+              }}>{item.condition}</span>
+              <span style={{
+                background:'#000', color:'#FFD700',
+                fontSize:9, fontWeight:900, padding:'2px 7px',
+                border:'1.5px solid #444', ...ZH,
+              }}>{DELIVERY_ICON[item.deliveryMethod]} {item.deliveryMethod}</span>
+            </div>
+
+            {/* Info rows */}
+            {[
+              { icon:'📂', label:'類別', val:`${CAT_ICON[item.category]} ${item.category}` },
+              { icon:'📍', label:'地點', val:item.location },
+            ].map(r => (
+              <div key={r.label} style={{ display:'flex', gap:6, fontSize:11, ...ZH }}>
+                <span style={{ flexShrink:0, color:'#888' }}>{r.icon} {r.label}</span>
+                <span style={{ fontWeight:700 }}>{r.val}</span>
+              </div>
+            ))}
+
+            {/* Contact — highlighted */}
+            <div style={{
+              background:'#FFF9E6', border:'2.5px solid #FFD700',
+              boxShadow:'3px 3px 0 #000', padding:'8px 10px',
+            }}>
+              <div style={{ fontSize:9, fontWeight:900, color:'#7C5A00', marginBottom:3, ...ZH }}>
+                📲 賣家聯繫方式
+              </div>
+              <div style={{ fontSize:12, fontWeight:700, ...ZH }}>{item.contact}</div>
+            </div>
+
+            {item.isSold && (
+              <div style={{
+                background:'#f0ece0', border:'2px solid #aaa',
+                padding:'6px 10px', textAlign:'center',
+                fontSize:11, fontWeight:900, color:'#888', ...ZH,
+              }}>— 此商品已頂讓 SOLD OUT —</div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Item Card ────────────────────────────────────────────────────────────────
+function ItemCard({ item, onOpen }: {
+  item: ThriftItem;
+  onOpen: (item: ThriftItem) => void;
+}) {
+  const hasImg = item.images.length > 0;
+
+  return (
+    <div onClick={() => onOpen(item)} style={{
       border:'3px solid #000',
       boxShadow: item.isSold ? '3px 3px 0 #aaa' : '4px 4px 0 #000',
       background: item.isSold ? '#f0ece0' : '#FDFBF7',
       display:'flex', flexDirection:'column',
       overflow:'hidden', position:'relative',
-      transition:'all 0.2s',
+      cursor:'pointer', transition:'all 0.15s',
       opacity: item.isSold ? 0.65 : 1,
     }}>
       {/* Image */}
@@ -344,14 +462,12 @@ function ItemCard({ item, gold, onBuy }: {
           ? <img src={item.images[0]} style={{ width:'100%', height:'100%', objectFit:'cover' }} alt="" />
           : <span style={{ fontSize:32 }}>{CAT_ICON[item.category]}</span>
         }
-        {/* Condition badge */}
         <div style={{
           position:'absolute', top:4, left:4,
           background: item.condition==='全新' ? '#00A651' : '#F59E0B',
           color:'#fff', fontSize:7, fontWeight:900, padding:'2px 5px',
           border:'1.5px solid #000', ...ZH,
         }}>{item.condition}</div>
-        {/* Delivery badge */}
         <div style={{
           position:'absolute', top:4, right:4,
           background:'#000', color:'#FFD700',
@@ -363,29 +479,13 @@ function ItemCard({ item, gold, onBuy }: {
       {/* Info */}
       <div style={{ padding:'6px 7px', flex:1, display:'flex', flexDirection:'column', gap:3 }}>
         <div style={{ fontSize:9, color:'#888', ...ZH }}>{CAT_ICON[item.category]} {item.category}</div>
-        <div style={{ fontSize:10, fontWeight:900, lineHeight:1.3, ...ZH }}>
-          {item.name}
-        </div>
+        <div style={{ fontSize:10, fontWeight:900, lineHeight:1.3, ...ZH }}>{item.name}</div>
         <div style={{ fontSize:8, color:'#666', ...ZH }}>📍 {item.location}</div>
         <div style={{ marginTop:'auto', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
           <span style={{ fontSize:16, fontWeight:900, color:'#003A70', ...EN }}>€{item.price}</span>
+          <span style={{ fontSize:8, color:'#aaa', ...ZH }}>點擊查看 →</span>
         </div>
       </div>
-
-      {/* Buy button */}
-      <button onClick={() => !item.isSold && canAfford && onBuy(item)}
-        style={{
-          margin:'0 7px 7px', padding:'6px 0',
-          border:'2.5px solid #000',
-          boxShadow: item.isSold || !canAfford ? 'none' : '3px 3px 0 #000',
-          background: item.isSold ? '#e0e0e0'
-            : canAfford ? '#FFD700' : '#f5f0e6',
-          color: item.isSold ? '#aaa' : canAfford ? '#000' : '#bbb',
-          fontWeight:900, fontSize:9, cursor: item.isSold || !canAfford ? 'not-allowed' : 'pointer',
-          ...ZH,
-        }}>
-        {item.isSold ? '— 已頂讓 —' : canAfford ? '💰 收購入庫' : `需 €${item.price}（不足）`}
-      </button>
 
       {/* SOLD overlay */}
       {item.isSold && (
@@ -407,15 +507,14 @@ function ItemCard({ item, gold, onBuy }: {
 }
 
 // ─── Buyer View ───────────────────────────────────────────────────────────────
-function BuyerView({ items, gold, onBuy, onBack }: {
+function BuyerView({ items, onBack }: {
   items:  ThriftItem[];
-  gold:   number;
-  onBuy:  (item: ThriftItem) => void;
   onBack: () => void;
 }) {
   const [search,   setSearch]   = useState('');
   const [catFilt,  setCatFilt]  = useState<ThriftCategory | 'all'>('all');
   const [maxPrice, setMaxPrice] = useState(500);
+  const [selected, setSelected] = useState<ThriftItem | null>(null);
 
   const maxPossible = useMemo(() =>
     Math.max(...items.map(i => i.price), 100), [items]);
@@ -429,6 +528,7 @@ function BuyerView({ items, gold, onBuy, onBack }: {
 
   return (
     <div style={{ height:'100%', display:'flex', flexDirection:'column', overflow:'hidden' }}>
+      {selected && <ItemDetailModal item={selected} onClose={() => setSelected(null)} />}
       {/* Header */}
       <div style={{
         flexShrink:0, background:'#000', color:'#FFD700',
@@ -440,11 +540,6 @@ function BuyerView({ items, gold, onBuy, onBack }: {
           fontSize:14, cursor:'pointer', fontWeight:900,
         }}>↩</button>
         <span style={{ fontSize:13, fontWeight:900, ...ZH }}>🛍 買家市集</span>
-        <div style={{
-          marginLeft:'auto', background:'#1a1a1a',
-          border:'1.5px solid #FFD700', padding:'2px 8px',
-          fontSize:9, fontWeight:700, color:'#FFD700', ...EN,
-        }}>💰 {gold} XP</div>
       </div>
 
       {/* Filter panel */}
@@ -491,7 +586,7 @@ function BuyerView({ items, gold, onBuy, onBack }: {
           }}>€{maxPrice}</span>
         </div>
         <div style={{ fontSize:8, color:'#888', ...ZH }}>
-          共 {filtered.length} 件符合 · {filtered.filter(i=>!i.isSold).length} 件可購買
+          共 {filtered.length} 件符合 · {filtered.filter(i=>!i.isSold).length} 件在售
         </div>
       </div>
 
@@ -510,7 +605,7 @@ function BuyerView({ items, gold, onBuy, onBack }: {
           </div>
         )}
         {filtered.map(item => (
-          <ItemCard key={item.id} item={item} gold={gold} onBuy={onBuy} />
+          <ItemCard key={item.id} item={item} onOpen={setSelected} />
         ))}
       </div>
     </div>
@@ -589,7 +684,7 @@ function RoleGate({ onSelect }: { onSelect: (role: 'buyer' | 'seller') => void }
 
 // ─── Thrift Screen Root ───────────────────────────────────────────────────────
 export function ThriftScreen() {
-  const { derived, dispatch } = useGame();
+  const { derived } = useGame();
   const gold = derived.totalXP;
 
   const [role,   setRole]   = useState<'buyer' | 'seller' | null>(null);
@@ -603,17 +698,8 @@ export function ThriftScreen() {
       isSold:   false,
     };
     setItems(prev => [newItem, ...prev]);
-    setRole(null);
+    // Stay on seller form — success toast handled inside SellerForm
   }, []);
-
-  const handleBuy = useCallback((item: ThriftItem) => {
-    if (derived.totalXP < item.price) return;
-    // Deduct XP (gold) — toggle a dummy task to subtract, or use UNLOCK_BADGE
-    // For now mark sold and note the cost
-    setItems(prev => prev.map(i => i.id === item.id ? { ...i, isSold: true } : i));
-    // Show purchase toast (future: integrate with bag)
-    alert(`✅ 已收購「${item.name}」！\n花費 €${item.price}（XP 等同金幣）\n記得與賣家聯繫：${item.contact}`);
-  }, [derived.totalXP]);
 
   return (
     <div style={{ height:'100%', display:'flex', flexDirection:'column', overflow:'hidden' }}>
@@ -655,7 +741,7 @@ export function ThriftScreen() {
           <SellerForm onSubmit={handleSell} onBack={() => setRole(null)} />
         )}
         {role === 'buyer' && (
-          <BuyerView items={items} gold={gold} onBuy={handleBuy} onBack={() => setRole(null)} />
+          <BuyerView items={items} onBack={() => setRole(null)} />
         )}
       </div>
     </div>
