@@ -1,15 +1,13 @@
 import { initializeApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
 
-// ─── 填入你的 Firebase 專案設定 ───────────────────────────────────────────────
-// 到 Firebase Console → 專案設定 → 你的應用程式 → 複製 firebaseConfig
 const firebaseConfig = {
-  apiKey:            "YOUR_API_KEY",
-  authDomain:        "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId:         "YOUR_PROJECT_ID",
-  storageBucket:     "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId:             "YOUR_APP_ID",
+  apiKey:            "AIzaSyAq_uxtaITFGxkmIlG7vlIZ6m8R701Azck",
+  authDomain:        "whinie-market.firebaseapp.com",
+  projectId:         "whinie-market",
+  storageBucket:     "whinie-market.firebasestorage.app",
+  messagingSenderId: "17248177025",
+  appId:             "1:17248177025:web:a8c9f9fde83e84312e7680",
 };
 
 const app = initializeApp(firebaseConfig);
