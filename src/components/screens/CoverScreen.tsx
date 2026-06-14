@@ -89,7 +89,7 @@ function CoverMap() {
       style={{ width: '100%', height: '100%' }}
     >
       <Geographies geography={GEO_URL}>
-        {({ geographies }) => geographies.map(geo => (
+        {({ geographies }: { geographies: any[] }) => geographies.map((geo: any) => (
           <Geography key={geo.rsmKey} geography={geo}
             fill="rgba(201,169,110,0.28)"
             stroke="rgba(60,28,8,0.4)"
