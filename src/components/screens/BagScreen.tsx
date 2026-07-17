@@ -199,7 +199,7 @@ function BackpackSVG({ fills }: { fills: Record<string, number> }) {
 
 // ─── Section Card ─────────────────────────────────────────────────────────────
 function SectionCard({
-  cat, gender, checked, onToggle, customItems, onAddCustom,
+  cat, gender, checked, onToggle, customItems, onAddCustom, defaultOpen,
 }: {
   cat:         GearCategory;
   gender:      string;
@@ -207,7 +207,9 @@ function SectionCard({
   onToggle:    (id: string) => void;
   customItems: CustomItem[];
   onAddCustom: (label: string, catId: string) => void;
+  defaultOpen?: boolean;
 }) {
+  const [open,    setOpen]    = useState(defaultOpen ?? false);
   const [addOpen, setAddOpen] = useState(false);
   const [inputV,  setInputV]  = useState('');
 
@@ -233,12 +235,13 @@ function SectionCard({
       background: C.bg,
       transition: 'all 0.3s',
     }}>
-      {/* Section header */}
-      <div style={{
+      {/* Section header — click to expand/collapse */}
+      <div onClick={() => setOpen(o => !o)} style={{
         background: allDone ? cat.color : C.black,
         color: allDone ? C.black : '#fff',
         padding: '9px 12px',
         display: 'flex', alignItems: 'center', gap: 8,
+        cursor: 'pointer', userSelect: 'none',
       }}>
         <span style={{ fontSize: 16 }}>{cat.icon}</span>
         <span style={{ fontWeight: 900, fontSize: 13, ...ZH }}>{cat.label}</span>
@@ -250,9 +253,18 @@ function SectionCard({
             border: `1.5px solid ${C.black}`,
             fontSize: 9, fontWeight: 900, ...EN,
           }}>{doneCount}/{total}</div>
+          <span style={{ fontSize: 12, opacity: 0.7 }}>{open ? '▲' : '▼'}</span>
         </div>
       </div>
 
+      {/* Collapsed mini progress bar */}
+      {!open && (
+        <div style={{ height: 3, background: '#ddd' }}>
+          <div style={{ height:'100%', width:`${pct*100}%`, background:cat.color, transition:'width 0.4s' }}/>
+        </div>
+      )}
+
+      {open && <>
       {/* Progress bar */}
       <div style={{ height: 4, background: '#ddd' }}>
         <div style={{
@@ -384,6 +396,7 @@ function SectionCard({
           </button>
         )}
       </div>
+      </>}
     </div>
   );
 }
@@ -456,7 +469,7 @@ export function BagScreen() {
 
       {/* ── Scrollable gear sections ── */}
       <div style={{ flex:1, overflowY:'auto', padding:12, display:'flex', flexDirection:'column', gap:12, paddingBottom:80 }}>
-        {GEAR.map(cat => (
+        {GEAR.map((cat, i) => (
           <SectionCard
             key={cat.id}
             cat={cat}
@@ -465,6 +478,7 @@ export function BagScreen() {
             onToggle={toggleItem}
             customItems={customItems}
             onAddCustom={addCustom}
+            defaultOpen={i === 0}
           />
         ))}
       </div>
