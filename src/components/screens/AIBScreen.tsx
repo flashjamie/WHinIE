@@ -31,22 +31,39 @@ function fmt(d: string) {
 }
 
 // ─── Exchange Rate Hook ───────────────────────────────────────────────────────
+interface RateInfo {
+  value:  number;
+  change: number; // vs yesterday
+}
+
 function useExchangeRate() {
-  const [rate, setRate] = useState(36.67);
+  const [twd,  setTwd]  = useState<RateInfo>({ value: 36.67, change: 0 });
+  const [usd,  setUsd]  = useState<RateInfo>({ value: 1.073, change: 0 });
   const [live, setLive] = useState(false);
   const [date, setDate] = useState('');
 
   useEffect(() => {
-    // Placeholder for real API fetch
-    // fetch('https://api.exchangerate.host/latest?base=EUR&symbols=TWD')
-    //   .then(r => r.json()).then(d => { setRate(d.rates.TWD); setLive(true); })
-    //   .catch(() => {});
-    setRate(36.67);
-    setLive(false);
-    setDate(new Date().toLocaleDateString('zh-TW', { month:'numeric', day:'numeric' }));
+    const today = new Date().toISOString().slice(0, 10);
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+
+    Promise.all([
+      fetch(`https://api.frankfurter.app/latest?from=EUR&to=TWD,USD`).then(r => r.json()),
+      fetch(`https://api.frankfurter.app/${yesterday}?from=EUR&to=TWD,USD`).then(r => r.json()),
+    ]).then(([latest, prev]) => {
+      const twdVal  = latest.rates.TWD;
+      const usdVal  = latest.rates.USD;
+      const twdPrev = prev.rates.TWD;
+      const usdPrev = prev.rates.USD;
+      setTwd({ value: twdVal, change: +(twdVal - twdPrev).toFixed(3) });
+      setUsd({ value: usdVal, change: +(usdVal - usdPrev).toFixed(4) });
+      setLive(true);
+      setDate(new Date(latest.date).toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric' }));
+    }).catch(() => {
+      setDate(new Date().toLocaleDateString('zh-TW', { month: 'numeric', day: 'numeric' }));
+    });
   }, []);
 
-  return { rate, live, date };
+  return { rate: twd.value, twd, usd, live, date };
 }
 
 // ─── Ledger Tab ───────────────────────────────────────────────────────────────
@@ -587,7 +604,7 @@ function ReportTab({ entries, rate }: { entries: Entry[]; rate: number }) {
 
 // ─── AIB Screen Root ──────────────────────────────────────────────────────────
 export function AIBScreen() {
-  const { rate, live, date } = useExchangeRate();
+  const { rate, twd, usd, live, date } = useExchangeRate();
   const { state, dispatch }  = useGame();
   const [tab, setTab]        = useState<'ledger'|'report'>('ledger');
   const entries = state.aibEntries as Entry[];
@@ -633,11 +650,25 @@ export function AIBScreen() {
       <div style={{
         flexShrink:0, background:'#111',
         padding:'3px 12px',
-        display:'flex', gap:12, fontSize:8, color:'#ccc', ...EN,
+        display:'flex', gap:16, fontSize:8, color:'#ccc', ...EN,
       }}>
-        <span>EUR/TWD <span style={{ color:'#4ade80' }}>{rate.toFixed(2)}</span> <span style={{ color:'#4ade80' }}>▲+0.12</span></span>
-        <span>EUR/USD <span style={{ color:'#f87171' }}>1.073</span> <span style={{ color:'#f87171' }}>▼-0.004</span></span>
-        <span>EUR/CNY <span style={{ color:'#4ade80' }}>7.75</span> <span style={{ color:'#4ade80' }}>▲+0.03</span></span>
+        {[
+          { label: 'EUR/TWD', info: twd, decimals: 2 },
+          { label: 'EUR/USD', info: usd, decimals: 3 },
+        ].map(({ label, info, decimals }) => {
+          const up    = info.change >= 0;
+          const color = up ? '#4ade80' : '#f87171';
+          const arrow = up ? '▲' : '▼';
+          const sign  = up ? '+' : '';
+          return (
+            <span key={label}>
+              {label}{' '}
+              <span style={{ color }}>{info.value.toFixed(decimals)}</span>{' '}
+              <span style={{ color }}>{arrow}{sign}{info.change.toFixed(decimals)}</span>
+            </span>
+          );
+        })}
+        {!live && <span style={{ color:'#666' }}>（參考值）</span>}
       </div>
 
       {/* ── Tab Bar ── */}
