@@ -441,11 +441,12 @@ export function BagScreen() {
   const totalPct  = total > 0 ? totalDone / total : 0;
 
   return (
-    <div style={{ height:'100%', display:'flex', flexDirection:'column', overflow:'hidden', background:'#f0ece0' }}>
+    <div style={{ background:'#f0ece0', minHeight:'100%' }}>
 
       {/* ── Header ── */}
       <div style={{
-        flexShrink:0, background:C.black, color:'#fff',
+        position:'sticky', top:0, zIndex:20,
+        background:C.black, color:'#fff',
         padding:'10px 14px',
         display:'flex', alignItems:'center', gap:10,
       }}>
@@ -467,8 +468,8 @@ export function BagScreen() {
         </div>
       </div>
 
-      {/* ── Scrollable gear sections ── */}
-      <div style={{ flex:1, overflowY:'auto', padding:12, display:'flex', flexDirection:'column', gap:12, paddingBottom:80 }}>
+      {/* ── Gear sections ── */}
+      <div style={{ padding:12, display:'flex', flexDirection:'column', gap:12, paddingBottom:100 }}>
         {GEAR.map((cat, i) => (
           <SectionCard
             key={cat.id}
