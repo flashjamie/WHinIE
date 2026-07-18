@@ -764,13 +764,13 @@ function RoleGate({ onSelect }: { onSelect: (role: 'buyer' | 'seller') => void }
         <div style={{
           fontSize:10, color:'#888', marginTop:2, ...ZH,
           letterSpacing:'0.06em',
-        }}>離愛二手出清市集</div>
+        }}>離愛出清</div>
         <div style={{
           marginTop:6, padding:'3px 12px',
           border:'2px solid #000', fontSize:9, ...ZH,
           background:'#f5f0e6',
         }}>
-          前輩出清 × 後輩採購 · 台灣打工人互助平台
+          台灣打工人互助平台
         </div>
       </div>
 
@@ -893,7 +893,7 @@ export function ThriftScreen() {
         <span style={{ fontSize:18 }}>♻️</span>
         <div>
           <div style={{ fontSize:12, fontWeight:900, ...ZH }}>Thrift Shop</div>
-          <div style={{ fontSize:8, color:'#C9A96E', ...ZH }}>離愛二手出清市集</div>
+          <div style={{ fontSize:8, color:'#C9A96E', ...ZH }}>離愛出清市集</div>
         </div>
         <div style={{ marginLeft:'auto', display:'flex', gap:6, alignItems:'center' }}>
           <button onClick={() => navigate('AIB')} style={{
