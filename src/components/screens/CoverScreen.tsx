@@ -85,7 +85,7 @@ function CoverMap() {
   return (
     <ComposableMap
       projection="geoEquirectangular"
-      projectionConfig={{ scale: 340, center: [65, 35] }}
+      projectionConfig={{ scale: 300, center: [55, 35] }}
       style={{ width: '100%', height: '100%' }}
     >
       <Geographies geography={GEO_URL}>
@@ -100,13 +100,13 @@ function CoverMap() {
       </Geographies>
       <FlightArc />
       <Marker coordinates={TW}>
-        <circle r={4} fill="#C9A96E" stroke="rgba(255,255,255,0.5)" strokeWidth={1} />
-        <text y={13} textAnchor="middle" fontSize={6} fontWeight="bold" fill="rgba(201,169,110,0.9)">台灣</text>
+        <circle r={3} fill="#C9A96E" stroke="rgba(255,255,255,0.5)" strokeWidth={1} />
+        <text y={13} textAnchor="middle" fontSize={12} fontWeight="bold" fill="rgba(201,169,110,0.9)">TWN</text>
       </Marker>
       {/* @ts-ignore react-simple-maps Marker children type */}
       <Marker coordinates={IE}>
-        <circle r={4} fill="#C9A96E" stroke="rgba(255,255,255,0.5)" strokeWidth={1} />
-        <text y={13} textAnchor="middle" fontSize={6} fontWeight="bold" fill="rgba(201,169,110,0.9)">愛爾蘭</text>
+        <circle r={3} fill="#C9A96E" stroke="rgba(255,255,255,0.5)" strokeWidth={1} />
+        <text y={13} textAnchor="middle" fontSize={12} fontWeight="bold" fill="rgba(201,169,110,0.9)">IE</text>
       </Marker>
     </ComposableMap>
   );
