@@ -11,15 +11,19 @@ type Category = typeof CATEGORIES[number];
 
 const CAT_ICON: Record<Category, string> = {
   房租:'🏠', 餐飲:'🍽️', 交通:'🚌', 通訊:'📱',
-  醫療:'💊', 娛樂:'🎮', 薪資:'💰', 其他:'📦',超市:'🛒'
+  醫療:'💊', 娛樂:'🎮', 薪資:'💰', 其他:'📦', 超市:'🛒'
+};
+
+const CAT_COLOR: Record<Category, string> = {
+  房租:'#7DC14B', 餐飲:'#F97316', 交通:'#3B82F6', 通訊:'#9CA3AF',
+  醫療:'#EF4444', 娛樂:'#A855F7', 薪資:'#FFD700', 其他:'#6B7280', 超市:'#10B981'
 };
 
 type Entry = AibEntry;
 
-// week start (Mon) for a date
 function weekStart(dateStr: string): string {
   const d = new Date(dateStr);
-  const day = d.getDay(); // 0=Sun
+  const day = d.getDay();
   const diff = day === 0 ? -6 : 1 - day;
   d.setDate(d.getDate() + diff);
   return d.toISOString().slice(0, 10);
@@ -31,10 +35,7 @@ function fmt(d: string) {
 }
 
 // ─── Exchange Rate Hook ───────────────────────────────────────────────────────
-interface RateInfo {
-  value:  number;
-  change: number; // vs yesterday
-}
+interface RateInfo { value: number; change: number; }
 
 function useExchangeRate() {
   const [twd,  setTwd]  = useState<RateInfo>({ value: 36.67, change: 0 });
@@ -43,17 +44,13 @@ function useExchangeRate() {
   const [date, setDate] = useState('');
 
   useEffect(() => {
-    const today = new Date().toISOString().slice(0, 10);
     const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
-
     Promise.all([
       fetch(`https://api.frankfurter.app/latest?from=EUR&to=TWD,USD`).then(r => r.json()),
       fetch(`https://api.frankfurter.app/${yesterday}?from=EUR&to=TWD,USD`).then(r => r.json()),
     ]).then(([latest, prev]) => {
-      const twdVal  = latest.rates.TWD;
-      const usdVal  = latest.rates.USD;
-      const twdPrev = prev.rates.TWD;
-      const usdPrev = prev.rates.USD;
+      const twdVal = latest.rates.TWD, usdVal = latest.rates.USD;
+      const twdPrev = prev.rates.TWD,  usdPrev = prev.rates.USD;
       setTwd({ value: twdVal, change: +(twdVal - twdPrev).toFixed(3) });
       setUsd({ value: usdVal, change: +(usdVal - usdPrev).toFixed(4) });
       setLive(true);
@@ -66,6 +63,159 @@ function useExchangeRate() {
   return { rate: twd.value, twd, usd, live, date };
 }
 
+// ─── Donut Chart ──────────────────────────────────────────────────────────────
+function polarToCartesian(cx: number, cy: number, r: number, angleDeg: number) {
+  const rad = (angleDeg - 90) * (Math.PI / 180);
+  return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+}
+
+function makeArcPath(cx: number, cy: number, outerR: number, innerR: number, startAngle: number, endAngle: number) {
+  const safeEnd  = endAngle - startAngle >= 360 ? startAngle + 359.99 : endAngle;
+  const o1 = polarToCartesian(cx, cy, outerR, startAngle);
+  const o2 = polarToCartesian(cx, cy, outerR, safeEnd);
+  const i1 = polarToCartesian(cx, cy, innerR, safeEnd);
+  const i2 = polarToCartesian(cx, cy, innerR, startAngle);
+  const lg = safeEnd - startAngle > 180 ? 1 : 0;
+  return [
+    `M ${o1.x.toFixed(2)} ${o1.y.toFixed(2)}`,
+    `A ${outerR} ${outerR} 0 ${lg} 1 ${o2.x.toFixed(2)} ${o2.y.toFixed(2)}`,
+    `L ${i1.x.toFixed(2)} ${i1.y.toFixed(2)}`,
+    `A ${innerR} ${innerR} 0 ${lg} 0 ${i2.x.toFixed(2)} ${i2.y.toFixed(2)}`,
+    'Z',
+  ].join(' ');
+}
+
+interface DonutSlice { cat: Category; amount: number; pct: number; }
+
+function DonutChart({
+  slices, total, centerLabel, netLabel, netPositive,
+}: {
+  slices: DonutSlice[];
+  total: number;
+  centerLabel: string;
+  netLabel: string;
+  netPositive: boolean;
+}) {
+  const cx = 95, cy = 95, outerR = 72, innerR = 46;
+
+  let cumAngle = 0;
+  const arcs = slices.map(s => {
+    const sweep = (s.pct / 100) * 360;
+    const start = cumAngle;
+    cumAngle += sweep;
+    const midAngle = start + sweep / 2;
+    return { ...s, start, end: cumAngle, midAngle };
+  });
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '8px 0' }}>
+      {/* SVG donut */}
+      <svg viewBox="0 0 190 190" width={190} height={190} style={{ overflow: 'visible' }}>
+        {arcs.length === 0 && (
+          <circle cx={cx} cy={cy} r={outerR} fill="#e8e4da" />
+        )}
+        {arcs.map(a => (
+          <path
+            key={a.cat}
+            d={makeArcPath(cx, cy, outerR, innerR, a.start, a.end)}
+            fill={CAT_COLOR[a.cat]}
+            stroke="#fff"
+            strokeWidth={1.5}
+          />
+        ))}
+
+        {/* Percentage labels outside the chart */}
+        {arcs.filter(a => a.pct >= 5).map(a => {
+          const labelR = outerR + 20;
+          const pos = polarToCartesian(cx, cy, labelR, a.midAngle);
+          return (
+            <text
+              key={`lbl-${a.cat}`}
+              x={pos.x.toFixed(1)}
+              y={pos.y.toFixed(1)}
+              textAnchor="middle"
+              dominantBaseline="middle"
+              fontSize={8}
+              fontWeight={700}
+              fill={CAT_COLOR[a.cat]}
+            >
+              {a.pct}%
+            </text>
+          );
+        })}
+
+        {/* Center text */}
+        <text x={cx} y={cy - 12} textAnchor="middle" fontSize={9} fill="#888" fontFamily="sans-serif">
+          {centerLabel}
+        </text>
+        <text x={cx} y={cy + 6} textAnchor="middle" fontSize={16} fontWeight={900} fill="#222" fontFamily="sans-serif">
+          €{total.toFixed(2)}
+        </text>
+
+        {/* Donut hole border */}
+        <circle cx={cx} cy={cy} r={innerR} fill="none" stroke="#fff" strokeWidth={2} />
+      </svg>
+
+      {/* Net label */}
+      <div style={{
+        fontSize: 10, fontWeight: 700, marginTop: -4,
+        color: netPositive ? '#00A651' : '#E74C3C', ...EN,
+      }}>
+        損益 {netLabel}
+      </div>
+    </div>
+  );
+}
+
+// ─── Category breakdown list (below chart) ────────────────────────────────────
+function CatBreakdownList({ slices, total }: { slices: DonutSlice[]; total: number }) {
+  if (slices.length === 0) return (
+    <div style={{ textAlign: 'center', color: '#aaa', fontSize: 10, padding: '12px 0', ...ZH }}>
+      此期間無資料
+    </div>
+  );
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column' }}>
+      {[...slices].sort((a, b) => b.amount - a.amount).map(s => (
+        <div key={s.cat} style={{
+          display: 'flex', alignItems: 'center', gap: 8,
+          padding: '7px 12px', borderTop: '1px solid #e8e4da',
+        }}>
+          {/* Color dot + icon */}
+          <div style={{
+            width: 28, height: 28, borderRadius: '50%',
+            background: CAT_COLOR[s.cat],
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 13, flexShrink: 0,
+          }}>{CAT_ICON[s.cat]}</div>
+
+          <span style={{ flex: 1, fontSize: 12, fontWeight: 600, ...ZH }}>{s.cat}</span>
+
+          {/* Bar */}
+          <div style={{
+            width: 70, height: 6,
+            background: '#e8e4da', borderRadius: 3, overflow: 'hidden', flexShrink: 0,
+          }}>
+            <div style={{
+              height: '100%', width: `${s.pct}%`,
+              background: CAT_COLOR[s.cat], borderRadius: 3,
+              transition: 'width 0.4s',
+            }} />
+          </div>
+
+          <span style={{ fontSize: 10, color: '#888', width: 28, textAlign: 'right', flexShrink: 0, ...EN }}>
+            {s.pct}%
+          </span>
+          <span style={{ fontSize: 12, fontWeight: 700, color: '#333', flexShrink: 0, ...EN }}>
+            €{s.amount.toFixed(2)}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ─── Ledger Tab ───────────────────────────────────────────────────────────────
 function LedgerTab({
   entries, onAdd, onDelete, rate,
@@ -75,11 +225,11 @@ function LedgerTab({
   onDelete: (id: string) => void;
   rate:     number;
 }) {
-  const [formType, setFormType]   = useState<EntryType>('expense');
-  const [formEur,  setFormEur]    = useState('');
-  const [formCat,  setFormCat]    = useState<Category>('餐飲');
-  const [formDesc, setFormDesc]   = useState('');
-  const [formDate, setFormDate]   = useState(() => new Date().toISOString().slice(0,10));
+  const [formType, setFormType] = useState<EntryType>('expense');
+  const [formEur,  setFormEur]  = useState('');
+  const [formCat,  setFormCat]  = useState<Category>('餐飲');
+  const [formDesc, setFormDesc] = useState('');
+  const [formDate, setFormDate] = useState(() => new Date().toISOString().slice(0,10));
 
   const submit = () => {
     const n = parseFloat(formEur);
@@ -93,15 +243,11 @@ function LedgerTab({
 
   return (
     <div style={{ display:'flex', flexDirection:'column' }}>
-
-      {/* ── Add Form ── */}
+      {/* Add Form */}
       <div style={{
-        padding: '8px 12px',
-        borderBottom: '3px solid #000',
-        background: '#f5f0e6',
-        display: 'flex', flexDirection: 'column', gap: 6,
+        padding: '8px 12px', borderBottom: '3px solid #000',
+        background: '#f5f0e6', display: 'flex', flexDirection: 'column', gap: 6,
       }}>
-        {/* Type toggle + amount */}
         <div style={{ display:'flex', gap:6 }}>
           <button onClick={() => setFormType('income')} style={{
             padding:'5px 12px', border:'2.5px solid #000',
@@ -119,51 +265,32 @@ function LedgerTab({
             color: formType==='expense' ? '#fff' : '#000',
             fontWeight:900, fontSize:11, cursor:'pointer', ...ZH,
           }}>－ 支出</button>
-
           <input type="number" step="0.01" min="0"
             value={formEur} onChange={e => setFormEur(e.target.value)}
             placeholder="€ 金額"
-            style={{
-              width:90, padding:'5px 8px', border:'2.5px solid #000',
-              background:'#fff', fontSize:12, outline:'none', ...EN,
-            }}
+            style={{ width:90, padding:'5px 8px', border:'2.5px solid #000', background:'#fff', fontSize:12, outline:'none', ...EN }}
           />
-
-          {/* Category select */}
           <select value={formCat} onChange={e => setFormCat(e.target.value as Category)}
-            style={{
-              flex:1, padding:'5px 6px', border:'2.5px solid #000',
-              background:'#fff', fontSize:11, outline:'none', ...ZH,
-            }}>
+            style={{ flex:1, padding:'5px 6px', border:'2.5px solid #000', background:'#fff', fontSize:11, outline:'none', ...ZH }}>
             {CATEGORIES.map(c => <option key={c} value={c}>{CAT_ICON[c]} {c}</option>)}
           </select>
         </div>
-
-        {/* Desc + date + submit */}
         <div style={{ display:'flex', gap:6 }}>
           <input type="text"
             value={formDesc} onChange={e => setFormDesc(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && submit()}
             placeholder="說明（選填）"
-            style={{
-              flex:1, padding:'5px 8px', border:'2.5px solid #000',
-              background:'#fff', fontSize:11, outline:'none', ...ZH,
-            }}
+            style={{ flex:1, padding:'5px 8px', border:'2.5px solid #000', background:'#fff', fontSize:11, outline:'none', ...ZH }}
           />
           <input type="date"
             value={formDate} onChange={e => setFormDate(e.target.value)}
-            style={{
-              padding:'5px 7px', border:'2.5px solid #000',
-              background:'#fff', fontSize:11, outline:'none', ...EN,
-            }}
+            style={{ padding:'5px 7px', border:'2.5px solid #000', background:'#fff', fontSize:11, outline:'none', ...EN }}
           />
           <button onClick={submit} style={{
             padding:'5px 14px', border:'2.5px solid #000', boxShadow:'3px 3px 0 #000',
             background:'#FFD700', fontWeight:900, fontSize:11, cursor:'pointer', ...ZH,
           }}>記帳 ＋</button>
         </div>
-
-        {/* NTD preview */}
         {formEur && parseFloat(formEur) > 0 && (
           <div style={{ fontSize:9, color:'#7A5C2E', ...ZH }}>
             ≈ NT$ {Math.round(parseFloat(formEur) * rate).toLocaleString()}
@@ -171,7 +298,7 @@ function LedgerTab({
         )}
       </div>
 
-      {/* ── Entry list ── */}
+      {/* Entry list */}
       <div style={{ padding:'6px 12px', display:'flex', flexDirection:'column', gap:5 }}>
         {[...entries].sort((a,b) => b.date.localeCompare(a.date)).map(e => (
           <div key={e.id} style={{
@@ -189,8 +316,7 @@ function LedgerTab({
             </div>
             <div style={{
               fontSize:14, fontWeight:900, flexShrink:0,
-              color: e.type==='income' ? '#00A651' : '#E74C3C',
-              ...EN,
+              color: e.type==='income' ? '#00A651' : '#E74C3C', ...EN,
             }}>
               {e.type==='income' ? '+' : '-'}€{e.eur}
             </div>
@@ -204,10 +330,9 @@ function LedgerTab({
         ))}
       </div>
 
-      {/* ── Footer totals ── */}
+      {/* Footer */}
       <div style={{
-        borderTop:'3px solid #000',
-        background:'#1a1a1a', color:'#fff',
+        borderTop:'3px solid #000', background:'#1a1a1a', color:'#fff',
         padding:'6px 14px', display:'flex', gap:16, alignItems:'center',
         fontSize:11, fontWeight:700,
       }}>
@@ -223,14 +348,13 @@ function LedgerTab({
 
 // ─── Report Tab ───────────────────────────────────────────────────────────────
 function ReportTab({ entries, rate }: { entries: Entry[]; rate: number }) {
-  const [search,      setSearch]      = useState('');
-  const [typeFilter,  setTypeFilter]  = useState<'all'|'income'|'expense'>('all');
-  const [catFilter,   setCatFilter]   = useState<Set<Category>>(new Set());
-  const [chartMode,   setChartMode]   = useState<'week'|'month'>('week');
-  // selectedMonth: 'YYYY-MM' for week mode navigation
+  const [search,       setSearch]       = useState('');
+  const [typeFilter,   setTypeFilter]   = useState<'all'|'income'|'expense'>('all');
+  const [catFilter,    setCatFilter]    = useState<Set<Category>>(new Set());
+  const [chartMode,    setChartMode]    = useState<'week'|'month'>('week');
+  const [chartViewType, setChartViewType] = useState<'expense'|'income'>('expense');
   const [selectedMonth, setSelectedMonth] = useState<string>(() => new Date().toISOString().slice(0,7));
-  // selectedMonthOffset for month mode (0 = current 6 months, -6 = prev 6 months...)
-  const [monthOffset, setMonthOffset] = useState(0);
+  const [monthOffset,   setMonthOffset]   = useState(0);
 
   const toggleCat = useCallback((c: Category) => {
     setCatFilter(prev => {
@@ -243,7 +367,7 @@ function ReportTab({ entries, rate }: { entries: Entry[]; rate: number }) {
   const clearFilters = () => { setSearch(''); setTypeFilter('all'); setCatFilter(new Set()); };
   const hasFilter = search || typeFilter !== 'all' || catFilter.size > 0;
 
-  // Filtered entries
+  // Filtered entries (for detail list)
   const filtered = useMemo(() => entries.filter(e => {
     if (typeFilter === 'income'  && e.type !== 'income')  return false;
     if (typeFilter === 'expense' && e.type !== 'expense') return false;
@@ -253,38 +377,42 @@ function ReportTab({ entries, rate }: { entries: Entry[]; rate: number }) {
     return true;
   }), [entries, typeFilter, catFilter, search]);
 
-  // ── Chart data: week mode (weeks within selectedMonth) ──
-  const weekChartData = useMemo(() => {
-    const map: Record<string, { exp: number; inc: number }> = {};
-    entries.forEach(e => {
-      if (e.date.slice(0,7) !== selectedMonth) return;
-      const ws = weekStart(e.date);
-      if (!map[ws]) map[ws] = { exp:0, inc:0 };
-      if (e.type === 'expense') map[ws].exp += e.eur;
-      else                       map[ws].inc += e.eur;
-    });
-    return Object.entries(map).sort(([a],[b]) => a.localeCompare(b));
-  }, [entries, selectedMonth]);
-
-  // ── Chart data: month mode (6 months window) ──
-  const monthChartData = useMemo(() => {
+  // Chart period entries
+  const chartPeriodEntries = useMemo(() => {
+    if (chartMode === 'week') {
+      return entries.filter(e => e.date.slice(0,7) === selectedMonth);
+    }
     const now = new Date();
     const months: string[] = [];
     for (let i = 5; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() + monthOffset - i, 1);
       months.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
     }
-    return months.map(m => {
-      const exp = entries.filter(e => e.type==='expense' && e.date.slice(0,7)===m).reduce((s,e)=>s+e.eur,0);
-      const inc = entries.filter(e => e.type==='income'  && e.date.slice(0,7)===m).reduce((s,e)=>s+e.eur,0);
-      return { month: m, label: m.slice(5), exp, inc };
+    return entries.filter(e => months.includes(e.date.slice(0,7)));
+  }, [entries, chartMode, selectedMonth, monthOffset]);
+
+  // Donut slices from chart period
+  const donutSlices = useMemo((): DonutSlice[] => {
+    const periodEntries = chartPeriodEntries.filter(e => e.type === chartViewType);
+    const catMap: Partial<Record<Category, number>> = {};
+    periodEntries.forEach(e => {
+      const c = e.category as Category;
+      catMap[c] = (catMap[c] || 0) + e.eur;
     });
-  }, [entries, monthOffset]);
+    const total = Object.values(catMap).reduce((s, v) => s + (v || 0), 0);
+    if (total === 0) return [];
+    return (Object.entries(catMap) as [Category, number][])
+      .map(([cat, amount]) => ({ cat, amount, pct: Math.round((amount / total) * 100) }))
+      .filter(s => s.pct > 0);
+  }, [chartPeriodEntries, chartViewType]);
 
-  const maxWeek  = Math.max(...weekChartData.map(([,v])=>Math.max(v.exp,v.inc)), 1);
-  const maxMonth = Math.max(...monthChartData.map(r=>Math.max(r.exp,r.inc)), 1);
+  const chartTotal    = donutSlices.reduce((s, d) => s + d.amount, 0);
+  const chartIncome   = chartPeriodEntries.filter(e => e.type === 'income').reduce((s,e)=>s+e.eur, 0);
+  const chartExpense  = chartPeriodEntries.filter(e => e.type === 'expense').reduce((s,e)=>s+e.eur, 0);
+  const netAmount     = chartIncome - chartExpense;
+  const netLabel      = `${netAmount >= 0 ? '+' : ''}€${netAmount.toFixed(2)}`;
 
-  // Month nav helpers
+  // Month nav
   const prevMonth = () => {
     const [y,m] = selectedMonth.split('-').map(Number);
     const d = new Date(y, m-2, 1);
@@ -300,17 +428,26 @@ function ReportTab({ entries, rate }: { entries: Entry[]; rate: number }) {
     return `${y}年${parseInt(m)}月`;
   };
 
+  // 6-month window labels
+  const monthWindowLabels = useMemo(() => {
+    const now = new Date();
+    const arr: string[] = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() + monthOffset - i, 1);
+      arr.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
+    }
+    return arr;
+  }, [monthOffset]);
+
   // Survival runway
   const last7 = useMemo(() => {
     const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 7);
-    return entries
-      .filter(e => e.type==='expense' && new Date(e.date) >= cutoff)
-      .reduce((s,e) => s+e.eur, 0);
+    return entries.filter(e => e.type==='expense' && new Date(e.date) >= cutoff).reduce((s,e) => s+e.eur, 0);
   }, [entries]);
-  const avgDaily  = last7 / 7;
-  const gold      = 900;
-  const runway    = avgDaily > 0 ? Math.floor(gold / avgDaily) : 999;
-  const runwayPct = Math.min(100, (runway / 180) * 100);
+  const avgDaily    = last7 / 7;
+  const gold        = 900;
+  const runway      = avgDaily > 0 ? Math.floor(gold / avgDaily) : 999;
+  const runwayPct   = Math.min(100, (runway / 180) * 100);
   const runwayColor = runway >= 60 ? '#00A651' : runway >= 30 ? '#F59E0B' : '#E74C3C';
 
   const totalFiltered    = filtered.reduce((s,e) => s + (e.type==='income'?e.eur:-e.eur), 0);
@@ -320,7 +457,7 @@ function ReportTab({ entries, rate }: { entries: Entry[]; rate: number }) {
   return (
     <div style={{ display:'flex', flexDirection:'column' }}>
 
-      {/* ── Survival runway ── */}
+      {/* Survival runway */}
       <div style={{
         margin:'8px 12px 0',
         border:'3px solid #000', boxShadow:'4px 4px 0 #000',
@@ -332,238 +469,175 @@ function ReportTab({ entries, rate }: { entries: Entry[]; rate: number }) {
         </div>
         <div style={{ display:'flex', alignItems:'baseline', gap:8, margin:'4px 0' }}>
           <span style={{ fontSize:10, ...ZH }}>
-            {runway >= 999 ? '✅ 尚無支出紀錄' : `✅ 依目前燃燒率，現有資金約可再撐`}
+            {runway >= 999 ? '✅ 尚無支出紀錄' : '✅ 依目前燃燒率，現有資金約可再撐'}
           </span>
           {runway < 999 && (
-            <span style={{ fontSize:28, fontWeight:900, color:runwayColor, ...EN, lineHeight:1 }}>
-              {runway}
-            </span>
+            <span style={{ fontSize:28, fontWeight:900, color:runwayColor, ...EN, lineHeight:1 }}>{runway}</span>
           )}
           {runway < 999 && <span style={{ fontSize:13, fontWeight:700, ...ZH }}>天</span>}
         </div>
-        {/* Progress bar */}
-        <div style={{
-          height:14, background:'#e8e4da',
-          border:'2.5px solid #000', overflow:'hidden',
-        }}>
+        <div style={{ height:14, background:'#e8e4da', border:'2.5px solid #000', overflow:'hidden' }}>
           <div style={{
-            height:'100%', width:`${runwayPct}%`,
-            background: runwayColor,
+            height:'100%', width:`${runwayPct}%`, background:runwayColor,
             borderRight: runwayPct < 100 ? '2px solid #000' : 'none',
             transition:'width 0.5s ease',
           }}/>
         </div>
-        <div style={{ fontSize:8, color:'#666', marginTop:3, ...ZH }}>
-          現有 {gold} 金幣 · 期望目標 180 天
+        <div style={{ fontSize:8, color:'#666', marginTop:3, ...ZH }}>現有 {gold} 金幣 · 期望目標 180 天</div>
+      </div>
+
+      {/* ── Donut Chart Block ── */}
+      <div style={{ margin:'8px 12px 0', border:'2.5px solid #000', boxShadow:'3px 3px 0 #000', overflow:'hidden' }}>
+
+        {/* Chart header */}
+        <div style={{
+          background:'#000', color:'#FFD700',
+          padding:'6px 10px', display:'flex', alignItems:'center', gap:6,
+        }}>
+          {/* 支出 / 收入 toggle */}
+          <div style={{ display:'flex', gap:4 }}>
+            {(['expense','income'] as const).map(t => (
+              <button key={t} onClick={() => setChartViewType(t)} style={{
+                padding:'3px 10px', border:'1.5px solid #FFD700',
+                background: chartViewType===t ? '#FFD700' : 'transparent',
+                color: chartViewType===t ? '#000' : '#FFD700',
+                fontSize:9, fontWeight:900, cursor:'pointer', ...ZH,
+              }}>
+                {t==='expense' ? '支出' : '收入'}{chartViewType===t ? ' ▼' : ''}
+              </button>
+            ))}
+          </div>
+
+          <span style={{ marginLeft:'auto', fontSize:9, ...EN, color: netAmount>=0 ? '#4ade80' : '#f87171' }}>
+            損益 {netLabel}
+          </span>
+
+          {/* Week / Month mode */}
+          <div style={{ display:'flex', gap:4 }}>
+            {(['week','month'] as const).map(m => (
+              <button key={m} onClick={() => setChartMode(m)} style={{
+                padding:'2px 8px', border:'1.5px solid #555',
+                background: chartMode===m ? '#444' : 'transparent',
+                color: chartMode===m ? '#FFD700' : '#888',
+                fontSize:8, fontWeight:900, cursor:'pointer', ...ZH,
+              }}>{m==='week' ? '本月' : '近 6 月'}</button>
+            ))}
+          </div>
+        </div>
+
+        {/* Period nav */}
+        {chartMode === 'week' ? (
+          <div style={{
+            display:'flex', alignItems:'center', justifyContent:'space-between',
+            padding:'4px 10px', borderBottom:'1.5px solid #e8e4da', background:'#f5f0e6',
+          }}>
+            <button onClick={prevMonth} style={{ padding:'2px 10px', border:'2px solid #000', background:'#fff', cursor:'pointer', fontSize:12, fontWeight:900 }}>‹</button>
+            <span style={{ fontSize:10, fontWeight:700, ...ZH }}>{monthLabel(selectedMonth)}</span>
+            <button onClick={nextMonth} style={{ padding:'2px 10px', border:'2px solid #000', background:'#fff', cursor:'pointer', fontSize:12, fontWeight:900 }}>›</button>
+          </div>
+        ) : (
+          <div style={{
+            display:'flex', alignItems:'center', justifyContent:'space-between',
+            padding:'4px 10px', borderBottom:'1.5px solid #e8e4da', background:'#f5f0e6',
+          }}>
+            <button onClick={() => setMonthOffset(o => o - 6)} style={{ padding:'2px 10px', border:'2px solid #000', background:'#fff', cursor:'pointer', fontSize:12, fontWeight:900 }}>‹</button>
+            <span style={{ fontSize:9, fontWeight:700, ...ZH }}>
+              {monthWindowLabels[0]?.replace('-','年')}月 ～ {monthWindowLabels[5]?.replace('-','年')}月
+            </span>
+            <button onClick={() => setMonthOffset(o => o + 6)} style={{ padding:'2px 10px', border:'2px solid #000', background:'#fff', cursor:'pointer', fontSize:12, fontWeight:900 }}>›</button>
+          </div>
+        )}
+
+        {/* Donut chart */}
+        <DonutChart
+          slices={donutSlices}
+          total={chartTotal}
+          centerLabel={chartViewType === 'expense' ? '支出' : '收入'}
+          netLabel={netLabel}
+          netPositive={netAmount >= 0}
+        />
+
+        {/* Category breakdown list */}
+        <div style={{ borderTop:'1.5px solid #e8e4da' }}>
+          <div style={{
+            padding:'5px 12px', background:'#f5f0e6', fontSize:9, fontWeight:900, ...ZH,
+            borderBottom:'1.5px solid #e8e4da',
+          }}>分類資訊</div>
+          <CatBreakdownList slices={donutSlices} total={chartTotal} />
         </div>
       </div>
 
       {/* ── Filters ── */}
       <div style={{
-        padding:'8px 12px 6px',
-        borderBottom:'3px solid #000', display:'flex', flexDirection:'column', gap:6,
+        margin:'8px 12px 0',
+        border:'2.5px solid #000', boxShadow:'3px 3px 0 #000', overflow:'hidden',
       }}>
-        {/* Search */}
-        <div style={{ display:'flex', gap:6, alignItems:'center' }}>
-          <div style={{
-            flex:1, display:'flex', alignItems:'center',
-            border:'2.5px solid #000', background:'#fff', padding:'5px 8px', gap:5,
-          }}>
-            <span style={{ fontSize:11 }}>🔍</span>
-            <input
-              value={search} onChange={e => setSearch(e.target.value)}
-              placeholder="搜尋（如：Tesco、房租…）"
-              style={{ flex:1, border:'none', outline:'none', fontSize:10, background:'transparent', ...ZH }}
-            />
-          </div>
-          {/* Type toggles */}
-          {(['all','income','expense'] as const).map(t => (
-            <button key={t} onClick={() => setTypeFilter(t)} style={{
-              padding:'4px 8px', border:'2.5px solid #000',
-              boxShadow: typeFilter===t ? 'none' : '2px 2px 0 #000',
-              transform: typeFilter===t ? 'translate(2px,2px)' : 'none',
-              background: typeFilter===t
-                ? (t==='income' ? '#00A651' : t==='expense' ? '#E74C3C' : '#000')
-                : '#FDFBF7',
-              color: typeFilter===t ? '#fff' : '#000',
-              fontSize:9, fontWeight:900, cursor:'pointer', ...ZH,
+        <div style={{ background:'#000', color:'#fff', padding:'5px 10px', fontSize:9, fontWeight:900, ...ZH }}>
+          🔍 篩選明細
+        </div>
+        <div style={{ padding:'8px', display:'flex', flexDirection:'column', gap:6 }}>
+          <div style={{ display:'flex', gap:6, alignItems:'center' }}>
+            <div style={{
+              flex:1, display:'flex', alignItems:'center',
+              border:'2.5px solid #000', background:'#fff', padding:'5px 8px', gap:5,
             }}>
-              {t==='all'?'全部':t==='income'?'🌿 收入':'🔥 支出'}
-            </button>
-          ))}
-        </div>
-
-        {/* Category pills */}
-        <div style={{ display:'flex', flexWrap:'wrap', gap:4 }}>
-          {CATEGORIES.map(c => {
-            const on = catFilter.has(c);
-            return (
-              <button key={c} onClick={() => toggleCat(c)} style={{
-                padding:'3px 9px', border:'2px solid #000',
-                boxShadow: on ? 'none' : '2px 2px 0 #000',
-                transform: on ? 'translate(2px,2px)' : 'none',
-                background: on ? '#1a1a1a' : '#FDFBF7',
-                color: on ? '#FFD700' : '#000',
-                fontSize:9, fontWeight:700, cursor:'pointer', borderRadius:100,
-                ...ZH,
-              }}>{c}</button>
-            );
-          })}
-          {hasFilter && (
-            <button onClick={clearFilters} style={{
-              padding:'3px 9px', border:'2px dashed #E74C3C',
-              background:'#fff', color:'#E74C3C',
-              fontSize:9, fontWeight:700, cursor:'pointer', borderRadius:100, ...ZH,
-            }}>× 清除</button>
-          )}
-        </div>
-      </div>
-
-      {/* ── Charts + list ── */}
-      <div style={{ padding:'8px 12px', display:'flex', flexDirection:'column', gap:8 }}>
-
-        {/* Chart block */}
-        <div style={{ border:'2.5px solid #000', boxShadow:'3px 3px 0 #000', overflow:'hidden' }}>
-          {/* Chart header */}
-          <div style={{
-            background:'#000', color:'#FFD700',
-            padding:'5px 10px', fontSize:9, fontWeight:900,
-            display:'flex', alignItems:'center', gap:6, ...ZH,
-          }}>
-            <span>📊 累計統計條</span>
-            <div style={{ marginLeft:'auto', display:'flex', gap:4 }}>
-              {(['week','month'] as const).map(m => (
-                <button key={m} onClick={() => setChartMode(m)} style={{
-                  padding:'2px 8px', border:'1.5px solid #FFD700',
-                  background: chartMode===m ? '#FFD700' : 'transparent',
-                  color: chartMode===m ? '#000' : '#FFD700',
-                  fontSize:8, fontWeight:900, cursor:'pointer', ...ZH,
-                }}>{m==='week'?'週視圖':'月視圖'}</button>
-              ))}
+              <span style={{ fontSize:11 }}>🔍</span>
+              <input
+                value={search} onChange={e => setSearch(e.target.value)}
+                placeholder="搜尋（如：Tesco、房租…）"
+                style={{ flex:1, border:'none', outline:'none', fontSize:10, background:'transparent', ...ZH }}
+              />
             </div>
-            <span style={{ color:'#f87171', marginLeft:4 }}>■ 支出</span>
-            <span style={{ color:'#4ade80' }}>■ 收入</span>
+            {(['all','income','expense'] as const).map(t => (
+              <button key={t} onClick={() => setTypeFilter(t)} style={{
+                padding:'4px 8px', border:'2.5px solid #000',
+                boxShadow: typeFilter===t ? 'none' : '2px 2px 0 #000',
+                transform: typeFilter===t ? 'translate(2px,2px)' : 'none',
+                background: typeFilter===t ? (t==='income'?'#00A651':t==='expense'?'#E74C3C':'#000') : '#FDFBF7',
+                color: typeFilter===t ? '#fff' : '#000',
+                fontSize:9, fontWeight:900, cursor:'pointer', ...ZH,
+              }}>
+                {t==='all'?'全部':t==='income'?'🌿 收入':'🔥 支出'}
+              </button>
+            ))}
           </div>
-
-          {/* Week mode: nav by month */}
-          {chartMode === 'week' && (
-            <>
-              <div style={{
-                display:'flex', alignItems:'center', justifyContent:'space-between',
-                padding:'4px 10px', borderBottom:'1.5px solid #ccc', background:'#f5f0e6',
-              }}>
-                <button onClick={prevMonth} style={{
-                  padding:'2px 10px', border:'2px solid #000', background:'#fff',
-                  cursor:'pointer', fontSize:12, fontWeight:900,
-                }}>‹</button>
-                <span style={{ fontSize:10, fontWeight:700, ...ZH }}>{monthLabel(selectedMonth)}</span>
-                <button onClick={nextMonth} style={{
-                  padding:'2px 10px', border:'2px solid #000', background:'#fff',
-                  cursor:'pointer', fontSize:12, fontWeight:900,
-                }}>›</button>
-              </div>
-              <div style={{ padding:'8px 10px', display:'flex', flexDirection:'column', gap:6 }}>
-                {weekChartData.length === 0 && (
-                  <div style={{ textAlign:'center', color:'#aaa', fontSize:9, padding:'8px 0', ...ZH }}>本月無資料</div>
-                )}
-                {weekChartData.map(([ws, { exp, inc }]) => {
-                  const ePct = Math.round((exp / maxWeek) * 100);
-                  const iPct = Math.round((inc / maxWeek) * 100);
-                  return (
-                    <div key={ws} style={{ display:'flex', alignItems:'center', gap:8 }}>
-                      <div style={{ fontSize:9, color:'#555', flexShrink:0, width:36, ...EN }}>{fmt(ws)}</div>
-                      <div style={{ flex:1, display:'flex', flexDirection:'column', gap:2 }}>
-                        {exp > 0 && (
-                          <div style={{ height:10, background:'#e8e4da', border:'2px solid #000', overflow:'hidden' }}>
-                            <div style={{ height:'100%', width:`${ePct}%`, background:'#F97316', transition:'width 0.4s' }}/>
-                          </div>
-                        )}
-                        {inc > 0 && (
-                          <div style={{ height:8, background:'#e8f5ec', border:'1.5px solid #000', overflow:'hidden' }}>
-                            <div style={{ height:'100%', width:`${iPct}%`, background:'#00A651', transition:'width 0.4s' }}/>
-                          </div>
-                        )}
-                      </div>
-                      <div style={{ flexShrink:0, textAlign:'right', minWidth:48 }}>
-                        {exp > 0 && <div style={{ fontSize:10, fontWeight:700, color:'#E74C3C', ...EN }}>€{exp}</div>}
-                        {inc > 0 && <div style={{ fontSize:8, color:'#00A651', ...EN }}>+€{inc}</div>}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </>
-          )}
-
-          {/* Month mode: nav by 6-month window */}
-          {chartMode === 'month' && (
-            <>
-              <div style={{
-                display:'flex', alignItems:'center', justifyContent:'space-between',
-                padding:'4px 10px', borderBottom:'1.5px solid #ccc', background:'#f5f0e6',
-              }}>
-                <button onClick={() => setMonthOffset(o => o - 6)} style={{
-                  padding:'2px 10px', border:'2px solid #000', background:'#fff',
-                  cursor:'pointer', fontSize:12, fontWeight:900,
-                }}>‹</button>
-                <span style={{ fontSize:9, fontWeight:700, ...ZH }}>
-                  {monthChartData[0]?.month.slice(0,7).replace('-','年')}月 ～ {monthChartData[5]?.month.slice(0,7).replace('-','年')}月
-                </span>
-                <button onClick={() => setMonthOffset(o => o + 6)} style={{
-                  padding:'2px 10px', border:'2px solid #000', background:'#fff',
-                  cursor:'pointer', fontSize:12, fontWeight:900,
-                }}>›</button>
-              </div>
-              <div style={{ padding:'8px 10px', display:'flex', flexDirection:'column', gap:6 }}>
-                {monthChartData.every(r => r.exp === 0 && r.inc === 0) && (
-                  <div style={{ textAlign:'center', color:'#aaa', fontSize:9, padding:'8px 0', ...ZH }}>此區間無資料</div>
-                )}
-                {monthChartData.map(({ month, label, exp, inc }) => {
-                  const ePct = Math.round((exp / maxMonth) * 100);
-                  const iPct = Math.round((inc / maxMonth) * 100);
-                  return (
-                    <div key={month} style={{ display:'flex', alignItems:'center', gap:8 }}>
-                      <div style={{ fontSize:9, color:'#555', flexShrink:0, width:36, ...EN }}>{label}</div>
-                      <div style={{ flex:1, display:'flex', flexDirection:'column', gap:2 }}>
-                        {exp > 0 && (
-                          <div style={{ height:10, background:'#e8e4da', border:'2px solid #000', overflow:'hidden' }}>
-                            <div style={{ height:'100%', width:`${ePct}%`, background:'#F97316', transition:'width 0.4s' }}/>
-                          </div>
-                        )}
-                        {inc > 0 && (
-                          <div style={{ height:8, background:'#e8f5ec', border:'1.5px solid #000', overflow:'hidden' }}>
-                            <div style={{ height:'100%', width:`${iPct}%`, background:'#00A651', transition:'width 0.4s' }}/>
-                          </div>
-                        )}
-                      </div>
-                      <div style={{ flexShrink:0, textAlign:'right', minWidth:52 }}>
-                        {exp > 0 && <div style={{ fontSize:10, fontWeight:700, color:'#E74C3C', ...EN }}>€{exp}</div>}
-                        {inc > 0 && <div style={{ fontSize:8, color:'#00A651', ...EN }}>+€{inc}</div>}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </>
-          )}
+          <div style={{ display:'flex', flexWrap:'wrap', gap:4 }}>
+            {CATEGORIES.map(c => {
+              const on = catFilter.has(c);
+              return (
+                <button key={c} onClick={() => toggleCat(c)} style={{
+                  padding:'3px 9px', border:'2px solid #000',
+                  boxShadow: on ? 'none' : '2px 2px 0 #000',
+                  transform: on ? 'translate(2px,2px)' : 'none',
+                  background: on ? '#1a1a1a' : '#FDFBF7',
+                  color: on ? '#FFD700' : '#000',
+                  fontSize:9, fontWeight:700, cursor:'pointer', borderRadius:100, ...ZH,
+                }}>{c}</button>
+              );
+            })}
+            {hasFilter && (
+              <button onClick={clearFilters} style={{
+                padding:'3px 9px', border:'2px dashed #E74C3C',
+                background:'#fff', color:'#E74C3C',
+                fontSize:9, fontWeight:700, cursor:'pointer', borderRadius:100, ...ZH,
+              }}>× 清除</button>
+            )}
+          </div>
         </div>
 
-        {/* Filtered detail list */}
-        <div style={{ border:'2.5px solid #000', boxShadow:'3px 3px 0 #000', overflow:'hidden' }}>
+        {/* Filtered list */}
+        <div style={{ borderTop:'1.5px solid #e8e4da' }}>
           <div style={{
-            background:'#000', color:'#fff',
-            padding:'5px 10px', fontSize:9, fontWeight:900,
-            display:'flex', justifyContent:'space-between', ...ZH,
+            padding:'5px 10px', background:'#f5f0e6', fontSize:9, fontWeight:900,
+            display:'flex', justifyContent:'space-between', borderBottom:'1.5px solid #e8e4da', ...ZH,
           }}>
-            <span>▸ 篩選明細（{filtered.length} 筆）</span>
-            <span style={{ ...EN, color:'#aaa' }}>
-              收入 €{totalInFiltered} · 支出 €{totalOutFiltered}
+            <span>▸ 明細（{filtered.length} 筆）</span>
+            <span style={{ ...EN, color:'#888' }}>
+              收入 €{totalInFiltered.toFixed(2)} · 支出 €{totalOutFiltered.toFixed(2)}
             </span>
           </div>
           {filtered.length === 0 && (
-            <div style={{ padding:'12px', textAlign:'center', color:'#aaa', fontSize:10, ...ZH }}>
-              無符合條件的紀錄
-            </div>
+            <div style={{ padding:'12px', textAlign:'center', color:'#aaa', fontSize:10, ...ZH }}>無符合條件的紀錄</div>
           )}
           {[...filtered].sort((a,b) => b.date.localeCompare(a.date)).map(e => (
             <div key={e.id} style={{
@@ -587,9 +661,9 @@ function ReportTab({ entries, rate }: { entries: Entry[]; rate: number }) {
         </div>
       </div>
 
-      {/* Footer summary */}
+      {/* Footer */}
       <div style={{
-        borderTop:'3px solid #000',
+        margin:'8px 12px', borderTop:'3px solid #000',
         background:'#1a1a1a', padding:'5px 12px',
         display:'flex', gap:12, fontSize:10, fontWeight:700, color:'#fff',
       }}>
@@ -605,8 +679,8 @@ function ReportTab({ entries, rate }: { entries: Entry[]; rate: number }) {
 // ─── AIB Screen Root ──────────────────────────────────────────────────────────
 export function AIBScreen() {
   const { rate, twd, usd, live, date } = useExchangeRate();
-  const { state, dispatch }  = useGame();
-  const [tab, setTab]        = useState<'ledger'|'report'>('ledger');
+  const { state, dispatch } = useGame();
+  const [tab, setTab]       = useState<'ledger'|'report'>('ledger');
   const entries = state.aibEntries as Entry[];
 
   const addEntry = useCallback((e: Omit<Entry,'id'>) => {
@@ -619,8 +693,7 @@ export function AIBScreen() {
 
   return (
     <div style={{ display:'flex', flexDirection:'column' }}>
-
-      {/* ── Header ── */}
+      {/* Header */}
       <div style={{
         flexShrink:0,
         background:'linear-gradient(135deg,#0a3a1a,#1a6b3a)',
@@ -640,7 +713,6 @@ export function AIBScreen() {
           <span>💱</span>
           <span style={{ color:'#FFD700' }}>€1 = NT${rate.toFixed(2)}</span>
         </div>
-        {/* EUR/TWD ticker strip */}
         <div style={{ fontSize:8, color:'#aaa', ...EN, flexShrink:0 }}>
           {live ? `LIVE · ${date}` : `REF · ${date || '模擬'}`}
         </div>
@@ -656,7 +728,7 @@ export function AIBScreen() {
           { label: 'EUR/TWD', info: twd, decimals: 2 },
           { label: 'EUR/USD', info: usd, decimals: 3 },
         ].map(({ label, info, decimals }) => {
-          const up    = info.change >= 0;
+          const up = info.change >= 0;
           const color = up ? '#4ade80' : '#f87171';
           const arrow = up ? '▲' : '▼';
           const sign  = up ? '+' : '';
@@ -671,7 +743,7 @@ export function AIBScreen() {
         {!live && <span style={{ color:'#666' }}>（參考值）</span>}
       </div>
 
-      {/* ── Tab Bar ── */}
+      {/* Tab Bar */}
       <div style={{
         flexShrink:0, display:'flex',
         borderBottom:'3px solid #000',
@@ -697,7 +769,7 @@ export function AIBScreen() {
         ))}
       </div>
 
-      {/* ── Content ── */}
+      {/* Content */}
       <div>
         {tab === 'ledger' && (
           <LedgerTab entries={entries} onAdd={addEntry} onDelete={delEntry} rate={rate} />
