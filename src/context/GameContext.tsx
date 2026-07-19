@@ -28,6 +28,7 @@ export interface GameState {
 const INIT_PLAYER: PlayerProfile = {
   name:         '',
   gender:       '',
+  city:         '',
   arrivalDate:  '',
   flightTime:   '',
   transitHubs:  [],
@@ -52,6 +53,7 @@ type Action =
   | { type: 'NAVIGATE';        screen: ScreenId }
   | { type: 'SET_PLAYER_NAME'; value: string }
   | { type: 'SET_GENDER';      value: Gender }
+  | { type: 'SET_CITY';        value: string }
   | { type: 'SET_ARRIVAL_DATE';value: string }
   | { type: 'SET_FLIGHT_TIME'; value: string }
   | { type: 'TOGGLE_TRANSIT';  hub: string }
@@ -77,6 +79,9 @@ function reducer(state: GameState, action: Action): GameState {
 
     case 'SET_GENDER':
       return { ...state, player: { ...state.player, gender: action.value } };
+
+    case 'SET_CITY':
+      return { ...state, player: { ...state.player, city: action.value } };
 
     case 'SET_ARRIVAL_DATE':
       return { ...state, player: { ...state.player, arrivalDate: action.value } };

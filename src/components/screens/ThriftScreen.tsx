@@ -1,6 +1,41 @@
 import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react';
 import { useGame } from '../../context/GameContext';
 import { ZH, EN } from '../../data/constants';
+
+// ─── Fuzzy search ─────────────────────────────────────────────────────────────
+function fuzzyMatch(text: string, query: string): boolean {
+  if (!query.trim()) return true;
+  const t = text.toLowerCase();
+  const q = query.toLowerCase().trim();
+  // Substring first (fast path)
+  if (t.includes(q)) return true;
+  // Character-sequence fuzzy
+  let qi = 0;
+  for (let i = 0; i < t.length && qi < q.length; i++) {
+    if (t[i] === q[qi]) qi++;
+  }
+  return qi === q.length;
+}
+
+// ─── Wanted/Discussion types ──────────────────────────────────────────────────
+interface DiscussMsg {
+  id:        string;
+  sender:    string;
+  city:      string;
+  text:      string;
+  image?:    string;
+  timestamp: string;
+}
+
+interface WantedPost {
+  id:         string;
+  playerName: string;
+  city:       string;
+  itemName:   string;
+  desc:       string;
+  timestamp:  string;
+  messages:   DiscussMsg[];
+}
 import {
   collection, addDoc, onSnapshot, serverTimestamp,
   query, orderBy, doc, updateDoc,
@@ -222,9 +257,12 @@ function SellerForm({ onSubmit, onBack, items, onUpdatePrice, onToggleSold }: {
           fontSize:14, cursor:'pointer', fontWeight:900,
         }}>↩</button>
         <span style={{ fontSize:13, fontWeight:900, ...ZH }}>📦 賣家上架台</span>
-        <span style={{ marginLeft:'auto', fontSize:9, color:'#aaa', ...ZH }}>
-          {state.player.name || '賣家'}
-        </span>
+        <div style={{ marginLeft:'auto', textAlign:'right' }}>
+          <div style={{ fontSize:9, color:'#aaa', ...ZH }}>{state.player.name || '賣家'}</div>
+          {state.player.city && (
+            <div style={{ fontSize:7, color:'#888', ...EN }}>📍 座標：{state.player.city}</div>
+          )}
+        </div>
       </div>
 
       {/* Tab bar */}
@@ -641,11 +679,316 @@ function ItemCard({ item, onOpen }: {
   );
 }
 
+// ─── Discussion Room Modal ────────────────────────────────────────────────────
+function DiscussionModal({
+  post, playerName, playerCity, onClose, onAddMsg,
+}: {
+  post:        WantedPost;
+  playerName:  string;
+  playerCity:  string;
+  onClose:     () => void;
+  onAddMsg:    (postId: string, msg: Omit<DiscussMsg,'id'>) => void;
+}) {
+  const [text,      setText]      = useState('');
+  const [imgPreview, setImgPreview] = useState<string | undefined>();
+  const camRef   = useRef<HTMLInputElement>(null);
+  const albumRef = useRef<HTMLInputElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [post.messages.length]);
+
+  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => setImgPreview(ev.target?.result as string);
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const send = () => {
+    if (!text.trim() && !imgPreview) return;
+    const now = new Date();
+    onAddMsg(post.id, {
+      sender:    playerName || '匿名冒險者',
+      city:      playerCity || '',
+      text:      text.trim(),
+      image:     imgPreview,
+      timestamp: `${now.getMonth()+1}/${now.getDate()} ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`,
+    });
+    setText('');
+    setImgPreview(undefined);
+  };
+
+  return (
+    <div style={{
+      position:'fixed', inset:0, zIndex:1000,
+      background:'rgba(0,0,0,0.8)',
+      display:'flex', flexDirection:'column',
+    }} onClick={onClose}>
+      <div style={{
+        margin:'auto', width:'100%', maxWidth:420,
+        maxHeight:'90vh', display:'flex', flexDirection:'column',
+        background:'#FDFBF7', border:'3px solid #000', boxShadow:'8px 8px 0 #000',
+      }} onClick={e => e.stopPropagation()}>
+        {/* Header */}
+        <div style={{
+          background:'#000', color:'#FFD700', padding:'8px 12px',
+          display:'flex', alignItems:'center', gap:8, flexShrink:0,
+        }}>
+          <span style={{ fontSize:13, ...ZH }}>💬 討論區</span>
+          <span style={{ fontSize:10, flex:1, color:'#aaa', ...ZH, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+            「{post.itemName}」
+          </span>
+          <button onClick={onClose} style={{
+            background:'none', border:'none', color:'#FFD700',
+            fontSize:18, cursor:'pointer', lineHeight:1,
+          }}>✕</button>
+        </div>
+
+        {/* Original post */}
+        <div style={{
+          flexShrink:0, padding:'8px 12px',
+          borderBottom:'2px solid #e8e4da', background:'#fffbe0',
+        }}>
+          <div style={{ fontSize:10, fontWeight:900, ...ZH }}>{post.playerName}
+            {post.city && <span style={{
+              marginLeft:6, fontSize:8, background:'#FFD700', color:'#000',
+              padding:'1px 5px', border:'1px solid #000', ...EN,
+            }}>📍 座標：{post.city}</span>}
+          </div>
+          <div style={{ fontSize:11, fontWeight:700, marginTop:3, ...ZH }}>{post.itemName}</div>
+          {post.desc && <div style={{ fontSize:10, color:'#555', marginTop:2, ...ZH }}>{post.desc}</div>}
+          <div style={{ fontSize:8, color:'#aaa', marginTop:3, ...EN }}>{post.timestamp}</div>
+        </div>
+
+        {/* Messages */}
+        <div style={{ flex:1, overflowY:'auto', padding:'8px 12px', display:'flex', flexDirection:'column', gap:8 }}>
+          {post.messages.length === 0 && (
+            <div style={{ textAlign:'center', color:'#bbb', fontSize:10, padding:'20px 0', ...ZH }}>
+              尚無留言，來搶頭香吧！
+            </div>
+          )}
+          {post.messages.map(msg => (
+            <div key={msg.id} style={{
+              display:'flex', flexDirection:'column',
+              alignItems: msg.sender === (playerName || '匿名冒險者') ? 'flex-end' : 'flex-start',
+            }}>
+              <div style={{ fontSize:8, color:'#888', marginBottom:2, ...ZH }}>
+                {msg.sender}
+                {msg.city && <span style={{ marginLeft:4, ...EN }}>座標：{msg.city}</span>}
+                　{msg.timestamp}
+              </div>
+              {msg.image && (
+                <img src={msg.image} style={{
+                  maxWidth:180, maxHeight:160, objectFit:'cover',
+                  border:'2px solid #000', marginBottom:3, borderRadius:3,
+                }} alt="" />
+              )}
+              {msg.text && (
+                <div style={{
+                  maxWidth:'80%', padding:'6px 10px',
+                  background: msg.sender === (playerName || '匿名冒險者') ? '#000' : '#f5f0e6',
+                  color: msg.sender === (playerName || '匿名冒險者') ? '#FFD700' : '#000',
+                  border:'2px solid #000', fontSize:11, ...ZH,
+                  borderRadius: msg.sender === (playerName || '匿名冒險者') ? '8px 8px 0 8px' : '8px 8px 8px 0',
+                }}>{msg.text}</div>
+              )}
+            </div>
+          ))}
+          <div ref={bottomRef} />
+        </div>
+
+        {/* Image preview */}
+        {imgPreview && (
+          <div style={{
+            flexShrink:0, padding:'4px 12px',
+            display:'flex', alignItems:'center', gap:8, background:'#f5f0e6',
+            borderTop:'1.5px solid #e8e4da',
+          }}>
+            <img src={imgPreview} style={{ width:48, height:48, objectFit:'cover', border:'1.5px solid #000' }} alt="" />
+            <span style={{ fontSize:9, flex:1, ...ZH }}>已選取圖片</span>
+            <button onClick={() => setImgPreview(undefined)} style={{
+              border:'none', background:'none', fontSize:14, cursor:'pointer', color:'#E74C3C',
+            }}>×</button>
+          </div>
+        )}
+
+        {/* Input bar */}
+        <div style={{
+          flexShrink:0, display:'flex', gap:0,
+          borderTop:'3px solid #000',
+        }}>
+          <button onClick={() => albumRef.current?.click()} title="相簿" style={{
+            padding:'8px 10px', border:'none', borderRight:'2px solid #e8e4da',
+            background:'#f5f0e6', cursor:'pointer', fontSize:16,
+          }}>🖼</button>
+          <button onClick={() => camRef.current?.click()} title="相機" style={{
+            padding:'8px 10px', border:'none', borderRight:'2px solid #e8e4da',
+            background:'#f5f0e6', cursor:'pointer', fontSize:16,
+          }}>📷</button>
+          <input ref={albumRef} type="file" accept="image/*" style={{ display:'none' }} onChange={handleFile} />
+          <input ref={camRef}  type="file" accept="image/*" capture="environment" style={{ display:'none' }} onChange={handleFile} />
+          <input
+            value={text}
+            onChange={e => setText(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && send()}
+            placeholder="輸入訊息…"
+            style={{
+              flex:1, padding:'10px 10px', border:'none', outline:'none',
+              fontSize:12, background:'#fff', ...ZH,
+            }}
+          />
+          <button onClick={send} style={{
+            padding:'8px 14px', border:'none', borderLeft:'2px solid #e8e4da',
+            background:'#000', color:'#FFD700', fontWeight:900, fontSize:12,
+            cursor:'pointer', ...ZH,
+          }}>送出</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Wanted Board ─────────────────────────────────────────────────────────────
+function WantedBoard({
+  playerName, playerCity,
+}: {
+  playerName: string;
+  playerCity: string;
+}) {
+  const [posts,     setPosts]     = useState<WantedPost[]>([]);
+  const [itemName,  setItemName]  = useState('');
+  const [desc,      setDesc]      = useState('');
+  const [openPost,  setOpenPost]  = useState<WantedPost | null>(null);
+
+  const addPost = () => {
+    if (!itemName.trim()) return;
+    const now = new Date();
+    const timestamp = `${now.getMonth()+1}/${now.getDate()} ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
+    const newPost: WantedPost = {
+      id:         Date.now().toString(),
+      playerName: playerName || '匿名冒險者',
+      city:       playerCity || '',
+      itemName:   itemName.trim(),
+      desc:       desc.trim(),
+      timestamp,
+      messages:   [],
+    };
+    setPosts(prev => [newPost, ...prev]);
+    setItemName(''); setDesc('');
+  };
+
+  const addMsg = (postId: string, msg: Omit<DiscussMsg,'id'>) => {
+    setPosts(prev => prev.map(p =>
+      p.id === postId
+        ? { ...p, messages: [...p.messages, { ...msg, id: Date.now().toString() }] }
+        : p
+    ));
+    setOpenPost(prev => prev?.id === postId
+      ? { ...prev, messages: [...prev.messages, { ...msg, id: Date.now().toString() }] }
+      : prev
+    );
+  };
+
+  return (
+    <div style={{ display:'flex', flexDirection:'column' }}>
+      {openPost && (
+        <DiscussionModal
+          post={openPost}
+          playerName={playerName}
+          playerCity={playerCity}
+          onClose={() => setOpenPost(null)}
+          onAddMsg={addMsg}
+        />
+      )}
+
+      {/* New wanted post form */}
+      <div style={{
+        padding:'10px 12px',
+        borderBottom:'3px solid #000', background:'#f5f0e6',
+        display:'flex', flexDirection:'column', gap:6,
+      }}>
+        <div style={{ fontSize:10, fontWeight:900, ...ZH }}>
+          🙋 我在找…（徵物佈告欄）
+        </div>
+        <input
+          value={itemName}
+          onChange={e => setItemName(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && addPost()}
+          placeholder="你想找什麼？例如：Dunnes 25折折價券"
+          style={{
+            padding:'7px 10px', border:'2.5px solid #000', boxShadow:'2px 2px 0 #000',
+            background:'#fff', fontSize:11, outline:'none', ...ZH,
+          }}
+        />
+        <div style={{ display:'flex', gap:6 }}>
+          <input
+            value={desc}
+            onChange={e => setDesc(e.target.value)}
+            placeholder="補充說明（選填）"
+            style={{
+              flex:1, padding:'6px 10px', border:'2.5px solid #000',
+              background:'#fff', fontSize:10, outline:'none', ...ZH,
+            }}
+          />
+          <button onClick={addPost} style={{
+            padding:'6px 16px', border:'2.5px solid #000', boxShadow:'3px 3px 0 #000',
+            background:'#FFD700', fontWeight:900, fontSize:11, cursor:'pointer', ...ZH,
+          }}>張貼</button>
+        </div>
+      </div>
+
+      {/* Wanted posts list */}
+      <div style={{ padding:'10px 12px', display:'flex', flexDirection:'column', gap:8 }}>
+        {posts.length === 0 && (
+          <div style={{ textAlign:'center', color:'#bbb', fontSize:11, padding:'24px 0', ...ZH }}>
+            尚無徵物貼文，來發第一則吧！
+          </div>
+        )}
+        {posts.map(post => (
+          <div key={post.id} style={{
+            border:'2.5px solid #000', boxShadow:'3px 3px 0 #000',
+            background:'#fffbe0', padding:'9px 12px',
+            cursor:'pointer',
+          }} onClick={() => setOpenPost(post)}>
+            <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:3 }}>
+              <span style={{ fontSize:14 }}>🔍</span>
+              <div style={{ flex:1 }}>
+                <div style={{ fontSize:11, fontWeight:900, ...ZH }}>{post.itemName}</div>
+                {post.desc && <div style={{ fontSize:9, color:'#555', ...ZH }}>{post.desc}</div>}
+              </div>
+              <div style={{
+                fontSize:9, background:'#000', color:'#FFD700',
+                padding:'2px 7px', border:'1px solid #444', ...ZH, flexShrink:0,
+              }}>{post.messages.length} 則留言</div>
+            </div>
+            <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+              <span style={{ fontSize:9, color:'#888', ...ZH }}>{post.playerName}</span>
+              {post.city && (
+                <span style={{
+                  fontSize:7, background:'#FFD700', color:'#000',
+                  padding:'1px 4px', border:'1px solid #000', ...EN,
+                }}>📍 座標：{post.city}</span>
+              )}
+              <span style={{ fontSize:8, color:'#aaa', marginLeft:'auto', ...EN }}>{post.timestamp}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ─── Buyer View ───────────────────────────────────────────────────────────────
 function BuyerView({ items, onBack }: {
   items:  ThriftItem[];
   onBack: () => void;
 }) {
+  const { state } = useGame();
+  const [buyerTab, setBuyerTab] = useState<'market'|'wanted'>('market');
   const [search,   setSearch]   = useState('');
   const [catFilt,  setCatFilt]  = useState<ThriftCategory | 'all'>('all');
   const [maxPrice, setMaxPrice] = useState(500);
@@ -655,7 +998,10 @@ function BuyerView({ items, onBack }: {
     Math.max(...items.map(i => i.price), 100), [items]);
 
   const filtered = useMemo(() => items.filter(i => {
-    if (search  && !i.name.toLowerCase().includes(search.toLowerCase())) return false;
+    if (search) {
+      const searchFields = [i.name, i.category, i.location, i.contact].join(' ');
+      if (!fuzzyMatch(searchFields, search)) return false;
+    }
     if (catFilt !== 'all' && i.category !== catFilt) return false;
     if (i.price > maxPrice) return false;
     return true;
@@ -675,74 +1021,115 @@ function BuyerView({ items, onBack }: {
           fontSize:14, cursor:'pointer', fontWeight:900,
         }}>↩</button>
         <span style={{ fontSize:13, fontWeight:900, ...ZH }}>🛍 買家市集</span>
-      </div>
-
-      {/* Filter panel */}
-      <div style={{
-        flexShrink:0, padding:'8px 12px',
-        borderBottom:'3px solid #000', background:'#f5f0e6',
-        display:'flex', flexDirection:'column', gap:6,
-      }}>
-        {/* Search */}
-        <div style={{
-          display:'flex', alignItems:'center', gap:5,
-          border:'2.5px solid #000', background:'#fff', padding:'5px 8px',
-          boxShadow:'2px 2px 0 #000',
-        }}>
-          <span>🔍</span>
-          <input value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="搜尋商品名稱..."
-            style={{ flex:1, border:'none', outline:'none', fontSize:11, background:'transparent', ...ZH }} />
-        </div>
-
-        <div style={{ display:'flex', gap:6, alignItems:'center' }}>
-          {/* Category */}
-          <select value={catFilt} onChange={e => setCatFilt(e.target.value as ThriftCategory | 'all')}
-            style={{
-              flex:1, padding:'5px 6px', border:'2.5px solid #000',
-              background:'#fff', fontSize:10, outline:'none', ...ZH,
-            }}>
-            <option value="all">📂 全部類別</option>
-            {(Object.keys(CAT_ICON) as ThriftCategory[]).map(c => (
-              <option key={c} value={c}>{CAT_ICON[c]} {c}</option>
-            ))}
-          </select>
-        </div>
-
-        {/* Price slider */}
-        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-          <span style={{ fontSize:9, fontWeight:900, flexShrink:0, ...ZH }}>💶 最高預算</span>
-          <input type="range" min={0} max={maxPossible} step={5}
-            value={maxPrice} onChange={e => setMaxPrice(+e.target.value)}
-            style={{ flex:1, accentColor:'#000' }} />
+        {state.player.city && (
           <span style={{
-            fontSize:10, fontWeight:900, ...EN,
-            minWidth:38, textAlign:'right', color:'#003A70',
-          }}>€{maxPrice}</span>
-        </div>
-        <div style={{ fontSize:8, color:'#888', ...ZH }}>
-          共 {filtered.length} 件符合 · {filtered.filter(i=>!i.isSold).length} 件在售
-        </div>
+            marginLeft:'auto', fontSize:8, background:'#333',
+            border:'1px solid #FFD700', color:'#FFD700',
+            padding:'2px 7px', ...EN,
+          }}>📍 座標：{state.player.city}</span>
+        )}
       </div>
 
-      {/* Grid */}
-      <div style={{
-        padding:10,
-        display:'grid', gridTemplateColumns:'repeat(2,1fr)', gap:10,
-        alignContent:'start',
-      }}>
-        {filtered.length === 0 && (
-          <div style={{
-            gridColumn:'1/-1', textAlign:'center',
-            padding:'40px 0', color:'#aaa', fontSize:12, ...ZH,
-          }}>
-            😢 找不到符合的商品
-          </div>
-        )}
-        {filtered.map(item => (
-          <ItemCard key={item.id} item={item} onOpen={setSelected} />
+      {/* Tab bar: market / wanted */}
+      <div style={{ display:'flex', borderBottom:'3px solid #000', flexShrink:0 }}>
+        {([
+          { id:'market' as const, label:'🛍 出清市集' },
+          { id:'wanted' as const, label:'🔍 徵物佈告欄' },
+        ]).map((t, i) => (
+          <button key={t.id} onClick={() => setBuyerTab(t.id)} style={{
+            flex:1, padding:'8px 4px', border:'none',
+            borderRight: i===0 ? '2px solid #000' : 'none',
+            background: buyerTab===t.id ? '#FFD700' : '#f5f0e6',
+            color: buyerTab===t.id ? '#000' : '#555',
+            fontWeight: buyerTab===t.id ? 900 : 400,
+            fontSize:10, cursor:'pointer', ...ZH,
+          }}>{t.label}</button>
         ))}
       </div>
+
+      {buyerTab === 'wanted' && (
+        <WantedBoard
+          playerName={state.player.name}
+          playerCity={state.player.city || ''}
+        />
+      )}
+
+      {buyerTab === 'market' && (
+        <>
+          {/* Filter panel */}
+          <div style={{
+            flexShrink:0, padding:'8px 12px',
+            borderBottom:'3px solid #000', background:'#f5f0e6',
+            display:'flex', flexDirection:'column', gap:6,
+          }}>
+            {/* Fuzzy search */}
+            <div style={{
+              display:'flex', alignItems:'center', gap:5,
+              border:'2.5px solid #000', background:'#fff', padding:'5px 8px',
+              boxShadow:'2px 2px 0 #000',
+            }}>
+              <span>🔍</span>
+              <input value={search} onChange={e => setSearch(e.target.value)}
+                placeholder="模糊搜尋：商品名、地點、類別…"
+                style={{ flex:1, border:'none', outline:'none', fontSize:11, background:'transparent', ...ZH }} />
+              {search && (
+                <button onClick={() => setSearch('')} style={{
+                  border:'none', background:'none', cursor:'pointer',
+                  fontSize:12, color:'#aaa',
+                }}>×</button>
+              )}
+            </div>
+
+            <div style={{ display:'flex', gap:6, alignItems:'center' }}>
+              <select value={catFilt} onChange={e => setCatFilt(e.target.value as ThriftCategory | 'all')}
+                style={{
+                  flex:1, padding:'5px 6px', border:'2.5px solid #000',
+                  background:'#fff', fontSize:10, outline:'none', ...ZH,
+                }}>
+                <option value="all">📂 全部類別</option>
+                {(Object.keys(CAT_ICON) as ThriftCategory[]).map(c => (
+                  <option key={c} value={c}>{CAT_ICON[c]} {c}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Price slider */}
+            <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+              <span style={{ fontSize:9, fontWeight:900, flexShrink:0, ...ZH }}>💶 最高預算</span>
+              <input type="range" min={0} max={maxPossible} step={5}
+                value={maxPrice} onChange={e => setMaxPrice(+e.target.value)}
+                style={{ flex:1, accentColor:'#000' }} />
+              <span style={{
+                fontSize:10, fontWeight:900, ...EN,
+                minWidth:38, textAlign:'right', color:'#003A70',
+              }}>€{maxPrice}</span>
+            </div>
+            <div style={{ fontSize:8, color:'#888', ...ZH }}>
+              共 {filtered.length} 件符合 · {filtered.filter(i=>!i.isSold).length} 件在售
+              {search && <span style={{ color:'#F59E0B' }}>（模糊搜尋：「{search}」）</span>}
+            </div>
+          </div>
+
+          {/* Grid */}
+          <div style={{
+            padding:10,
+            display:'grid', gridTemplateColumns:'repeat(2,1fr)', gap:10,
+            alignContent:'start',
+          }}>
+            {filtered.length === 0 && (
+              <div style={{
+                gridColumn:'1/-1', textAlign:'center',
+                padding:'40px 0', color:'#aaa', fontSize:12, ...ZH,
+              }}>
+                😢 找不到符合的商品
+              </div>
+            )}
+            {filtered.map(item => (
+              <ItemCard key={item.id} item={item} onOpen={setSelected} />
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -819,7 +1206,7 @@ function RoleGate({ onSelect }: { onSelect: (role: 'buyer' | 'seller') => void }
 
 // ─── Thrift Screen Root ───────────────────────────────────────────────────────
 export function ThriftScreen() {
-  const { derived, navigate } = useGame();
+  const { state, derived, navigate } = useGame();
   const balance = derived.aibBalance;
 
   const [role,    setRole]    = useState<'buyer' | 'seller' | null>(null);
@@ -896,6 +1283,12 @@ export function ThriftScreen() {
           <div style={{ fontSize:8, color:'#C9A96E', ...ZH }}>離愛出清市集</div>
         </div>
         <div style={{ marginLeft:'auto', display:'flex', gap:6, alignItems:'center' }}>
+          {state.player.city && (
+            <div style={{
+              background:'#2a2a2a', border:'1.5px solid #C9A96E',
+              padding:'2px 8px', fontSize:8, color:'#C9A96E', ...EN,
+            }}>📍 {state.player.city}</div>
+          )}
           <button onClick={() => navigate('AIB')} style={{
             background:'#2a2a2a', border:'1.5px solid #FFD700',
             padding:'2px 8px', fontSize:9, fontWeight:700,

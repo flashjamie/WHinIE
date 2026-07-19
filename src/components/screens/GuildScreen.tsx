@@ -94,9 +94,19 @@ export function GuildScreen() {
           display: 'flex', alignItems: 'center', gap: 8, background: '#f5f0e8',
         }}>
           <span style={{ fontSize: 16 }}>✍️</span>
-          <span style={{ fontSize: 10, color: '#888', ...ZH }}>
-            {state.player.name || '冒險者'}，加入討論吧！（貼文功能即將上線）
-          </span>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, ...ZH }}>
+              {state.player.name || '冒險者'}
+              {state.player.city && (
+                <span style={{
+                  marginLeft: 6, fontSize: 8, fontWeight: 900,
+                  background: '#FFD700', color: '#000', padding: '1px 5px',
+                  border: '1px solid #000', ...EN,
+                }}>📍 座標：{state.player.city}</span>
+              )}
+            </div>
+            <div style={{ fontSize: 9, color: '#888', marginTop: 2, ...ZH }}>加入討論吧！（貼文功能即將上線）</div>
+          </div>
         </div>
       </div>
     </div>

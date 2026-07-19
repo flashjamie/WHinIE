@@ -137,12 +137,16 @@ export function NotebookContainer({ children }: { children: React.ReactNode }) {
             position: 'relative',
           }}>
             {allTabs.map((tab, i) => {
-              const isActive = currentScreen === tab.id;
-              const color    = TAB_COLORS[i] ?? '#5C3A2A';
+              const isActive  = currentScreen === tab.id;
+              const color     = TAB_COLORS[i] ?? '#5C3A2A';
+              // Lock all tabs except SETUP while setup is not completed
+              const setupDone = !!state.player.name;
+              const isLocked  = !setupDone && tab.id !== 'SETUP';
               return (
                 <button
                   key={tab.id}
-                  onClick={() => navigate(tab.id)}
+                  onClick={() => !isLocked && navigate(tab.id)}
+                  title={isLocked ? '請先完成身份設定' : undefined}
                   style={{
                     flex: 1,
                     display: 'flex', flexDirection: 'column',
@@ -150,23 +154,24 @@ export function NotebookContainer({ children }: { children: React.ReactNode }) {
                     gap: 2,
                     border: 'none',
                     borderBottom: i < allTabs.length - 1 ? '1px solid rgba(0,0,0,0.35)' : 'none',
-                    cursor: 'pointer',
+                    cursor: isLocked ? 'not-allowed' : 'pointer',
                     position: 'relative',
                     transition: 'all 0.15s',
-                    // Active tab pops out to the left
                     background: isActive
                       ? color
-                      : `linear-gradient(90deg, ${color}99 0%, ${color}66 100%)`,
+                      : isLocked
+                        ? '#1a0a04'
+                        : `linear-gradient(90deg, ${color}99 0%, ${color}66 100%)`,
                     transform: isActive ? 'translateX(-4px)' : 'none',
                     zIndex: isActive ? 10 : 1,
                     boxShadow: isActive ? '-3px 0 8px rgba(0,0,0,0.5)' : 'none',
-                    // Left notch for active tab
                     borderLeft: isActive ? '3px solid #FFD700' : '3px solid transparent',
                     padding: '2px 0',
+                    opacity: isLocked ? 0.35 : 1,
                   }}
                 >
                   <span style={{ fontSize: isActive ? 14 : 12, lineHeight: 1 }}>
-                    {tab.emoji}
+                    {isLocked ? '🔒' : tab.emoji}
                   </span>
                   <span style={{
                     fontSize: 6,

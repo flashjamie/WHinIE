@@ -22,19 +22,34 @@ const disabledInput: React.CSSProperties = {
   pointerEvents: 'none' as const,
 };
 
+const IE_CITIES = ['Dublin', 'Cork', 'Galway', 'Limerick', 'Waterford'] as const;
+
 export function SetupScreen() {
   const { state, dispatch } = useGame();
   const { player } = state;
-  const [isFlightTBD, setIsFlightTBD] = useState(false);
+  const [isFlightTBD,   setIsFlightTBD]   = useState(false);
+  const [cityCustom,    setCityCustom]     = useState('');
+  const [showCityInput, setShowCityInput]  = useState(false);
 
   const isFormValid =
     player.name.trim() !== '' &&
     player.gender !== '' &&
+    player.city !== '' &&
     (isFlightTBD || (
       player.arrivalDate !== '' &&
       player.flightTime !== '' &&
       player.flightNumber !== ''
     ));
+
+  const handleCitySelect = (val: string) => {
+    if (val === 'Others') {
+      setShowCityInput(true);
+      dispatch({ type: 'SET_CITY', value: cityCustom || '' });
+    } else {
+      setShowCityInput(false);
+      dispatch({ type: 'SET_CITY', value: val });
+    }
+  };
 
   const handleSubmit = () => {
     if (!isFormValid) return;
@@ -88,6 +103,33 @@ export function SetupScreen() {
               placeholder="請輸入你的姓名..."
               style={inputBase}
             />
+          </div>
+
+          {/* City */}
+          <div>
+            <label style={labelBase}>📍 愛爾蘭落腳城市</label>
+            <select
+              value={showCityInput ? 'Others' : (player.city || '')}
+              onChange={e => handleCitySelect(e.target.value)}
+              style={{ ...inputBase, cursor: 'pointer' }}
+            >
+              <option value="" disabled>請選擇城市…</option>
+              {IE_CITIES.map(c => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+              <option value="Others">Others（自行輸入）</option>
+            </select>
+            {showCityInput && (
+              <input
+                value={cityCustom}
+                onChange={e => {
+                  setCityCustom(e.target.value);
+                  dispatch({ type: 'SET_CITY', value: e.target.value });
+                }}
+                placeholder="請輸入你的城市名稱..."
+                style={{ ...inputBase, marginTop: 6 }}
+              />
+            )}
           </div>
 
           {/* Gender */}
@@ -246,7 +288,7 @@ export function SetupScreen() {
             </button>
             {!isFormValid && (
               <div style={{ textAlign: 'center', fontSize: 10, marginTop: 6, color: '#E74C3C', ...ZH }}>
-                ✗ 請填寫姓名、性別，以及航班資訊（或勾選「尚未確定」）
+                ✗ 請填寫姓名、性別、落腳城市，以及航班資訊（或勾選「尚未確定」）
               </div>
             )}
           </div>

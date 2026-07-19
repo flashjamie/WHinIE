@@ -31,6 +31,7 @@ export interface AvatarConfig {
 export interface PlayerProfile {
   name:         string;
   gender:       Gender;
+  city:         string; // Irish city where the player is based
   arrivalDate:  string; // YYYY-MM-DD
   flightTime:   string; // HH:mm
   transitHubs:  string[];
