@@ -1,4 +1,5 @@
 import React, { useState, useRef, useMemo, useCallback, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import { useGame } from '../../context/GameContext';
 import { ZH, EN } from '../../data/constants';
 
@@ -504,9 +505,9 @@ function SellerListings({
 // ─── Item Detail Modal ────────────────────────────────────────────────────────
 function ItemDetailModal({ item, onClose }: { item: ThriftItem; onClose: () => void }) {
   const [imgIdx, setImgIdx] = useState(0);
-  return (
+  return ReactDOM.createPortal(
     <div style={{
-      position:'fixed', inset:0, zIndex:999,
+      position:'fixed', inset:0, zIndex:9999,
       background:'rgba(0,0,0,0.75)',
       display:'flex', alignItems:'center', justifyContent:'center',
       padding:16,
@@ -603,7 +604,8 @@ function ItemDetailModal({ item, onClose }: { item: ThriftItem; onClose: () => v
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -722,9 +724,9 @@ function DiscussionModal({
     setImgPreview(undefined);
   };
 
-  return (
+  return ReactDOM.createPortal(
     <div style={{
-      position:'fixed', inset:0, zIndex:1000,
+      position:'fixed', inset:0, zIndex:9999,
       background:'rgba(0,0,0,0.8)',
       display:'flex', flexDirection:'column',
     }} onClick={onClose}>
@@ -848,7 +850,8 @@ function DiscussionModal({
           }}>送出</button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
