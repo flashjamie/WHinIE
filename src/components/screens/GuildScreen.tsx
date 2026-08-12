@@ -138,12 +138,10 @@ interface SOSReply {
 
 // ─── SOS Detail (inner panel) ─────────────────────────────────────────────────
 function SOSDetail({
-  post, onBack, onHelp, helped, playerName, playerCity,
+  post, onBack, playerName, playerCity,
 }: {
   post:        SOSPost;
   onBack:      () => void;
-  onHelp:      () => void;
-  helped:      boolean;
   playerName:  string;
   playerCity:  string;
 }) {
@@ -195,19 +193,6 @@ function SOSDetail({
               {post.city && <span style={{ marginLeft:4, ...EN }}>座標：{post.city}</span>}
             </div>
           )}
-
-          {/* Help button */}
-          <button onClick={onHelp} disabled={helped} style={{
-            marginTop:12, width:'100%', padding:'10px',
-            border:`2.5px solid ${cat.color}`,
-            boxShadow: helped ? 'none' : `4px 4px 0 ${cat.color}`,
-            background: helped ? '#f5f5f5' : cat.color,
-            color: helped ? '#aaa' : '#fff',
-            fontSize:12, fontWeight:900, cursor: helped ? 'default' : 'pointer', ...ZH,
-            transition:'all 0.15s',
-          }}>
-            {helped ? `✓ 你已伸出援手（共 ${post.helpers} 人）` : `🤝 伸出援手（${post.helpers} 人）`}
-          </button>
         </div>
 
         {/* Replies */}
@@ -275,7 +260,6 @@ function SOSModal({
   const [posts,      setPosts]      = useState<SOSPost[]>(SEED_SOS);
   const [view,       setView]       = useState<'list'|'new'>('list');
   const [detailId,   setDetailId]   = useState<string|null>(null);
-  const [helpedSet,  setHelpedSet]  = useState<Set<string>>(new Set());
   const [anon,       setAnon]       = useState(true);
   const [cat,        setCat]        = useState<SOSCategory>('其他');
   const [title,      setTitle]      = useState('');
@@ -292,12 +276,6 @@ function SOSModal({
       city: playerCity || '', timestamp: ts, helpers: 0,
     }, ...prev]);
     setTitle(''); setContent(''); setView('list');
-  };
-
-  const handleHelp = (id: string) => {
-    if (helpedSet.has(id)) return;
-    setHelpedSet(prev => new Set([...prev, id]));
-    setPosts(prev => prev.map(p => p.id === id ? { ...p, helpers: p.helpers + 1 } : p));
   };
 
   const detailPost = detailId ? posts.find(p => p.id === detailId) : null;
@@ -366,8 +344,6 @@ function SOSModal({
             <SOSDetail
               post={detailPost}
               onBack={() => setDetailId(null)}
-              onHelp={() => handleHelp(detailPost.id)}
-              helped={helpedSet.has(detailPost.id)}
               playerName={playerName}
               playerCity={playerCity}
             />
