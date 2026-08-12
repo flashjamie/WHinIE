@@ -582,6 +582,15 @@ function NewPostForm({
   );
 }
 
+// ─── Board Reply type ─────────────────────────────────────────────────────────
+interface BoardReply {
+  id:        string;
+  author:    string;
+  city:      string;
+  content:   string;
+  timestamp: string;
+}
+
 // ─── Post Detail Modal ────────────────────────────────────────────────────────
 function PostDetailModal({ post, onClose, onLike, liked }: {
   post:    BoardPost;
@@ -589,7 +598,25 @@ function PostDetailModal({ post, onClose, onLike, liked }: {
   onLike:  () => void;
   liked:   boolean;
 }) {
+  const { state } = useGame();
   const st = TYPE_STYLE[post.type];
+  const [replies,  setReplies]  = useState<BoardReply[]>([]);
+  const [replyTxt, setReplyTxt] = useState('');
+
+  const sendReply = () => {
+    if (!replyTxt.trim()) return;
+    const now = new Date();
+    const ts = `${now.getMonth()+1}/${now.getDate()} ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
+    setReplies(prev => [...prev, {
+      id: Date.now().toString(),
+      author: state.player.name || '匿名冒險者',
+      city: state.player.city || '',
+      content: replyTxt.trim(),
+      timestamp: ts,
+    }]);
+    setReplyTxt('');
+  };
+
   return ReactDOM.createPortal(
     <div style={{
       position:'fixed', inset:0, zIndex:9999,
@@ -637,41 +664,88 @@ function PostDetailModal({ post, onClose, onLike, liked }: {
           }}>✕</button>
         </div>
 
-        {/* Body */}
-        <div style={{ flex:1, overflowY:'auto', padding:'14px' }}>
-          <div style={{
-            fontSize:12, color:'#333', lineHeight:1.8,
-            whiteSpace:'pre-line', ...ZH,
-          }}>
-            {post.content}
+        {/* Scrollable body */}
+        <div style={{ flex:1, overflowY:'auto' }}>
+          {/* Post content */}
+          <div style={{ padding:'14px', borderBottom:`2px solid ${st.accent}33` }}>
+            <div style={{ fontSize:12, color:'#333', lineHeight:1.8, whiteSpace:'pre-line', ...ZH }}>
+              {post.content}
+            </div>
+            <div style={{ marginTop:10, display:'flex', alignItems:'center', gap:8 }}>
+              <div style={{ flex:1 }}>
+                <div style={{ fontSize:9, fontWeight:700, color:'#444', ...ZH }}>
+                  {post.author}
+                  {post.city && <span style={{ marginLeft:5, color: st.accent, ...EN }}>座標：{post.city}</span>}
+                </div>
+                <div style={{ fontSize:8, color:'#aaa', ...EN }}>{post.timestamp}</div>
+              </div>
+              <button onClick={(e) => { e.stopPropagation(); onLike(); }} style={{
+                display:'flex', alignItems:'center', gap:4,
+                border:`2px solid ${liked ? st.accent : 'rgba(0,0,0,0.15)'}`,
+                background: liked ? st.accent : 'rgba(255,255,255,0.8)',
+                color: liked ? '#fff' : '#333',
+                padding:'5px 12px', cursor: liked ? 'default' : 'pointer',
+                fontSize:11, fontWeight:700, flexShrink:0, ...ZH,
+                boxShadow:'2px 2px 0 rgba(0,0,0,0.12)',
+              }}>
+                ❤️ {post.likes}
+              </button>
+            </div>
+          </div>
+
+          {/* Replies */}
+          <div style={{ padding:'10px 14px' }}>
+            <div style={{ fontSize:9, fontWeight:900, color:'#888', marginBottom:8, ...ZH }}>
+              💬 留言（{replies.length}）
+            </div>
+            {replies.length === 0 && (
+              <div style={{ fontSize:10, color:'#ccc', textAlign:'center', padding:'10px 0', ...ZH }}>
+                還沒有留言，來回應這則告示吧！
+              </div>
+            )}
+            {replies.map(r => (
+              <div key={r.id} style={{
+                marginBottom:8, padding:'8px 10px',
+                background:'rgba(255,255,255,0.7)',
+                border:`1.5px solid ${st.accent}44`,
+                boxShadow:`2px 2px 0 ${st.accent}22`,
+              }}>
+                <div style={{ fontSize:9, fontWeight:700, color:'#555', marginBottom:3, ...ZH }}>
+                  {r.author}
+                  {r.city && <span style={{ marginLeft:4, color: st.accent, ...EN }}>座標：{r.city}</span>}
+                  <span style={{ marginLeft:6, color:'#bbb', fontWeight:400, ...EN }}>{r.timestamp}</span>
+                </div>
+                <div style={{ fontSize:11, color:'#333', lineHeight:1.7, ...ZH }}>{r.content}</div>
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* Footer */}
+        {/* Reply input */}
         <div style={{
           flexShrink:0, padding:'10px 14px',
           borderTop:`2px solid ${st.accent}44`,
-          display:'flex', alignItems:'center', gap:8,
-          background:'rgba(255,255,255,0.5)',
+          background:'rgba(255,255,255,0.6)',
+          display:'flex', gap:8,
         }}>
-          <div style={{ flex:1, minWidth:0 }}>
-            <div style={{ fontSize:9, fontWeight:700, color:'#444', ...ZH }}>
-              {post.author}
-              {post.city && <span style={{ marginLeft:5, color: st.accent, ...EN }}>座標：{post.city}</span>}
-            </div>
-            <div style={{ fontSize:8, color:'#aaa', ...EN }}>{post.timestamp}</div>
-          </div>
-          <button onClick={(e) => { e.stopPropagation(); onLike(); }} style={{
-            display:'flex', alignItems:'center', gap:4,
-            border:`2px solid ${liked ? st.accent : 'rgba(0,0,0,0.15)'}`,
-            background: liked ? st.accent : 'rgba(255,255,255,0.8)',
-            color: liked ? '#fff' : '#333',
-            padding:'5px 12px', cursor: liked ? 'default' : 'pointer',
-            fontSize:11, fontWeight:700, flexShrink:0, ...ZH,
-            boxShadow:'2px 2px 0 rgba(0,0,0,0.12)',
-          }}>
-            ❤️ {post.likes}
-          </button>
+          <input
+            value={replyTxt}
+            onChange={e => setReplyTxt(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && sendReply()}
+            placeholder="留下你的回應…"
+            style={{
+              flex:1, padding:'8px 10px', fontSize:11,
+              border:`2px solid ${st.accent}88`, outline:'none',
+              background:'#fff', ...ZH,
+            }}
+          />
+          <button onClick={sendReply} style={{
+            padding:'8px 12px',
+            border:`2px solid ${st.accent}`,
+            background: st.accent, color:'#fff',
+            fontWeight:900, fontSize:11, cursor:'pointer', ...ZH,
+            boxShadow:`2px 2px 0 ${st.accent}88`,
+          }}>送出</button>
         </div>
       </div>
     </div>,
