@@ -430,83 +430,198 @@ function NewPostForm({
   );
 }
 
+// ─── Post Detail Modal ────────────────────────────────────────────────────────
+function PostDetailModal({ post, onClose, onLike, liked }: {
+  post:    BoardPost;
+  onClose: () => void;
+  onLike:  () => void;
+  liked:   boolean;
+}) {
+  const st = TYPE_STYLE[post.type];
+  return ReactDOM.createPortal(
+    <div style={{
+      position:'fixed', inset:0, zIndex:9999,
+      background:'rgba(0,0,0,0.75)',
+      display:'flex', alignItems:'center', justifyContent:'center',
+      padding:'16px',
+    }} onClick={onClose}>
+      <div style={{
+        width:'100%', maxWidth:400, maxHeight:'85vh',
+        display:'flex', flexDirection:'column',
+        background: st.bg,
+        border:`3px solid ${st.accent}`,
+        boxShadow:`6px 6px 0 rgba(0,0,0,0.35)`,
+        position:'relative',
+      }} onClick={e => e.stopPropagation()}>
+
+        {/* Colored pin */}
+        <div style={{
+          position:'absolute', top:-10, left:'50%', transform:'translateX(-50%)',
+          width:18, height:18, borderRadius:'50%',
+          background: post.pinColor, border:'2.5px solid rgba(0,0,0,0.3)',
+          boxShadow:'0 3px 6px rgba(0,0,0,0.35)', zIndex:2,
+        }}/>
+
+        {/* Header */}
+        <div style={{
+          background: st.accent, padding:'10px 14px',
+          display:'flex', alignItems:'center', gap:8, flexShrink:0,
+        }}>
+          <div style={{ flex:1 }}>
+            <div style={{ display:'flex', alignItems:'center', gap:5, marginBottom:2 }}>
+              <span style={{
+                background:'rgba(255,255,255,0.25)', color:'#fff',
+                fontSize:8, fontWeight:900, padding:'1px 6px', ...ZH,
+              }}>{st.label}</span>
+              <span style={{ fontSize:8, color:'rgba(255,255,255,0.8)', ...ZH }}>#{post.tag}</span>
+            </div>
+            <div style={{ fontSize:13, fontWeight:900, color:'#fff', lineHeight:1.3, ...ZH }}>
+              {post.title}
+            </div>
+          </div>
+          <button onClick={onClose} style={{
+            background:'none', border:'none', color:'#fff',
+            fontSize:18, cursor:'pointer', lineHeight:1, flexShrink:0,
+          }}>✕</button>
+        </div>
+
+        {/* Body */}
+        <div style={{ flex:1, overflowY:'auto', padding:'14px' }}>
+          <div style={{
+            fontSize:12, color:'#333', lineHeight:1.8,
+            whiteSpace:'pre-line', ...ZH,
+          }}>
+            {post.content}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div style={{
+          flexShrink:0, padding:'10px 14px',
+          borderTop:`2px solid ${st.accent}44`,
+          display:'flex', alignItems:'center', gap:8,
+          background:'rgba(255,255,255,0.5)',
+        }}>
+          <div style={{ flex:1, minWidth:0 }}>
+            <div style={{ fontSize:9, fontWeight:700, color:'#444', ...ZH }}>
+              {post.author}
+              {post.city && <span style={{ marginLeft:5, color: st.accent, ...EN }}>座標：{post.city}</span>}
+            </div>
+            <div style={{ fontSize:8, color:'#aaa', ...EN }}>{post.timestamp}</div>
+          </div>
+          <button onClick={(e) => { e.stopPropagation(); onLike(); }} style={{
+            display:'flex', alignItems:'center', gap:4,
+            border:`2px solid ${liked ? st.accent : 'rgba(0,0,0,0.15)'}`,
+            background: liked ? st.accent : 'rgba(255,255,255,0.8)',
+            color: liked ? '#fff' : '#333',
+            padding:'5px 12px', cursor: liked ? 'default' : 'pointer',
+            fontSize:11, fontWeight:700, flexShrink:0, ...ZH,
+            boxShadow:'2px 2px 0 rgba(0,0,0,0.12)',
+          }}>
+            ❤️ {post.likes}
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 // ─── Post Card ────────────────────────────────────────────────────────────────
 const PIN_COLORS = ['#E74C3C','#3B82F6','#F59E0B','#10B981','#A855F7','#6B7280'];
 
-function PostCard({ post, onLike }: { post: BoardPost; onLike: () => void }) {
+function PostCard({ post, onLike, liked }: { post: BoardPost; onLike: () => void; liked: boolean }) {
+  const [showDetail, setShowDetail] = useState(false);
   const st = TYPE_STYLE[post.type];
   return (
-    <div style={{
-      background: st.bg,
-      border:'2px solid rgba(0,0,0,0.15)',
-      boxShadow:'3px 4px 10px rgba(0,0,0,0.22)',
-      padding:'10px 10px 8px',
-      transform: `rotate(${post.tilt}deg)`,
-      position:'relative',
-      transition:'transform 0.15s',
-      cursor:'default',
-    }}
-      onMouseEnter={e => (e.currentTarget.style.transform = 'rotate(0deg) scale(1.02)')}
-      onMouseLeave={e => (e.currentTarget.style.transform = `rotate(${post.tilt}deg)`)}
-    >
-      {/* Pin */}
+    <>
+      {showDetail && (
+        <PostDetailModal
+          post={post}
+          onClose={() => setShowDetail(false)}
+          onLike={onLike}
+          liked={liked}
+        />
+      )}
       <div style={{
-        position:'absolute', top:-8, left:'50%', transform:'translateX(-50%)',
-        width:14, height:14, borderRadius:'50%',
-        background: post.pinColor,
-        border:'2px solid rgba(0,0,0,0.3)',
-        boxShadow:'0 2px 4px rgba(0,0,0,0.3)',
-        zIndex:2,
-      }}/>
+        background: st.bg,
+        border:'2px solid rgba(0,0,0,0.15)',
+        boxShadow:'3px 4px 10px rgba(0,0,0,0.22)',
+        padding:'10px 10px 8px',
+        transform: `rotate(${post.tilt}deg)`,
+        position:'relative',
+        transition:'transform 0.15s',
+        cursor:'pointer',
+      }}
+        onClick={() => setShowDetail(true)}
+        onMouseEnter={e => (e.currentTarget.style.transform = 'rotate(0deg) scale(1.02)')}
+        onMouseLeave={e => (e.currentTarget.style.transform = `rotate(${post.tilt}deg)`)}
+      >
+        {/* Pin */}
+        <div style={{
+          position:'absolute', top:-8, left:'50%', transform:'translateX(-50%)',
+          width:14, height:14, borderRadius:'50%',
+          background: post.pinColor,
+          border:'2px solid rgba(0,0,0,0.3)',
+          boxShadow:'0 2px 4px rgba(0,0,0,0.3)',
+          zIndex:2,
+        }}/>
 
-      {/* Type badge */}
-      <div style={{ display:'flex', alignItems:'center', gap:4, marginBottom:5, marginTop:2 }}>
-        <span style={{
-          background: st.accent, color:'#fff',
-          fontSize:7, fontWeight:900, padding:'1px 6px', ...ZH,
-        }}>{st.label}</span>
-        <span style={{
-          fontSize:7, color:'#888', background:'rgba(0,0,0,0.06)',
-          padding:'1px 5px', ...ZH,
-        }}>#{post.tag}</span>
-      </div>
-
-      {/* Left accent bar */}
-      <div style={{
-        borderLeft:`3px solid ${st.accent}`,
-        paddingLeft:7, marginBottom:5,
-      }}>
-        <div style={{ fontSize:11, fontWeight:900, lineHeight:1.35, ...ZH }}>{post.title}</div>
-      </div>
-
-      <div style={{
-        fontSize:9, color:'#444', lineHeight:1.6, ...ZH,
-        whiteSpace:'pre-line',
-        display:'-webkit-box', WebkitLineClamp:4, WebkitBoxOrient:'vertical', overflow:'hidden',
-      }}>
-        {post.content}
-      </div>
-
-      {/* Footer */}
-      <div style={{ marginTop:7, display:'flex', alignItems:'center', gap:6 }}>
-        <div style={{ flex:1, minWidth:0 }}>
-          <div style={{ fontSize:8, fontWeight:700, color:'#555', ...ZH, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-            {post.author}
-            {post.city && <span style={{ marginLeft:4, color: st.accent, ...EN }}>座標：{post.city}</span>}
-          </div>
-          <div style={{ fontSize:7, color:'#bbb', ...EN }}>{post.timestamp}</div>
+        {/* Type badge */}
+        <div style={{ display:'flex', alignItems:'center', gap:4, marginBottom:5, marginTop:2 }}>
+          <span style={{
+            background: st.accent, color:'#fff',
+            fontSize:7, fontWeight:900, padding:'1px 6px', ...ZH,
+          }}>{st.label}</span>
+          <span style={{
+            fontSize:7, color:'#888', background:'rgba(0,0,0,0.06)',
+            padding:'1px 5px', ...ZH,
+          }}>#{post.tag}</span>
         </div>
-        <button onClick={onLike} style={{
-          display:'flex', alignItems:'center', gap:3,
-          border:'1.5px solid rgba(0,0,0,0.15)',
-          background:'rgba(255,255,255,0.7)', padding:'2px 7px',
-          cursor:'pointer', fontSize:9, flexShrink:0, ...ZH,
-          boxShadow:'1px 1px 0 rgba(0,0,0,0.12)',
+
+        {/* Left accent bar */}
+        <div style={{
+          borderLeft:`3px solid ${st.accent}`,
+          paddingLeft:7, marginBottom:5,
         }}>
-          ❤️ {post.likes}
-        </button>
+          <div style={{ fontSize:11, fontWeight:900, lineHeight:1.35, ...ZH }}>{post.title}</div>
+        </div>
+
+        <div style={{
+          fontSize:9, color:'#444', lineHeight:1.6, ...ZH,
+          whiteSpace:'pre-line',
+          display:'-webkit-box', WebkitLineClamp:4, WebkitBoxOrient:'vertical', overflow:'hidden',
+        }}>
+          {post.content}
+        </div>
+
+        {/* Footer */}
+        <div style={{ marginTop:7, display:'flex', alignItems:'center', gap:6 }}>
+          <div style={{ flex:1, minWidth:0 }}>
+            <div style={{ fontSize:8, fontWeight:700, color:'#555', ...ZH, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+              {post.author}
+              {post.city && <span style={{ marginLeft:4, color: st.accent, ...EN }}>座標：{post.city}</span>}
+            </div>
+            <div style={{ fontSize:7, color:'#bbb', ...EN }}>{post.timestamp}</div>
+          </div>
+          <button onClick={(e) => { e.stopPropagation(); onLike(); }} style={{
+            display:'flex', alignItems:'center', gap:3,
+            border:'1.5px solid rgba(0,0,0,0.15)',
+            background:'rgba(255,255,255,0.7)', padding:'2px 7px',
+            cursor:'pointer', fontSize:9, flexShrink:0, ...ZH,
+            boxShadow:'1px 1px 0 rgba(0,0,0,0.12)',
+          }}>
+            ❤️ {post.likes}
+          </button>
+        </div>
+
+        {/* Read more hint */}
+        <div style={{
+          marginTop:4, fontSize:7, color: st.accent,
+          textAlign:'right', fontWeight:700, ...ZH,
+        }}>點擊查看全文 →</div>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -624,7 +739,7 @@ export function GuildScreen() {
           padding:'4px 6px 10px',
         }}>
           {filtered.map(post => (
-            <PostCard key={post.id} post={post} onLike={() => handleLike(post.id)} />
+            <PostCard key={post.id} post={post} onLike={() => handleLike(post.id)} liked={!!likesMap[post.id]} />
           ))}
           {filtered.length === 0 && (
             <div style={{
