@@ -36,6 +36,7 @@ interface WantedPost {
   desc:       string;
   timestamp:  string;
   messages:   DiscussMsg[];
+  found:      boolean;
 }
 import {
   collection, addDoc, onSnapshot, serverTimestamp,
@@ -879,9 +880,17 @@ function WantedBoard({
       desc:       desc.trim(),
       timestamp,
       messages:   [],
+      found:      false,
     };
     setPosts(prev => [newPost, ...prev]);
     setItemName(''); setDesc('');
+  };
+
+  const toggleFound = (postId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setPosts(prev => prev.map(p =>
+      p.id === postId ? { ...p, found: !p.found } : p
+    ));
   };
 
   const addMsg = (postId: string, msg: Omit<DiscussMsg,'id'>) => {
@@ -953,19 +962,28 @@ function WantedBoard({
         )}
         {posts.map(post => (
           <div key={post.id} style={{
-            border:'2.5px solid #000', boxShadow:'3px 3px 0 #000',
-            background:'#fffbe0', padding:'9px 12px',
+            border:`2.5px solid ${post.found ? '#aaa' : '#000'}`,
+            boxShadow: post.found ? 'none' : '3px 3px 0 #000',
+            background: post.found ? '#f0f0f0' : '#fffbe0',
+            padding:'9px 12px',
             cursor:'pointer',
+            opacity: post.found ? 0.7 : 1,
+            transition:'all 0.15s',
           }} onClick={() => setOpenPost(post)}>
             <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:3 }}>
-              <span style={{ fontSize:14 }}>🔍</span>
-              <div style={{ flex:1 }}>
-                <div style={{ fontSize:11, fontWeight:900, ...ZH }}>{post.itemName}</div>
-                {post.desc && <div style={{ fontSize:9, color:'#555', ...ZH }}>{post.desc}</div>}
+              <span style={{ fontSize:14 }}>{post.found ? '✅' : '🔍'}</span>
+              <div style={{ flex:1, minWidth:0 }}>
+                <div style={{
+                  fontSize:11, fontWeight:900, ...ZH,
+                  textDecoration: post.found ? 'line-through' : 'none',
+                  color: post.found ? '#888' : '#000',
+                }}>{post.itemName}</div>
+                {post.desc && <div style={{ fontSize:9, color:'#888', ...ZH }}>{post.desc}</div>}
               </div>
               <div style={{
-                fontSize:9, background:'#000', color:'#FFD700',
-                padding:'2px 7px', border:'1px solid #444', ...ZH, flexShrink:0,
+                fontSize:9, background: post.found ? '#aaa' : '#000',
+                color:'#FFD700', padding:'2px 7px', border:'1px solid #444',
+                ...ZH, flexShrink:0,
               }}>{post.messages.length} 則留言</div>
             </div>
             <div style={{ display:'flex', alignItems:'center', gap:6 }}>
@@ -978,6 +996,24 @@ function WantedBoard({
               )}
               <span style={{ fontSize:8, color:'#aaa', marginLeft:'auto', ...EN }}>{post.timestamp}</span>
             </div>
+            {/* Found toggle — only show for own posts */}
+            {post.playerName === (playerName || '匿名冒險者') && (
+              <div style={{ marginTop:6, display:'flex', justifyContent:'flex-end' }}>
+                <button
+                  onClick={e => toggleFound(post.id, e)}
+                  style={{
+                    padding:'3px 10px', fontSize:9, fontWeight:900,
+                    border:`1.5px solid ${post.found ? '#10B981' : '#888'}`,
+                    background: post.found ? '#10B981' : '#fff',
+                    color: post.found ? '#fff' : '#555',
+                    cursor:'pointer', ...ZH,
+                    boxShadow: post.found ? 'none' : '1px 1px 0 #888',
+                  }}
+                >
+                  {post.found ? '✓ 已徵到！' : '標記為已徵到'}
+                </button>
+              </div>
+            )}
           </div>
         ))}
       </div>
