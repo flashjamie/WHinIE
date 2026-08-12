@@ -1,5 +1,10 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom';
+import {
+  collection, addDoc, onSnapshot, serverTimestamp,
+  query, orderBy, doc, updateDoc, increment,
+} from 'firebase/firestore';
+import { db } from '../../data/firebase';
 import { ZH, EN } from '../../data/constants';
 import { useGame } from '../../context/GameContext';
 
@@ -148,19 +153,46 @@ function SOSDetail({
   const cat = SOS_CAT[post.category];
   const [replies,  setReplies]  = useState<SOSReply[]>([]);
   const [replyTxt, setReplyTxt] = useState('');
+  const [sending,  setSending]  = useState(false);
 
-  const sendReply = () => {
-    if (!replyTxt.trim()) return;
-    const now = new Date();
-    const ts = `${now.getMonth()+1}/${now.getDate()} ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
-    setReplies(prev => [...prev, {
-      id: Date.now().toString(),
-      author: playerName || '匿名冒險者',
-      city: playerCity || '',
-      content: replyTxt.trim(),
-      timestamp: ts,
-    }]);
+  // Real-time replies from Firestore
+  useEffect(() => {
+    const q = query(
+      collection(db, 'sos_posts', post.id, 'replies'),
+      orderBy('createdAt', 'asc'),
+    );
+    const unsub = onSnapshot(q, snap => {
+      setReplies(snap.docs.map(d => {
+        const data = d.data();
+        const ts = data.createdAt?.toDate?.();
+        const label = ts
+          ? `${ts.getMonth()+1}/${ts.getDate()} ${ts.getHours().toString().padStart(2,'0')}:${ts.getMinutes().toString().padStart(2,'0')}`
+          : '剛剛';
+        return { id: d.id, author: data.author, city: data.city, content: data.content, timestamp: label };
+      }));
+    }, () => {});
+    return () => unsub();
+  }, [post.id]);
+
+  const sendReply = async () => {
+    if (!replyTxt.trim() || sending) return;
+    const text = replyTxt.trim();
     setReplyTxt('');
+    setSending(true);
+    try {
+      await addDoc(collection(db, 'sos_posts', post.id, 'replies'), {
+        author: playerName || '匿名冒險者',
+        city:   playerCity || '',
+        content: text,
+        createdAt: serverTimestamp(),
+      });
+    } catch {
+      const now = new Date();
+      const ts = `${now.getMonth()+1}/${now.getDate()} ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
+      setReplies(prev => [...prev, { id: Date.now().toString(), author: playerName || '匿名冒險者', city: playerCity || '', content: text, timestamp: ts }]);
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -239,12 +271,12 @@ function SOSDetail({
             background:'#fff', ...ZH,
           }}
         />
-        <button onClick={sendReply} style={{
+        <button onClick={sendReply} disabled={sending} style={{
           padding:'8px 12px', border:'2px solid #E74C3C',
-          background:'#E74C3C', color:'#fff',
-          fontWeight:900, fontSize:11, cursor:'pointer', ...ZH,
+          background: sending ? '#ccc' : '#E74C3C', color:'#fff',
+          fontWeight:900, fontSize:11, cursor: sending ? 'default' : 'pointer', ...ZH,
           boxShadow:'2px 2px 0 #c0392b',
-        }}>送出</button>
+        }}>{sending ? '…' : '送出'}</button>
       </div>
     </div>
   );
@@ -265,16 +297,44 @@ function SOSModal({
   const [title,      setTitle]      = useState('');
   const [content,    setContent]    = useState('');
 
-  const submit = () => {
+  // Real-time SOS posts from Firestore
+  useEffect(() => {
+    const q = query(collection(db, 'sos_posts'), orderBy('createdAt', 'desc'));
+    const unsub = onSnapshot(q, snap => {
+      if (snap.empty) return;
+      const loaded: SOSPost[] = snap.docs.map(d => {
+        const data = d.data();
+        const ts = data.createdAt?.toDate?.();
+        const label = ts
+          ? `${ts.getMonth()+1}/${ts.getDate()} ${ts.getHours().toString().padStart(2,'0')}:${ts.getMinutes().toString().padStart(2,'0')}`
+          : data.timestamp || '';
+        return {
+          id: d.id, category: data.category,
+          title: data.title, content: data.content,
+          anon: data.anon, author: data.author, city: data.city,
+          timestamp: label, helpers: data.helpers ?? 0,
+        };
+      });
+      setPosts(loaded);
+    }, () => {});
+    return () => unsub();
+  }, []);
+
+  const submit = async () => {
     if (!title.trim() || !content.trim()) return;
-    const now = new Date();
-    const ts = `${now.getMonth()+1}/${now.getDate()} ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
-    setPosts(prev => [{
-      id: Date.now().toString(), category: cat,
+    const newPost = {
+      category: cat,
       title: title.trim(), content: content.trim(),
       anon, author: anon ? '' : (playerName || '匿名'),
-      city: playerCity || '', timestamp: ts, helpers: 0,
-    }, ...prev]);
+      city: playerCity || '', helpers: 0, createdAt: serverTimestamp(),
+    };
+    try {
+      await addDoc(collection(db, 'sos_posts'), newPost);
+    } catch {
+      const now = new Date();
+      const ts = `${now.getMonth()+1}/${now.getDate()} ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
+      setPosts(prev => [{ id: Date.now().toString(), ...newPost, createdAt: undefined as any, timestamp: ts }, ...prev]);
+    }
     setTitle(''); setContent(''); setView('list');
   };
 
@@ -602,19 +662,47 @@ function PostDetailModal({ post, onClose, onLike, liked }: {
   const st = TYPE_STYLE[post.type];
   const [replies,  setReplies]  = useState<BoardReply[]>([]);
   const [replyTxt, setReplyTxt] = useState('');
+  const [sending,  setSending]  = useState(false);
 
-  const sendReply = () => {
-    if (!replyTxt.trim()) return;
-    const now = new Date();
-    const ts = `${now.getMonth()+1}/${now.getDate()} ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
-    setReplies(prev => [...prev, {
-      id: Date.now().toString(),
-      author: state.player.name || '匿名冒險者',
-      city: state.player.city || '',
-      content: replyTxt.trim(),
-      timestamp: ts,
-    }]);
+  // Real-time replies from Firestore
+  useEffect(() => {
+    const q = query(
+      collection(db, 'guild_posts', post.id, 'replies'),
+      orderBy('createdAt', 'asc'),
+    );
+    const unsub = onSnapshot(q, snap => {
+      setReplies(snap.docs.map(d => {
+        const data = d.data();
+        const ts = data.createdAt?.toDate?.();
+        const label = ts
+          ? `${ts.getMonth()+1}/${ts.getDate()} ${ts.getHours().toString().padStart(2,'0')}:${ts.getMinutes().toString().padStart(2,'0')}`
+          : '剛剛';
+        return { id: d.id, author: data.author, city: data.city, content: data.content, timestamp: label };
+      }));
+    }, () => {});
+    return () => unsub();
+  }, [post.id]);
+
+  const sendReply = async () => {
+    if (!replyTxt.trim() || sending) return;
+    const text = replyTxt.trim();
     setReplyTxt('');
+    setSending(true);
+    try {
+      await addDoc(collection(db, 'guild_posts', post.id, 'replies'), {
+        author: state.player.name || '匿名冒險者',
+        city:   state.player.city || '',
+        content: text,
+        createdAt: serverTimestamp(),
+      });
+    } catch {
+      // Firestore failed — show locally as fallback
+      const now = new Date();
+      const ts = `${now.getMonth()+1}/${now.getDate()} ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
+      setReplies(prev => [...prev, { id: Date.now().toString(), author: state.player.name || '匿名冒險者', city: state.player.city || '', content: text, timestamp: ts }]);
+    } finally {
+      setSending(false);
+    }
   };
 
   return ReactDOM.createPortal(
@@ -739,13 +827,13 @@ function PostDetailModal({ post, onClose, onLike, liked }: {
               background:'#fff', ...ZH,
             }}
           />
-          <button onClick={sendReply} style={{
+          <button onClick={sendReply} disabled={sending} style={{
             padding:'8px 12px',
             border:`2px solid ${st.accent}`,
-            background: st.accent, color:'#fff',
-            fontWeight:900, fontSize:11, cursor:'pointer', ...ZH,
+            background: sending ? '#ccc' : st.accent, color:'#fff',
+            fontWeight:900, fontSize:11, cursor: sending ? 'default' : 'pointer', ...ZH,
             boxShadow:`2px 2px 0 ${st.accent}88`,
-          }}>送出</button>
+          }}>{sending ? '…' : '送出'}</button>
         </div>
       </div>
     </div>,
@@ -859,22 +947,62 @@ export function GuildScreen() {
   const [showForm,  setShowForm]  = useState(false);
   const [showSOS,   setShowSOS]   = useState(false);
   const [likesMap,  setLikesMap]  = useState<Record<string, boolean>>({});
+  const [syncErr,   setSyncErr]   = useState(false);
 
-  const addPost = (p: Omit<BoardPost,'id'|'likes'|'tilt'|'pinColor'>) => {
-    const tilts      = [-1.5, 1, -1, 2, 0.5, 1.5, -2, 0];
-    const idx        = posts.length % tilts.length;
-    const pinIdx     = posts.length % PIN_COLORS.length;
-    setPosts(prev => [{
-      ...p, id: Date.now().toString(), likes: 0,
-      tilt: tilts[idx], pinColor: PIN_COLORS[pinIdx],
-    }, ...prev]);
+  // Real-time listener for guild board posts
+  useEffect(() => {
+    const q = query(collection(db, 'guild_posts'), orderBy('createdAt', 'desc'));
+    const unsub = onSnapshot(q, snap => {
+      if (snap.empty) return; // keep seeds while Firestore is empty
+      const tilts     = [-1.5, 1, -1, 2, 0.5, 1.5, -2, 0];
+      const loaded: BoardPost[] = snap.docs.map((d, i) => {
+        const data = d.data();
+        const ts = data.createdAt?.toDate?.();
+        const label = ts
+          ? `${ts.getMonth()+1}/${ts.getDate()} ${ts.getHours().toString().padStart(2,'0')}:${ts.getMinutes().toString().padStart(2,'0')}`
+          : data.timestamp || '';
+        return {
+          id: d.id,
+          type:      data.type,
+          tag:       data.tag,
+          title:     data.title,
+          content:   data.content,
+          author:    data.author,
+          city:      data.city,
+          timestamp: label,
+          likes:     data.likes ?? 0,
+          pinColor:  data.pinColor ?? PIN_COLORS[i % PIN_COLORS.length],
+          tilt:      data.tilt      ?? tilts[i % tilts.length],
+        };
+      });
+      setPosts(loaded);
+      setSyncErr(false);
+    }, () => setSyncErr(true));
+    return () => unsub();
+  }, []);
+
+  const addPost = async (p: Omit<BoardPost,'id'|'likes'|'tilt'|'pinColor'>) => {
+    const tilts  = [-1.5, 1, -1, 2, 0.5, 1.5, -2, 0];
+    const tilt   = tilts[posts.length % tilts.length];
+    const pinColor = PIN_COLORS[posts.length % PIN_COLORS.length];
+    try {
+      await addDoc(collection(db, 'guild_posts'), {
+        ...p, likes: 0, tilt, pinColor, createdAt: serverTimestamp(),
+      });
+    } catch {
+      // Firestore failed — add locally
+      setPosts(prev => [{ ...p, id: Date.now().toString(), likes: 0, tilt, pinColor }, ...prev]);
+    }
     setShowForm(false);
   };
 
-  const handleLike = (id: string) => {
+  const handleLike = async (id: string) => {
     if (likesMap[id]) return;
     setLikesMap(prev => ({ ...prev, [id]: true }));
     setPosts(prev => prev.map(p => p.id === id ? { ...p, likes: p.likes + 1 } : p));
+    try {
+      await updateDoc(doc(db, 'guild_posts', id), { likes: increment(1) });
+    } catch { /* local update already applied */ }
   };
 
   const filtered = filter === 'all' ? posts : posts.filter(p => p.type === filter);
