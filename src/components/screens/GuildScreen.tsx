@@ -127,6 +127,144 @@ const SOS_CAT: Record<SOSCategory, { color: string; icon: string }> = {
 };
 
 // ─── SOS Modal ────────────────────────────────────────────────────────────────
+// ─── SOS Reply type ───────────────────────────────────────────────────────────
+interface SOSReply {
+  id:        string;
+  author:    string;
+  city:      string;
+  content:   string;
+  timestamp: string;
+}
+
+// ─── SOS Detail (inner panel) ─────────────────────────────────────────────────
+function SOSDetail({
+  post, onBack, onHelp, helped, playerName, playerCity,
+}: {
+  post:        SOSPost;
+  onBack:      () => void;
+  onHelp:      () => void;
+  helped:      boolean;
+  playerName:  string;
+  playerCity:  string;
+}) {
+  const cat = SOS_CAT[post.category];
+  const [replies,  setReplies]  = useState<SOSReply[]>([]);
+  const [replyTxt, setReplyTxt] = useState('');
+
+  const sendReply = () => {
+    if (!replyTxt.trim()) return;
+    const now = new Date();
+    const ts = `${now.getMonth()+1}/${now.getDate()} ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
+    setReplies(prev => [...prev, {
+      id: Date.now().toString(),
+      author: playerName || '匿名冒險者',
+      city: playerCity || '',
+      content: replyTxt.trim(),
+      timestamp: ts,
+    }]);
+    setReplyTxt('');
+  };
+
+  return (
+    <div style={{ display:'flex', flexDirection:'column', height:'100%' }}>
+      {/* Back bar */}
+      <button onClick={onBack} style={{
+        flexShrink:0, display:'flex', alignItems:'center', gap:6,
+        padding:'8px 14px', border:'none', borderBottom:'2px solid #FFCDD2',
+        background:'#FDECEA', cursor:'pointer', fontSize:10, color:'#C62828', ...ZH,
+      }}>← 返回求助列表</button>
+
+      <div style={{ flex:1, overflowY:'auto' }}>
+        {/* Post body */}
+        <div style={{ padding:'12px 14px', borderBottom:'2px solid #FFCDD2' }}>
+          <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:8 }}>
+            <span style={{
+              background: cat.color, color:'#fff',
+              fontSize:8, fontWeight:900, padding:'2px 8px', ...ZH,
+            }}>{cat.icon} {post.category}</span>
+            {post.anon && (
+              <span style={{ fontSize:8, color:'#888', border:'1px solid #ddd', padding:'1px 5px', ...ZH }}>匿名發布</span>
+            )}
+            <span style={{ marginLeft:'auto', fontSize:8, color:'#bbb', ...EN }}>{post.timestamp}</span>
+          </div>
+          <div style={{ fontSize:14, fontWeight:900, marginBottom:8, lineHeight:1.4, ...ZH }}>{post.title}</div>
+          <div style={{ fontSize:11, color:'#444', lineHeight:1.8, whiteSpace:'pre-line', ...ZH }}>{post.content}</div>
+          {!post.anon && post.author && (
+            <div style={{ marginTop:8, fontSize:9, color:'#888', ...ZH }}>
+              {post.author}
+              {post.city && <span style={{ marginLeft:4, ...EN }}>座標：{post.city}</span>}
+            </div>
+          )}
+
+          {/* Help button */}
+          <button onClick={onHelp} disabled={helped} style={{
+            marginTop:12, width:'100%', padding:'10px',
+            border:`2.5px solid ${cat.color}`,
+            boxShadow: helped ? 'none' : `4px 4px 0 ${cat.color}`,
+            background: helped ? '#f5f5f5' : cat.color,
+            color: helped ? '#aaa' : '#fff',
+            fontSize:12, fontWeight:900, cursor: helped ? 'default' : 'pointer', ...ZH,
+            transition:'all 0.15s',
+          }}>
+            {helped ? `✓ 你已伸出援手（共 ${post.helpers} 人）` : `🤝 伸出援手（${post.helpers} 人）`}
+          </button>
+        </div>
+
+        {/* Replies */}
+        <div style={{ padding:'10px 14px' }}>
+          <div style={{ fontSize:9, fontWeight:900, color:'#888', marginBottom:8, ...ZH }}>
+            💬 經驗分享 · 留言區（{replies.length}）
+          </div>
+          {replies.length === 0 && (
+            <div style={{ fontSize:10, color:'#ccc', textAlign:'center', padding:'12px 0', ...ZH }}>
+              還沒有人留言，成為第一個分享經驗的人吧！
+            </div>
+          )}
+          {replies.map(r => (
+            <div key={r.id} style={{
+              marginBottom:8, padding:'8px 10px',
+              background:'#fff', border:'1.5px solid #FFCDD2',
+              boxShadow:'2px 2px 0 #FFCDD2',
+            }}>
+              <div style={{ fontSize:9, fontWeight:700, color:'#555', marginBottom:4, ...ZH }}>
+                {r.author}
+                {r.city && <span style={{ marginLeft:4, color:'#E74C3C', ...EN }}>座標：{r.city}</span>}
+                <span style={{ marginLeft:6, color:'#bbb', fontWeight:400, ...EN }}>{r.timestamp}</span>
+              </div>
+              <div style={{ fontSize:11, color:'#333', lineHeight:1.7, ...ZH }}>{r.content}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Reply input */}
+      <div style={{
+        flexShrink:0, padding:'10px 14px',
+        borderTop:'2px solid #FFCDD2', background:'#FFF5F5',
+        display:'flex', gap:8,
+      }}>
+        <input
+          value={replyTxt}
+          onChange={e => setReplyTxt(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && sendReply()}
+          placeholder="分享你的經驗或建議…"
+          style={{
+            flex:1, padding:'8px 10px', fontSize:11,
+            border:'2px solid #FFCDD2', outline:'none',
+            background:'#fff', ...ZH,
+          }}
+        />
+        <button onClick={sendReply} style={{
+          padding:'8px 12px', border:'2px solid #E74C3C',
+          background:'#E74C3C', color:'#fff',
+          fontWeight:900, fontSize:11, cursor:'pointer', ...ZH,
+          boxShadow:'2px 2px 0 #c0392b',
+        }}>送出</button>
+      </div>
+    </div>
+  );
+}
+
 function SOSModal({
   onClose, playerName, playerCity,
 }: {
@@ -134,12 +272,14 @@ function SOSModal({
   playerName: string;
   playerCity: string;
 }) {
-  const [posts, setPosts]     = useState<SOSPost[]>(SEED_SOS);
-  const [view,  setView]      = useState<'list'|'new'>('list');
-  const [anon,  setAnon]      = useState(true);
-  const [cat,   setCat]       = useState<SOSCategory>('其他');
-  const [title, setTitle]     = useState('');
-  const [content, setContent] = useState('');
+  const [posts,      setPosts]      = useState<SOSPost[]>(SEED_SOS);
+  const [view,       setView]       = useState<'list'|'new'>('list');
+  const [detailId,   setDetailId]   = useState<string|null>(null);
+  const [helpedSet,  setHelpedSet]  = useState<Set<string>>(new Set());
+  const [anon,       setAnon]       = useState(true);
+  const [cat,        setCat]        = useState<SOSCategory>('其他');
+  const [title,      setTitle]      = useState('');
+  const [content,    setContent]    = useState('');
 
   const submit = () => {
     if (!title.trim() || !content.trim()) return;
@@ -153,6 +293,14 @@ function SOSModal({
     }, ...prev]);
     setTitle(''); setContent(''); setView('list');
   };
+
+  const handleHelp = (id: string) => {
+    if (helpedSet.has(id)) return;
+    setHelpedSet(prev => new Set([...prev, id]));
+    setPosts(prev => prev.map(p => p.id === id ? { ...p, helpers: p.helpers + 1 } : p));
+  };
+
+  const detailPost = detailId ? posts.find(p => p.id === detailId) : null;
 
   return ReactDOM.createPortal(
     <div style={{
@@ -191,40 +339,62 @@ function SOSModal({
           ⚠️ 此版面僅供台灣打工人互助交流，如遇緊急情況請優先撥打 112。
         </div>
 
-        {/* Tab */}
-        <div style={{ flexShrink:0, display:'flex', borderBottom:'2px solid #FFCDD2' }}>
-          {([
-            { id:'list' as const, label:'📋 求助紀錄' },
-            { id:'new'  as const, label:'🆘 發起求助' },
-          ]).map((t, i) => (
-            <button key={t.id} onClick={() => setView(t.id)} style={{
-              flex:1, padding:'8px 4px', border:'none',
-              borderRight: i===0 ? '1.5px solid #FFCDD2' : 'none',
-              background: view===t.id ? '#E74C3C' : '#FFF5F5',
-              color: view===t.id ? '#fff' : '#E74C3C',
-              fontWeight: view===t.id ? 900 : 400,
-              fontSize:11, cursor:'pointer', ...ZH,
-            }}>{t.label}</button>
-          ))}
-        </div>
+        {/* Tab — hidden when in detail view */}
+        {!detailPost && (
+          <div style={{ flexShrink:0, display:'flex', borderBottom:'2px solid #FFCDD2' }}>
+            {([
+              { id:'list' as const, label:'📋 求助紀錄' },
+              { id:'new'  as const, label:'🆘 發起求助' },
+            ]).map((t, i) => (
+              <button key={t.id} onClick={() => setView(t.id)} style={{
+                flex:1, padding:'8px 4px', border:'none',
+                borderRight: i===0 ? '1.5px solid #FFCDD2' : 'none',
+                background: view===t.id ? '#E74C3C' : '#FFF5F5',
+                color: view===t.id ? '#fff' : '#E74C3C',
+                fontWeight: view===t.id ? 900 : 400,
+                fontSize:11, cursor:'pointer', ...ZH,
+              }}>{t.label}</button>
+            ))}
+          </div>
+        )}
 
         {/* Content */}
-        <div style={{ flex:1, overflowY:'auto' }}>
-          {view === 'list' && (
+        <div style={{ flex:1, overflowY: detailPost ? 'hidden' : 'auto', display:'flex', flexDirection:'column' }}>
+
+          {/* Detail view */}
+          {detailPost && (
+            <SOSDetail
+              post={detailPost}
+              onBack={() => setDetailId(null)}
+              onHelp={() => handleHelp(detailPost.id)}
+              helped={helpedSet.has(detailPost.id)}
+              playerName={playerName}
+              playerCity={playerCity}
+            />
+          )}
+
+          {/* List view */}
+          {!detailPost && view === 'list' && (
             <div style={{ padding:'10px 12px', display:'flex', flexDirection:'column', gap:10 }}>
               {posts.map(p => {
-                const cat = SOS_CAT[p.category];
+                const c = SOS_CAT[p.category];
                 return (
-                  <div key={p.id} style={{
-                    border:`2.5px solid ${cat.color}`,
-                    boxShadow:`3px 3px 0 ${cat.color}55`,
-                    background:'#fff', padding:'10px 12px',
-                  }}>
+                  <div key={p.id}
+                    onClick={() => setDetailId(p.id)}
+                    style={{
+                      border:`2.5px solid ${c.color}`,
+                      boxShadow:`3px 3px 0 ${c.color}55`,
+                      background:'#fff', padding:'10px 12px',
+                      cursor:'pointer', transition:'transform 0.1s',
+                    }}
+                    onMouseEnter={e => (e.currentTarget.style.transform = 'translateY(-2px)')}
+                    onMouseLeave={e => (e.currentTarget.style.transform = 'none')}
+                  >
                     <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:5 }}>
                       <span style={{
-                        background: cat.color, color:'#fff',
+                        background: c.color, color:'#fff',
                         fontSize:8, fontWeight:900, padding:'2px 7px', ...ZH,
-                      }}>{cat.icon} {p.category}</span>
+                      }}>{c.icon} {p.category}</span>
                       {p.anon && (
                         <span style={{
                           fontSize:8, color:'#888', border:'1px solid #ddd',
@@ -234,7 +404,10 @@ function SOSModal({
                       <span style={{ marginLeft:'auto', fontSize:8, color:'#bbb', ...EN }}>{p.timestamp}</span>
                     </div>
                     <div style={{ fontSize:12, fontWeight:900, marginBottom:4, ...ZH }}>{p.title}</div>
-                    <div style={{ fontSize:10, color:'#555', lineHeight:1.6, ...ZH }}>{p.content}</div>
+                    <div style={{
+                      fontSize:10, color:'#555', lineHeight:1.6, ...ZH,
+                      display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden',
+                    }}>{p.content}</div>
                     <div style={{
                       marginTop:8, display:'flex', alignItems:'center', gap:8, fontSize:9, color:'#888',
                     }}>
@@ -244,9 +417,12 @@ function SOSModal({
                           {p.city && <span style={{ marginLeft:4, ...EN }}>座標：{p.city}</span>}
                         </span>
                       )}
-                      <span style={{ marginLeft:'auto', color: cat.color, fontWeight:900, ...ZH }}>
+                      <span style={{ marginLeft:'auto', color: c.color, fontWeight:900, ...ZH }}>
                         🤝 {p.helpers} 人伸出援手
                       </span>
+                    </div>
+                    <div style={{ marginTop:4, fontSize:8, color: c.color, textAlign:'right', fontWeight:700, ...ZH }}>
+                      點擊查看全文 →
                     </div>
                   </div>
                 );
