@@ -74,7 +74,7 @@ function FlightArc() {
         strokeLinecap="round" fill="none" />
       <g transform={`translate(${mx},${my}) rotate(${angle})`}>
         <text textAnchor="middle" dominantBaseline="middle"
-          fontSize={11} style={{ userSelect: 'none' }}>✈</text>
+          fill="rgba(236, 231, 221, 0.8)" fontSize={18} style={{ userSelect: 'none' }}>✈</text>
       </g>
     </g>
   );
