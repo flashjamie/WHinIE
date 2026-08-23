@@ -446,13 +446,13 @@ export function BagScreen() {
       {/* ── Header ── */}
       <div style={{
         position:'sticky', top:0, zIndex:20,
-        background:C.black, color:'#fff',
+        background:'#2C1A0E', color:'#C9A96E',
         padding:'10px 14px',
         display:'flex', alignItems:'center', gap:10,
       }}>
         <div>
           <div style={{ fontSize:13, fontWeight:900, letterSpacing:'0.08em', ...EN }}>GEAR LAYOUT</div>
-          <div style={{ fontSize:9, color:'#C9A96E', ...ZH }}>生存背包 · 物料整備系統</div>
+          <div style={{ fontSize:9, color:'#8B6239', ...ZH }}>生存背包 · 物料整備系統</div>
         </div>
         <div style={{ marginLeft:'auto', display:'flex', flexDirection:'column', alignItems:'flex-end', gap:4 }}>
           <div style={{ fontSize:9, color:'#FFD700', fontWeight:900, ...EN }}>

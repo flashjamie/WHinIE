@@ -250,12 +250,12 @@ function SellerForm({ onSubmit, onBack, items, onUpdatePrice, onToggleSold }: {
       )}
       {/* Header */}
       <div style={{
-        flexShrink:0, background:'#000', color:'#FFD700',
+        flexShrink:0, background:'#2C1A0E', color:'#C9A96E',
         padding:'8px 14px', borderBottom:'3px solid #000',
         display:'flex', alignItems:'center', gap:8,
       }}>
         <button onClick={onBack} style={{
-          background:'none', border:'none', color:'#FFD700',
+          background:'none', border:'none', color:'#C9A96E',
           fontSize:14, cursor:'pointer', fontWeight:900,
         }}>↩</button>
         <span style={{ fontSize:13, fontWeight:900, ...ZH }}>📦 賣家上架台</span>
@@ -520,12 +520,12 @@ function ItemDetailModal({ item, onClose }: { item: ThriftItem; onClose: () => v
       }} onClick={e => e.stopPropagation()}>
         {/* Modal header */}
         <div style={{
-          background:'#000', color:'#FFD700', padding:'8px 12px',
+          background:'#2C1A0E', color:'#C9A96E', padding:'8px 12px',
           display:'flex', alignItems:'center', gap:8, flexShrink:0,
         }}>
           <span style={{ fontSize:12, fontWeight:900, flex:1, ...ZH }}>{item.name}</span>
           <button onClick={onClose} style={{
-            background:'none', border:'none', color:'#FFD700',
+            background:'none', border:'none', color:'#C9A96E',
             fontSize:18, cursor:'pointer', lineHeight:1,
           }}>✕</button>
         </div>

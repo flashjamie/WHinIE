@@ -696,8 +696,8 @@ export function AIBScreen() {
       {/* Header */}
       <div style={{
         flexShrink:0,
-        background:'linear-gradient(135deg,#0a3a1a,#1a6b3a)',
-        color:'#fff', padding:'7px 12px',
+        background:'#2C1A0E',
+        color:'#C9A96E', padding:'7px 12px',
         borderBottom:'3px solid #000',
         display:'flex', alignItems:'center', gap:8,
       }}>

@@ -61,7 +61,7 @@ export function SetupScreen() {
 
       {/* ── Header ── */}
       <div style={{
-        background: '#000', color: '#FDFBF7',
+        background: '#2C1A0E', color: '#C9A96E',
         padding: '10px 16px', flexShrink: 0,
         display: 'flex', alignItems: 'center', gap: 10,
       }}>
@@ -70,7 +70,7 @@ export function SetupScreen() {
           <div style={{ fontSize: 14, fontWeight: 900, letterSpacing: '0.06em', ...ZH }}>
             冒險者護照 — 身份設定
           </div>
-          <div style={{ fontSize: 9, color: '#aaa', letterSpacing: '0.12em', ...EN }}>
+          <div style={{ fontSize: 9, color: '#8B6239', letterSpacing: '0.12em', ...EN }}>
             PASSPORT CONFIGURATION · REPUBLIC OF IRELAND
           </div>
         </div>

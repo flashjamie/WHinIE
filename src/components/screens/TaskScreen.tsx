@@ -292,7 +292,7 @@ export function TaskScreen() {
     if (hasArrived) dispatch({ type: 'SHOW_PARTICLES' });
   }, [hasArrived]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const hudBg  = hasArrived ? '#a8f0a8' : dayStatus.type === 'countdown' ? '#FFE082' : '#e8e4d8';
+  const hudBg  = '#2C1A0E';
   const hudMsg =
     dayStatus.type === 'arrived'   ? `☘️ 登陸愛爾蘭：Day ${dayStatus.days}`
   : dayStatus.type === 'countdown' ? `✈️ 出發倒數 D-${dayStatus.days} 天`
@@ -308,8 +308,8 @@ export function TaskScreen() {
         display: 'flex', alignItems: 'center', gap: 8,
       }}>
         <span style={{ fontSize: 18 }}>{hasArrived ? '☘️' : '🗓️'}</span>
-        <span style={{ fontSize: 12, fontWeight: 700, ...ZH }}>{hudMsg}</span>
-        <span style={{ marginLeft: 'auto', fontSize: 10, color: '#555', fontWeight: 700, ...EN }}>
+        <span style={{ fontSize: 12, fontWeight: 700, color:'#C9A96E', ...ZH }}>{hudMsg}</span>
+        <span style={{ marginLeft: 'auto', fontSize: 10, color: '#8B6239', fontWeight: 700, ...EN }}>
           {totalXP} XP
         </span>
       </div>
