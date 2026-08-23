@@ -37,7 +37,7 @@ export function NotebookContainer({ children }: { children: React.ReactNode }) {
 
   const allTabs = [
     ...TABS,
-    { id: 'SETUP' as const, label: '角色', emoji: '⚙️' },
+    { id: 'SETUP' as const, label: 'Setting', emoji: '⚙️' },
   ];
 
   return (
