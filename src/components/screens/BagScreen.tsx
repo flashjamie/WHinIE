@@ -465,8 +465,7 @@ export function BagScreen() {
         display:'flex', alignItems:'center', gap:10,
       }}>
         <div>
-          <div style={{ fontSize:13, fontWeight:900, letterSpacing:'0.08em', ...EN }}>What's In My Bag</div>
-          <div style={{ fontSize:9, color:'#8B6239', ...ZH }}> 行李清單</div>
+          <div style={{ fontSize:13, fontWeight:900, letterSpacing:'0.08em', ...EN }}>What's in My Pack</div>        </div>
         </div>
         <div style={{ marginLeft:'auto', display:'flex', flexDirection:'column', alignItems:'flex-end', gap:4 }}>
           <div style={{ fontSize:9, color:'#FFD700', fontWeight:900, ...EN }}>
