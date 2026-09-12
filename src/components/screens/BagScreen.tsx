@@ -500,7 +500,7 @@ export function BagScreen() {
 
       {/* ── Floating backpack indicator (bottom-right) ── */}
       <div style={{
-        position:'fixed', bottom:20, right:20, zIndex:50,
+        position:'fixed', bottom:20, right:70, zIndex:50,
         background:C.black, border:`2.5px solid ${C.black}`,
         boxShadow:'4px 4px 0 rgba(0,0,0,0.4)',
         padding:'6px 8px',
