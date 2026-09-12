@@ -199,21 +199,23 @@ function BackpackSVG({ fills }: { fills: Record<string, number> }) {
 
 // ─── Section Card ─────────────────────────────────────────────────────────────
 function SectionCard({
-  cat, gender, checked, onToggle, customItems, onAddCustom, defaultOpen,
+  cat, gender, checked, onToggle, customItems, onAddCustom, onDeleteBuiltin, hiddenBuiltin, defaultOpen,
 }: {
-  cat:         GearCategory;
-  gender:      string;
-  checked:     Set<string>;
-  onToggle:    (id: string) => void;
-  customItems: CustomItem[];
-  onAddCustom: (label: string, catId: string) => void;
-  defaultOpen?: boolean;
+  cat:              GearCategory;
+  gender:           string;
+  checked:          Set<string>;
+  onToggle:         (id: string) => void;
+  customItems:      CustomItem[];
+  onAddCustom:      (label: string, catId: string) => void;
+  onDeleteBuiltin:  (id: string) => void;
+  hiddenBuiltin:    Set<string>;
+  defaultOpen?:     boolean;
 }) {
   const [open,    setOpen]    = useState(defaultOpen ?? false);
   const [addOpen, setAddOpen] = useState(false);
   const [inputV,  setInputV]  = useState('');
 
-  const visibleBuiltin = cat.items.filter(i => !i.femaleOnly || gender === 'female');
+  const visibleBuiltin = cat.items.filter(i => (!i.femaleOnly || gender === 'female') && !hiddenBuiltin.has(i.id));
   const visibleCustom  = customItems.filter(c => c.catId === cat.id);
   const allVisible     = [...visibleBuiltin.map(i => i.id), ...visibleCustom.map(c => c.id)];
   const doneCount      = allVisible.filter(id => checked.has(id)).length;
@@ -299,6 +301,17 @@ function SectionCard({
               background: done ? `${cat.color}22` : C.bg,
               transition: 'background 0.2s',
             }}>
+              <div
+                onClick={e => { e.stopPropagation(); onDeleteBuiltin(item.id); }}
+                style={{
+                  position: 'absolute', top: 2, left: 3,
+                  width: 13, height: 13,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 10, color: '#bbb', cursor: 'pointer', lineHeight: 1,
+                  fontWeight: 900,
+                }}
+                title="刪除此項目"
+              >×</div>
               {done && (
                 <div style={{
                   position:'absolute', top:3, right:3,
@@ -406,8 +419,9 @@ export function BagScreen() {
   const { state } = useGame();
   const gender = state.player.gender;
 
-  const [checked,     setChecked]     = useState<Set<string>>(new Set());
-  const [customItems, setCustomItems] = useState<CustomItem[]>([]);
+  const [checked,       setChecked]       = useState<Set<string>>(new Set());
+  const [customItems,   setCustomItems]   = useState<CustomItem[]>([]);
+  const [hiddenBuiltin, setHiddenBuiltin] = useState<Set<string>>(new Set());
 
   const toggleItem = useCallback((id: string) => {
     setChecked(prev => {
@@ -421,10 +435,15 @@ export function BagScreen() {
     setCustomItems(p => [...p, { id:`c_${Date.now()}`, label, catId }]);
   }, []);
 
+  const deleteBuiltin = useCallback((id: string) => {
+    setHiddenBuiltin(prev => new Set([...prev, id]));
+    setChecked(prev => { const next = new Set(prev); next.delete(id); return next; });
+  }, []);
+
   // Compute fills for backpack SVG
   const fills = Object.fromEntries(
     GEAR.map(cat => {
-      const visible = cat.items.filter(i => !i.femaleOnly || gender === 'female');
+      const visible = cat.items.filter(i => (!i.femaleOnly || gender === 'female') && !hiddenBuiltin.has(i.id));
       const custom  = customItems.filter(c => c.catId === cat.id);
       const all     = [...visible.map(i => i.id), ...custom.map(c => c.id)];
       const done    = all.filter(id => checked.has(id)).length;
@@ -479,6 +498,8 @@ export function BagScreen() {
             onToggle={toggleItem}
             customItems={customItems}
             onAddCustom={addCustom}
+            onDeleteBuiltin={deleteBuiltin}
+            hiddenBuiltin={hiddenBuiltin}
             defaultOpen={i === 0}
           />
         ))}
