@@ -21,7 +21,7 @@ interface GearCategory {
   label: string;
   icon:  string;
   color: string;
-  tip:   string;
+  tip?:  string;
   items: GearItem[];
 }
 interface CustomItem { id: string; label: string; catId: string; }
@@ -269,15 +269,17 @@ function SectionCard({
       </div>
 
       {/* Tip banner */}
-      <div style={{
-        background: `${cat.color}15`,
-        borderBottom: `1px solid ${cat.color}33`,
-        padding: '7px 12px',
-        display: 'flex', gap: 6,
-      }}>
-        <span style={{ fontSize: 12, flexShrink: 0 }}>💡</span>
-        <span style={{ fontSize: 9, lineHeight: 1.6, color: '#444', ...ZH }}>{cat.tip}</span>
-      </div>
+      {cat.tip && (
+        <div style={{
+          background: `${cat.color}15`,
+          borderBottom: `1px solid ${cat.color}33`,
+          padding: '7px 12px',
+          display: 'flex', gap: 6,
+        }}>
+          <span style={{ fontSize: 12, flexShrink: 0 }}>💡</span>
+          <span style={{ fontSize: 9, lineHeight: 1.6, color: '#444', ...ZH }}>{cat.tip}</span>
+        </div>
+      )}
 
       {/* Items grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)' }}>
