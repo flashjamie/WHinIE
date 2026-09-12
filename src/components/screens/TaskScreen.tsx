@@ -235,9 +235,17 @@ export function TaskScreen() {
   const { completedTasks, completedDaily } = state;
   const { dayStatus, hasArrived, totalXP } = derived;
 
-  const [activeTab,    setActiveTab]    = useState<TabKey>('main');
-  const [selectedMain, setSelectedMain] = useState<string | null>(MAIN_TASKS[0]?.id ?? null);
-  const [selectedDaily,setSelectedDaily]= useState<string | null>(DAILY_TASKS[0]?.id ?? null);
+  const [activeTab,      setActiveTab]      = useState<TabKey>('main');
+  const [selectedMain,   setSelectedMain]   = useState<string | null>(MAIN_TASKS[0]?.id ?? null);
+  const [selectedDaily,  setSelectedDaily]  = useState<string | null>(DAILY_TASKS[0]?.id ?? null);
+  const [collapsed,      setCollapsed]      = useState<Set<TaskLevel>>(new Set());
+
+  const toggleCollapse = (level: TaskLevel) =>
+    setCollapsed(prev => {
+      const next = new Set(prev);
+      next.has(level) ? next.delete(level) : next.add(level);
+      return next;
+    });
 
   const hudMsg =
     dayStatus.type === 'arrived'   ? `☘️ 登陸愛爾蘭：Day ${dayStatus.days}`
@@ -304,27 +312,36 @@ export function TaskScreen() {
           overflowY: 'auto', display: 'flex', flexDirection: 'column',
         }}>
           {activeTab === 'main' && levels.map(level => {
-            const meta    = LEVEL_META[level];
-            const locked  = isLocked(level);
-            const tasks   = MAIN_TASKS.filter(t => t.level === level);
-            const lvDone  = tasks.filter(t => completedTasks.has(t.id)).length;
+            const meta       = LEVEL_META[level];
+            const locked     = isLocked(level);
+            const tasks      = MAIN_TASKS.filter(t => t.level === level);
+            const lvDone     = tasks.filter(t => completedTasks.has(t.id)).length;
+            const isCollapsed = collapsed.has(level);
             return (
               <div key={level}>
-                {/* Category header */}
-                <div style={{
-                  padding: '6px 10px', display: 'flex', alignItems: 'center', gap: 6,
-                  background: `${meta.color}18`, borderBottom: `1px solid ${meta.color}44`,
-                  borderTop: `1px solid ${meta.color}44`,
-                  opacity: locked ? 0.5 : 1,
-                }}>
+                {/* Category header — click to collapse/expand */}
+                <div
+                  onClick={() => toggleCollapse(level)}
+                  style={{
+                    padding: '6px 10px', display: 'flex', alignItems: 'center', gap: 6,
+                    background: `${meta.color}22`, borderBottom: `1px solid ${meta.color}55`,
+                    borderTop: `1px solid ${meta.color}55`,
+                    opacity: locked ? 0.5 : 1,
+                    cursor: 'pointer', userSelect: 'none',
+                  }}>
                   <span style={{ fontSize: 11 }}>{locked ? '🔒' : meta.emoji}</span>
                   <span style={{ fontSize: 9, fontWeight: 900, color: meta.color, flex: 1, ...ZH }}>{meta.label}</span>
-                  <span style={{ fontSize: 8, color: P.muted, ...EN }}>{lvDone}/{tasks.length}</span>
+                  <span style={{ fontSize: 8, color: P.muted, marginRight: 4, ...EN }}>{lvDone}/{tasks.length}</span>
+                  <span style={{
+                    fontSize: 8, color: meta.color,
+                    transform: isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)',
+                    transition: 'transform 0.2s', display: 'inline-block',
+                  }}>▼</span>
                 </div>
-                {/* Quest items */}
-                {tasks.map(task => {
-                  const done    = completedTasks.has(task.id);
-                  const active  = selectedMain === task.id;
+                {/* Quest items — hidden when collapsed */}
+                {!isCollapsed && tasks.map(task => {
+                  const done   = completedTasks.has(task.id);
+                  const active = selectedMain === task.id;
                   return (
                     <div key={task.id}
                       onClick={() => !locked && setSelectedMain(task.id)}
