@@ -49,6 +49,9 @@ export interface Task {
   level:    TaskLevel;
   xp:       number;
   optional: boolean;
+  objective?: string;
+  guide?:     string[];
+  reward?:    string;
 }
 
 // ─── Daily Tasks ──────────────────────────────────────────────────────────────
