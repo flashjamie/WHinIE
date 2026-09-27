@@ -110,7 +110,7 @@ function QuestDetail({ task, done, onToggle }: { task: Task; done: boolean; onTo
                   <span style={{ fontSize: 9, color: P.gold, flexShrink: 0, fontWeight: 900, marginTop: 1, ...EN }}>
                     {String(i + 1).padStart(2, '0')}
                   </span>
-                  <span style={{ fontSize: 11, color: '#c5d8ec', lineHeight: 1.7, ...ZH }}>{step}</span>
+                  <span style={{ fontSize: 11, color: '#c5d8ec', lineHeight: 1.8, whiteSpace: 'pre-line', ...ZH }}>{step}</span>
                 </div>
               ))}
             </div>
