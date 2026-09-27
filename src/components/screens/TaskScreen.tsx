@@ -90,7 +90,7 @@ function QuestDetail({ task, done, onToggle }: { task: Task; done: boolean; onTo
               background: '#0a1a2e', border: `1px solid ${P.panelBd}`,
               padding: '10px 12px',
             }}>
-              <span style={{ fontSize: 11, color: P.white, lineHeight: 1.7, ...ZH }}>{task.objective}</span>
+              <span style={{ fontSize: 11, color: P.white, lineHeight: 1.7, whiteSpace: 'pre-line', ...ZH }}>{task.objective}</span>
             </div>
           </div>
         )}
