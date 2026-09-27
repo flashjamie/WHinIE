@@ -179,7 +179,18 @@ export const MAIN_TASKS: Task[] = [
   { id: 'tw_remit',     icon: '🏦', label: '辦理海外金融帳戶',       level: 'LV0_TW', xp:  80, optional: false,
     objective: '申辦 Wise 或 Revolut 帳戶，以低手續費方式在愛爾蘭使用與匯款。' },
   { id: 'tw_esim',      icon: '📱', label: '購買愛爾蘭 eSIM',        level: 'LV0_TW', xp:  60, optional: false,
-    objective: '出發前購買愛爾蘭落地即用的 eSIM 或預付 SIM 卡，確保抵達後立即有網路。' },
+    objective: '出發前購買 eSIM 或預付 SIM 卡，確保抵達後立即有網路，並取得當地電話號碼（開戶、面試常需要）。',
+    guide: [
+      '📶 愛爾蘭三大電信比較\n以下均提供預付卡方案（Prepay Plans），4 週加值一次，無需綁約，適合打工度假族群。',
+
+      '📡 Three（3）\n• 方案：All You Can Eat — €20 / 4 週，吃到飽\n• 歐洲漫遊：26 GB\n• 特色：愛爾蘭最多人使用，幾乎是打工度假 / 遊學首選，代辦普遍推薦',
+
+      '📡 Vodafone\n• 方案：All You Can Eat — €20 / 4 週，吃到飽\n• 歐洲漫遊：40 GB（三家中最多）\n• 特色：歐洲漫遊量最大，常往返歐洲各國者特別適合',
+
+      '📡 eir\n• 方案：Unlimited — €20 / 4 週，吃到飽\n• 歐洲漫遊：38 GB\n• 特色：歐洲漫遊量僅次於 Vodafone，性價比高',
+
+      '💡 選購建議\n• 三家月費相同（€20），主要差在歐洲漫遊量\n• 以愛爾蘭為主、偶爾出遊 → Three 即可\n• 常去歐洲旅行 → Vodafone 或 eir 更划算\n• 可出發前於台灣購買預付 eSIM，落地即用，無需排隊辦門市',
+    ] },
   { id: 'tw_meds',      icon: '💊', label: '備好常備藥品',           level: 'LV0_TW', xp:  40, optional: true,
     objective: '向家醫科或診所取得處方，備妥至少 3 個月常備藥品（感冒、腸胃、止痛）。' },
   { id: 'tw_luggage',   icon: '📦', label: '行李清單確認',           level: 'LV0_TW', xp:  60, optional: false,
