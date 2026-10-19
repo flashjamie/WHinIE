@@ -199,7 +199,7 @@ export const MAIN_TASKS: Task[] = [
 
   // LV.1 愛爾蘭落地 ────────────────────
   { id: 'ie_irp',    icon: '🏛️', label: 'IRP 居留許可登記',        level: 'LV1_IE', xp: 200, optional: false,
-    objective: '抵達愛爾蘭後，於期限內完成 IRP 居留許可登記（Stamp 1）。\n實體 IRP 卡是在愛爾蘭工作、租屋的重要身分證明。\n⚠️ 抵達後盡早預約，辦理期限依入境章及官方指示。',
+    objective: '實體 IRP 卡是在愛爾蘭工作、租屋的重要身分證明。\n⚠️ 抵達後盡早預約，辦理期限依入境章及官方指示。\n\n申請流程：① 建立帳號＋身分驗證 → ② 線上預約首次登記 → ③ 備齊紙本文件與規費 → ④ Burgh Quay 現場辦理 → ⑤ 等待實體 IRP 卡寄到家',
     guide: [
       '🖥️ STEP 01｜建立帳號，完成身分驗證\n準備：護照正本、Email、可收訊息且能上網的手機\n\n官方入口：portal.irishimmigration.ie/en\n\n① 註冊帳號＋設定驗證器\n填寫資料、驗證 Email，依畫面設定 Authenticator。\n② 開啟官方提供的 ID-Pal 連結\n依系統通知下載 App，拍攝護照正本並完成人臉掃描。\n③ 確認資料並提交\n姓名須與護照一致，完成驗證後才可進入預約流程。',
       '📅 STEP 02｜線上預約首次登記\n預約本身免費｜抵達愛爾蘭後盡早操作\n\n登入帳號 → 選擇「First Time Registration Appointment」\n依序填寫居住郡、首次登記與居留類別。\n打工度假簽證選 Stamp 1。\n\n在行事曆選擇地點、日期與時間。\n✅ 完成後保存 Confirmation Email，建議列印備用。\n\n📖 線上申請教學：greatstudyabroad.com（搜尋「愛爾蘭IRP線上申請教學2025」）',
@@ -221,7 +221,7 @@ export const MAIN_TASKS: Task[] = [
     reward: '解鎖【PPSN 取得】稱號\n+200 EXP',
     disclaimer: '資訊核對 2026.10.19　僅供參考' },
   { id: 'ie_bank',   icon: '💳', label: '開立實體銀行帳戶',       level: 'LV1_IE', xp: 180, optional: false,
-    objective: '透過 AIB Mobile App 開立 Current Account，\n以便收取薪資、繳租及日常消費。\n適用於居住愛爾蘭共和國、年滿 16 歲的個人申請者。',
+    objective: '在 AIB 開立 Current Account，以便收取薪資、繳租及日常消費。\n適用於居住愛爾蘭共和國、年滿 16 歲的個人申請者。\n\n申請流程：① 備好文件 → ② 下載 App 完成身分驗證 → ③ 填寫 Legal Questions → ④ 收取地址驗證碼 → ⑤ 收卡啟用帳戶',
     guide: [
       '📋 STEP 01｜下載 App，先備好這些\n• 有效護照正本（需支援 NFC 晶片的晶片護照）\n• Email + 手機號碼（可收驗證訊息、網路穩定）\n• 愛爾蘭住址及 Eircode（郵遞區號），且能確實收到信件\n• IRP 及其他補充文件（如銀行要求，備妥居留及地址證明）\n\n下載 AIB Mobile → 點選「Join AIB」\n舊版 App 可能顯示「Become an AIB Customer」，依畫面操作。',
       '🪪 STEP 02｜完成身分驗證\n① 核對姓名、生日及聯絡方式，完成 Email 驗證\n② 準備護照正本，依 App 指示拍攝、NFC 晶片讀取或自拍\n\n如果 App 要求 Video Call：\n• 展示護照配合證件檢查，回答身分問題\n• 服務時間每日 07:00–23:00，請使用穩定 Wi-Fi\n\n⚠️ 護照不支援 NFC 或驗證失敗？\n聯絡 AIB 或預約分行，攜帶身分及地址證明親臨辦理。',
