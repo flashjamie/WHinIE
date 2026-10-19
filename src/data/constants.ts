@@ -180,13 +180,13 @@ export const MAIN_TASKS: Task[] = [
     objective: '出發前購買 eSIM 或預付 SIM 卡，確保抵達後立即有網路，並取得當地電話號碼（開戶、面試常需要）。 \n\n📶 愛爾蘭三大電信比較\n以下均提供預付卡方案（Prepay Plans），4 週加值一次，無需綁約，適合打工度假族群。\n⚠資料參考時間：2026年9月',
     guide: [
       
-      '📡 Three（3）\n• 方案：All You Can Eat — €20 / 4 週，吃到飽\n• 歐洲漫遊：30 GB\n• 特色：愛爾蘭最多人使用，幾乎是打工度假 / 遊學首選\n• 網址：https://www.three.ie/esim.html',
+      '📡 Three（3）｜打工度假首選，方案最彈性\nPrepay 方案（28 天加值）：\n• Super Surfer　€20：無限 5G 數據、200 分鐘通話、200 則簡訊、EU 漫遊 26 GB\n• Total Talker　€20：無限通話、3,000 則簡訊、10 GB 數據（含 EU 漫遊）\n• Connect Complete　€30：無限 5G 數據、無限通話、3,000 則簡訊、EU 漫遊 32 GB\n\n💡 愛爾蘭打工度假最多人使用，方案靈活，可依需求選純數據或純通話。',
 
-      '📡 Vodafone\n• 方案：All You Can Eat — €20 / 4 週，吃到飽\n• 歐洲漫遊：45 GB\n• 特色：歐洲漫遊量最大，常往返歐洲各國者特別適合\n• 網址：https://www.vodafone.ie/sim-only/pay-as-you-go',
+      '📡 Vodafone｜口碑廣，4G 覆蓋超過 99%\nPrepay 方案（28 天加值）：\n• Data Unlimited 5G　€20：無限 5G 數據、無限通話和簡訊\n• Extra Unlimited 5G　€30：無限 5G 數據、無限通話和簡訊、100 分鐘國際通話\n\n💡 €30 方案含 100 分鐘撥往台灣的國際通話，若需直撥（而非 Line／WhatsApp）給家人，這個功能值得考量。',
 
-      '📡 eir\n• 方案：Unlimited — €20 / 4 週，吃到飽\n• 歐洲漫遊：45 GB\n• 特色：歐洲漫遊量與 Vodafone相當\n• 網址：https://eir.ie/shop/mobile/prepay',
+      '📡 eir｜愛爾蘭最早推 5G，覆蓋 322 個城市\nPrepay 方案（28 天加值）：\n• Unlimited 5G　€20：無限 5G 高速數據、無限通話和簡訊、EU 漫遊約 31.5 GB\n\n💡 5G 覆蓋率超過全國人口 70%，遍及 322 個城市與鄉鎮，三大業者中 5G 覆蓋最廣；都市數據速度穩定。',
 
-      '💡 選購建議\n• 三家月費相同，主要差在歐洲漫遊量\n• 常去歐洲旅行 → Vodafone 或 eir 更划算\n• 可出發前於台灣購買預付 eSIM，落地即用，無需排隊辦門市',
+      '💡 選購建議\n三家月費起點相同（€20），主要差異：\n• 常打電話給台灣家人 → Vodafone €30（含國際分鐘）\n• 優先考量 5G 覆蓋廣度 → eir\n• 方案靈活、通話 / 數據可自由配置 → Three\n\n可出發前於台灣購買預付 eSIM，落地即用，無需排隊辦門市。',
     ] },
    { id: 'tw_meds',      icon: '💊', label: '備好常備藥品',           level: 'LV0_TW', xp:  40, optional: true,
     objective: '向家醫科或診所取得處方，備妥足夠的常備藥品（感冒、腸胃、止痛等）。' },
