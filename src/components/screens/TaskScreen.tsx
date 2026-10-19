@@ -258,17 +258,18 @@ export function TaskScreen() {
   : dayStatus.type === 'countdown' ? `✈️ 出發倒數 D-${dayStatus.days} 天`
   : '🛰️ 台灣整備中';
 
-  // group main tasks by level, with locking logic
-  const levels: TaskLevel[] = ['LV0_TW', 'LV1_IE', 'LV2_IE'];
-  const isLocked = (level: TaskLevel) =>
-    (level === 'LV0_TW' && hasArrived) ||
-    ((level === 'LV1_IE' || level === 'LV2_IE') && !hasArrived);
+  // group main tasks by level
+  // IE levels only visible after arrival; TW always visible and never locked
+  const levels: TaskLevel[] = hasArrived
+    ? ['LV0_TW', 'LV1_IE', 'LV2_IE']
+    : ['LV0_TW'];
 
   const selectedMainTask  = MAIN_TASKS.find(t => t.id === selectedMain) ?? null;
   const selectedDailyTask = DAILY_TASKS.find(t => t.id === selectedDaily) ?? null;
 
-  // count for tab badges
-  const mainDone  = MAIN_TASKS.filter(t => completedTasks.has(t.id)).length;
+  // count for tab badges (only visible levels)
+  const visibleTasks = MAIN_TASKS.filter(t => levels.includes(t.level));
+  const mainDone  = visibleTasks.filter(t => completedTasks.has(t.id)).length;
   const dailyDone = completedDaily.size;
 
   return (
@@ -290,7 +291,7 @@ export function TaskScreen() {
         borderBottom: `2px solid ${P.panelBd}`, flexShrink: 0,
       }}>
         {([
-          { key: 'main'  as TabKey, label: '主線任務', done: mainDone,  total: MAIN_TASKS.length },
+          { key: 'main'  as TabKey, label: '主線任務', done: mainDone,  total: visibleTasks.length },
           { key: 'daily' as TabKey, label: '日常任務', done: dailyDone, total: DAILY_TASKS.length },
         ]).map(tab => (
           <button key={tab.key} onClick={() => setActiveTab(tab.key)} style={{
@@ -318,10 +319,9 @@ export function TaskScreen() {
           overflowY: 'auto', display: 'flex', flexDirection: 'column',
         }}>
           {activeTab === 'main' && levels.map(level => {
-            const meta       = LEVEL_META[level];
-            const locked     = isLocked(level);
-            const tasks      = MAIN_TASKS.filter(t => t.level === level);
-            const lvDone     = tasks.filter(t => completedTasks.has(t.id)).length;
+            const meta        = LEVEL_META[level];
+            const tasks       = MAIN_TASKS.filter(t => t.level === level);
+            const lvDone      = tasks.filter(t => completedTasks.has(t.id)).length;
             const isCollapsed = collapsed.has(level);
             return (
               <div key={level}>
@@ -332,10 +332,9 @@ export function TaskScreen() {
                     padding: '6px 10px', display: 'flex', alignItems: 'center', gap: 6,
                     background: `${meta.color}22`, borderBottom: `1px solid ${meta.color}55`,
                     borderTop: `1px solid ${meta.color}55`,
-                    opacity: locked ? 0.5 : 1,
                     cursor: 'pointer', userSelect: 'none',
                   }}>
-                  <span style={{ fontSize: 11 }}>{locked ? '🔒' : meta.emoji}</span>
+                  <span style={{ fontSize: 11 }}>{meta.emoji}</span>
                   <span style={{ fontSize: 9, fontWeight: 900, color: meta.color, flex: 1, ...ZH }}>{meta.label}</span>
                   <span style={{ fontSize: 8, color: P.muted, marginRight: 4, ...EN }}>{lvDone}/{tasks.length}</span>
                   <span style={{
@@ -350,13 +349,12 @@ export function TaskScreen() {
                   const active = selectedMain === task.id;
                   return (
                     <div key={task.id}
-                      onClick={() => !locked && setSelectedMain(task.id)}
+                      onClick={() => setSelectedMain(task.id)}
                       style={{
                         padding: '8px 10px', borderBottom: `1px solid ${P.panelBd}`,
                         background: active ? P.activeBg : done ? P.doneBg : 'transparent',
                         borderLeft: active ? `3px solid ${P.gold}` : '3px solid transparent',
-                        cursor: locked ? 'not-allowed' : 'pointer',
-                        opacity: locked ? 0.35 : 1,
+                        cursor: 'pointer',
                         transition: 'background 0.15s',
                         display: 'flex', alignItems: 'flex-start', gap: 6,
                       }}>
