@@ -210,7 +210,16 @@ export const MAIN_TASKS: Task[] = [
     reward: '解鎖【IRP 完成】稱號\n+200 EXP',
     disclaimer: '資訊核對 2026.10.19　僅供參考' },
   { id: 'ie_ppsn',   icon: '🔢', label: '申辦 PPSN 號碼',          level: 'LV1_IE', xp: 200, optional: false,
-    objective: '向愛爾蘭社會保障部（Intreo）申辦 PPSN 公共服務號碼，是工作、開戶、就醫的必要憑證。' },
+    objective: 'PPSN 是愛爾蘭個人公共服務號碼，找工作、開戶、申請退稅都需要用到。\n必須人在愛爾蘭境內才能申請，無法在台灣預辦。\n⚠️ 沒有 PPSN 就開始工作，薪資會被扣取緊急稅（Emergency Tax），稅率約 40%。\n\n申請流程：① 註冊 MyGovID → ② MyWelfare 填申請＋預約 → ③ 備齊文件 → ④ 現場查驗 → ⑤ 等候郵寄通知',
+    guide: [
+      '💻 STEP 01–02｜建立帳號，線上申請與預約\n官方入口：MyGovID.ie + MyWelfare.ie\n\n① 註冊 Basic MyGovID\n前往 MyGovID.ie，填寫資料、設定密碼並驗證 Email。\n基本版帳號即可申請 PPSN，不必先持有 PSC。\n\n② 登入 MyWelfare，申請 PPS Number\n填寫個人資料及需要 PPSN 的實際理由。\n查看系統列出的應備文件清單。\n在線上流程中選擇現場預約的地點、日期與時間。\n\n✅ 預約後查看 MyWelfare 通知，保存預約資訊與文件清單，也留意垃圾郵件匣。',
+      '📋 STEP 02.5｜申請理由要有文件支持\n依你實際需要使用的服務，準備對應證明：\n\n• 開始工作：雇主信、工作合約或 Offer Letter（重點是已開始工作，不是單純找工作）\n• 學校／課程註冊：學校註冊信等證明，可請學校說明為何需要 PPSN\n• 駕照或其他公共服務：依申請目的準備對應文件\n\n⚠️ 學生身分不等於自動獲配 PPSN，須說明具體用途並提供證明。',
+      '📄 STEP 03｜現場文件，一次備齊\n以預約通知所列文件為準，準備實體正本：\n\n✅ 護照正本（台灣申請人準備有效護照）\n✅ 3 個月內的地址證明（須有姓名與住址：銀行信／帳單、租約等）\n✅ 需要 PPSN 的證明（雇主信、工作合約或學校信）\n✅ 預約資訊與補充文件（依通知清單準備；學生證可作補充）\n\n💡 暫住親友家，沒有自己的帳單？\n可用住戶帳單正本＋帳單持有人確認你同住的說明。',
+      '🏢 STEP 04｜前往指定中心現場查驗\n依預約時間前往，攜帶所有要求的正本文件。\n\n• 配合身分與申請用途查驗\n• 若需補件，依官員或後續通知指示處理\n\n⚠️ 會面完成後仍有後續審查，不代表當場核准。',
+      '📬 STEP 05｜等候審查與 PPSN 郵寄通知\n核准後，PPSN 以郵件通知寄送。\n\n• 確認住址、房號與 Eircode（郵遞區號）正確\n• 收到正式信件後，核對姓名與號碼\n• 審查與寄送時間依個案及官方通知，無固定天數\n\n需要追蹤申請？\n查看 MyWelfare 通知，或聯絡當地 PPS Number Allocation Centre。',
+    ],
+    reward: '解鎖【PPSN 取得】稱號\n+200 EXP',
+    disclaimer: '資訊核對 2026.10.19　僅供參考' },
   { id: 'ie_bank',   icon: '💳', label: '開立實體銀行帳戶',       level: 'LV1_IE', xp: 180, optional: false,
     objective: '透過 AIB Mobile App 開立 Current Account，\n以便收取薪資、繳租及日常消費。\n適用於居住愛爾蘭共和國、年滿 16 歲的個人申請者。',
     guide: [
