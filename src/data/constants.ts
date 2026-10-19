@@ -222,7 +222,7 @@ export const MAIN_TASKS: Task[] = [
   { id: 'ie_bank',   icon: '💳', label: '開立實體銀行帳戶',       level: 'LV1_IE', xp: 180, optional: false,
     objective: '在 AIB 開立 Current Account，以便收取薪資、繳租及日常消費。\n\n申請流程：① 備好文件 → ② 下載 App 完成身分驗證 → ③ 填寫 Legal Questions → ④ 收取地址驗證碼 → ⑤ 收卡啟用帳戶',
     guide: [
-      '📋 STEP 01｜下載 App，並備妥以下文件\n• 有效護照正本）\n• Email + 手機號碼（可收驗證訊息、確保網路穩定）\n• 愛爾蘭住址及 Eircode（確保居住期間能收信）\n• IRP 及其他補充文件（如銀行要求，備妥居留及地址證明）\n\n下載 AIB Mobile → 點選「Join AIB」，並依畫面操作。',
+      '📋 STEP 01｜下載 App，並備妥以下文件\n• 有效護照正本）\n• Email + 手機號碼（可收驗證訊息、確保網路穩定）\n• 愛爾蘭住址及 Eircode（確保居住期間能收信）\n• IRP 及其他補充文件（如銀行要求，備妥居留及地址證明）\n\n下載 AIB Mobile → 點選「Join AIB」，並依畫面操作。\n 線上申請詳細步驟教學可參考：https://yanziaart.com/aib_opening_an_account/',
       '🪪 STEP 02｜完成身分驗證\n① 核對姓名、生日及聯絡方式，完成 Email 驗證\n② 準備護照正本，依 App 指示拍攝、NFC 晶片讀取或自拍\n\n如果 App 要求 Video Call：\n• 展示護照配合證件檢查，回答身分問題\n• 服務時間每日 07:00–23:00，請使用穩定網路或 Wi-Fi\n\n⚠️ 護照不支援 NFC 或驗證失敗？\n聯絡 AIB 或預約分行，攜帶身分及地址證明親臨辦理。',
       '⚖️ STEP 03｜Legal Questions：照實填寫\n系統會確認個人背景、稅務資料及開戶用途，分 3 類問題：\n① 職業／就學狀況、居住情況與開戶用途\n② 是否為美國公民、在哪些國家具有稅務居民身分\n③ 各稅務居民國家及稅籍編號（TIN）\n\n💡「愛爾蘭稅務居民」打工度假者通常選 No\n不確定時先查 Revenue 或諮詢稅務專業人士，不能直接照抄他人答案！\n\n完成問答 → 閱讀相關文件 → 依流程選擇 AIB 分行',
       '🔢 STEP 04｜搞清楚這 4 組號碼\n• 8 位｜Registration number：網銀註冊號碼，由 AIB 提供。不是你的收款帳號或 IBAN。\n• 5 位｜PAC：Personal Access Code，由你自行設定。用於登入網銀／App，非郵寄的卡片 PIN。\n• 6 位｜地址驗證碼：AIB 郵寄到住址的驗證碼，收到後回 App 輸入完成地址驗證。\n• PIN｜金融卡密碼：配合實體金融卡使用，供 ATM 或插卡交易驗證，與 PAC 不同。\n\n💡 記好 Registration number 與自設的 PAC，依 App 完成登入設定。',
@@ -230,7 +230,7 @@ export const MAIN_TASKS: Task[] = [
     ],
     reward: '解鎖【開戶成功】稱號\n+180 EXP',
     disclaimer: '資訊核對 2026.10.19　僅供參考' },
-  { id: 'ie_leap',   icon: '🚌', label: '辦理 Leap Card',           level: 'LV1_IE', xp:  80, optional: false,
+  { id: 'ie_leap',   icon: '🚌', label: '獲得 Leap Card',           level: 'LV1_IE', xp:  80, optional: false,
     objective: '購買並儲值 Leap Card 公共交通卡，搭乘巴士、DART、Luas 皆可使用。' },
   { id: 'ie_house',  icon: '🏠', label: '找到長期住所',             level: 'LV1_IE', xp: 250, optional: false,
     objective: '可透過 Daft.ie 或租屋社團／打工度假社群找到長期租屋，簽訂租約。' },
