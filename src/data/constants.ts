@@ -172,21 +172,21 @@ export const MAIN_TASKS: Task[] = [
 
       '🛡 保險文件規格\n• 期限：自入境愛爾蘭起算 12 個月（停留長短不影響，均須一年期保單）\n• 保額：三百萬以上\n• Covering Nation：Ireland\n• 旅平險 / 海外醫療險 / 打工度假險 均符合資格\n\n停留三個月以上者，入境後須備保險英文證明正本＋授權書，用於辦理 IRP 居留許可。',
     ],
-    reward: '解鎖【愛爾蘭旅人】稱號 · 開啟 LV0 台灣整備任務鏈',
+    reward: '解鎖【愛爾蘭旅人】稱號 ',
   },
   { id: 'tw_remit',     icon: '🏦', label: '辦理海外金融帳戶',       level: 'LV0_TW', xp:  80, optional: false,
     objective: '建議先申辦 Wise帳戶，到愛爾蘭後再視需求申請Revolut或實體銀行帳戶。' },
-  { id: 'tw_esim',      icon: '📱', label: '購買愛爾蘭 eSIM',        level: 'LV0_TW', xp:  60, optional: false,
+  { id: 'tw_esim',      icon: '📱', label: '購買愛爾蘭電話卡',        level: 'LV0_TW', xp:  60, optional: false,
     objective: '出發前購買 eSIM 或預付 SIM 卡，確保抵達後立即有網路，並取得當地電話號碼（開戶、面試常需要）。 \n\n📶 愛爾蘭三大電信比較\n以下均提供預付卡方案（Prepay Plans），4 週加值一次，無需綁約，適合打工度假族群。\n⚠資料參考時間：2026年9月',
     guide: [
       
-      '📡 Three（3）\n• 方案：All You Can Eat — €20 / 4 週，吃到飽\n• 歐洲漫遊：30 GB\n• 特色：愛爾蘭最多人使用，幾乎是打工度假 / 遊學首選，代辦普遍推薦\n• 網址：https://www.three.ie/esim.html',
+      '📡 Three（3）\n• 方案：All You Can Eat — €20 / 4 週，吃到飽\n• 歐洲漫遊：30 GB\n• 特色：愛爾蘭最多人使用，幾乎是打工度假 / 遊學首選\n• 網址：https://www.three.ie/esim.html',
 
       '📡 Vodafone\n• 方案：All You Can Eat — €20 / 4 週，吃到飽\n• 歐洲漫遊：45 GB\n• 特色：歐洲漫遊量最大，常往返歐洲各國者特別適合\n• 網址：https://www.vodafone.ie/sim-only/pay-as-you-go',
 
-      '📡 eir\n• 方案：Unlimited — €20 / 4 週，吃到飽\n• 歐洲漫遊：45 GB\n• 特色：歐洲漫遊量僅次於 Vodafone，cp值高\n• 網址：https://eir.ie/shop/mobile/prepay',
+      '📡 eir\n• 方案：Unlimited — €20 / 4 週，吃到飽\n• 歐洲漫遊：45 GB\n• 特色：歐洲漫遊量與 Vodafone相當\n• 網址：https://eir.ie/shop/mobile/prepay',
 
-      '💡 選購建議\n• 三家月費相同，主要差在歐洲漫遊量\n• 以愛爾蘭為主、偶爾出遊 → Three 即可\n• 常去歐洲旅行 → Vodafone 或 eir 更划算\n• 可出發前於台灣購買預付 eSIM，落地即用，無需排隊辦門市',
+      '💡 選購建議\n• 三家月費相同，主要差在歐洲漫遊量\n• 常去歐洲旅行 → Vodafone 或 eir 更划算\n• 可出發前於台灣購買預付 eSIM，落地即用，無需排隊辦門市',
     ] },
    { id: 'tw_meds',      icon: '💊', label: '備好常備藥品',           level: 'LV0_TW', xp:  40, optional: true,
     objective: '向家醫科或診所取得處方，備妥足夠的常備藥品（感冒、腸胃、止痛等）。' },
@@ -202,22 +202,20 @@ export const MAIN_TASKS: Task[] = [
     objective: '抵達愛爾蘭後 90 天內完成 IRP（Irish Residence Permit）外國人居留許可登記。' },
   { id: 'ie_ppsn',   icon: '🔢', label: '申辦 PPSN 號碼',          level: 'LV1_IE', xp: 200, optional: false,
     objective: '向愛爾蘭社會保障部（Intreo）申辦 PPSN 公共服務號碼，是工作、開戶、就醫的必要憑證。' },
-  { id: 'ie_bank',   icon: '💳', label: '開立 AIB 銀行帳戶',       level: 'LV1_IE', xp: 180, optional: false,
-    objective: '持 IRP 卡與 PPSN 前往 AIB 銀行開立本地帳戶，以收取薪資與繳租。' },
+  { id: 'ie_bank',   icon: '💳', label: '開立實體銀行帳戶',       level: 'LV1_IE', xp: 180, optional: false,
+    objective: '前往實體銀行銀行開立本地帳戶，以收取薪資與繳租。' },
   { id: 'ie_leap',   icon: '🚌', label: '辦理 Leap Card',           level: 'LV1_IE', xp:  80, optional: false,
-    objective: '購買並儲值 Leap Card 公共交通卡，搭乘都柏林巴士、DART、Luas 皆可使用。' },
-  { id: 'ie_sim',    icon: '📞', label: '辦理本地 SIM 卡',          level: 'LV1_IE', xp:  80, optional: false,
-    objective: '至 Three 或 Vodafone 門市辦理愛爾蘭本地 SIM，取得當地電話號碼（開戶/面試常需要）。' },
+    objective: '購買並儲值 Leap Card 公共交通卡，搭乘巴士、DART、Luas 皆可使用。' },
   { id: 'ie_house',  icon: '🏠', label: '找到長期住所',             level: 'LV1_IE', xp: 250, optional: false,
-    objective: '透過 Daft.ie 或 Facebook 租屋社團找到長期租屋，簽訂租約。' },
+    objective: '可透過 Daft.ie 或租屋社團／打工度假社群找到長期租屋，簽訂租約。' },
 
   // LV.2 工作生活 ──────────────────────
   { id: 'ie_job',          icon: '💼', label: '完成第一份工作申請',  level: 'LV2_IE', xp: 300, optional: false,
-    objective: '投遞 CV 並成功獲得第一份工作 Offer，完成報到。' },
+    objective: '嘗試投遞 CV 。' },
   { id: 'ie_supermarket',  icon: '🛒', label: '攻略當地超市',        level: 'LV2_IE', xp:  60, optional: false,
     objective: '熟悉 Dunnes Stores、Tesco、Lidl、Aldi 各超市的價格與特色，制定省錢採購策略。' },
-  { id: 'ie_explore',      icon: '🌿', label: '探索都柏林新地區',    level: 'LV2_IE', xp: 100, optional: true,
-    objective: '走訪都柏林一個你從未去過的地區，紀錄你的發現。' },
+  { id: 'ie_explore',      icon: '🌿', label: '探索愛爾蘭新地區',    level: 'LV2_IE', xp: 100, optional: true,
+    objective: '走訪一個你從未去過的地區，紀錄你的發現。' },
   { id: 'ie_course',       icon: '📚', label: '報名語言或職業課程',  level: 'LV2_IE', xp: 150, optional: true,
     objective: '報名英語課、職業培訓或線上課程，提升技能或語言能力。' },
 ];
@@ -226,26 +224,25 @@ export const MAIN_TASKS: Task[] = [
 export const DAILY_TASKS: DailyTask[] = [
   { id: 'daily_checkin',  icon: '☀️', label: '今日目標打卡',         xp: 20  },
   { id: 'daily_cook',     icon: '🍳', label: '自煮一餐（省錢技能）', xp: 30  },
-  { id: 'daily_walk',     icon: '🚶', label: '步行超過 8,000 步',    xp: 25  },
+  { id: 'daily_walk',     icon: '🚶', label: '步行超過 10,000 步',    xp: 25  },
   { id: 'daily_english',  icon: '📝', label: '學習 5 個新英語單詞',  xp: 30  },
   { id: 'daily_cafe',     icon: '☕', label: '發現一家好咖啡館',     xp: 15  },
-  { id: 'daily_rain',     icon: '☔', label: '帶傘出門（都柏林必備）',xp: 10  },
+  { id: 'daily_rain',     icon: '☔', label: '帶傘出門',xp: 10  },
 ];
 
 // ─── 背包.md – Bag Items ──────────────────────────────────────────────────────
 export const BAG_ITEMS: BagItem[] = [
   { id: 'bag_passport', icon: '🛂', label: '護照',       sublabel: 'Taiwan Passport',     slot: 'document', obtained: true  },
-  { id: 'bag_visa',     icon: '📄', label: '工作假期簽證', sublabel: 'WHV Stamp',          slot: 'document', obtained: false },
+  { id: 'bag_visa',     icon: '📄', label: '打工度假簽證', sublabel: 'WHV Stamp',          slot: 'document', obtained: false },
   { id: 'bag_irp',      icon: '🪪', label: 'IRP 卡',      sublabel: 'Residence Permit',    slot: 'card',     obtained: false },
   { id: 'bag_ppsn',     icon: '📋', label: 'PPSN 信件',   sublabel: 'PPS Number Letter',   slot: 'document', obtained: false },
   { id: 'bag_aib',      icon: '💳', label: 'AIB 銀行卡',  sublabel: 'AIB Debit Card',      slot: 'card',     obtained: false },
   { id: 'bag_leap',     icon: '🚌', label: 'Leap Card',   sublabel: 'Transport Card',      slot: 'card',     obtained: false },
   { id: 'bag_sim',      icon: '📱', label: '愛爾蘭 SIM', sublabel: 'Three / Vodafone',     slot: 'card',     obtained: false },
   { id: 'bag_key',      icon: '🔑', label: '公寓鑰匙',    sublabel: 'Apartment Key',       slot: 'gear',     obtained: false },
-  { id: 'bag_umbrella', icon: '☂️', label: '雨傘',        sublabel: '都柏林必備 ☔',        slot: 'gear',     obtained: false },
+  { id: 'bag_umbrella', icon: '☂️', label: '雨傘',        sublabel: '愛爾蘭必備 ☔',        slot: 'gear',     obtained: false },
   { id: 'bag_bag',      icon: '🎒', label: '每日通勤包',  sublabel: 'Daily Commute Bag',   slot: 'gear',     obtained: true  },
   { id: 'bag_plug',     icon: '🔌', label: '轉接插頭',    sublabel: 'Type G Adapter (IE)', slot: 'misc',     obtained: false },
-  { id: 'bag_healthcard',icon:'💊', label: '歐洲健康卡',  sublabel: 'EHIC (if applicable)',slot: 'document', obtained: false },
 ];
 
 // ─── 隨機事件.md ──────────────────────────────────────────────────────────────
