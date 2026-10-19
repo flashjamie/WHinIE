@@ -78,7 +78,7 @@ function QuestDetail({ task, done, onToggle }: { task: Task; done: boolean; onTo
       </div>
 
       {/* Scrollable content */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 14, minWidth: 0 }}>
 
         {/* Objective */}
         {task.objective && (
@@ -90,7 +90,7 @@ function QuestDetail({ task, done, onToggle }: { task: Task; done: boolean; onTo
               background: '#0a1a2e', border: `1px solid ${P.panelBd}`,
               padding: '10px 12px',
             }}>
-              <span style={{ fontSize: 11, color: P.white, lineHeight: 1.7, whiteSpace: 'pre-line', ...ZH }}>{task.objective}</span>
+              <span style={{ fontSize: 11, color: P.white, lineHeight: 1.7, whiteSpace: 'pre-line', wordBreak: 'break-word', overflowWrap: 'break-word', minWidth: 0, ...ZH }}>{task.objective}</span>
             </div>
           </div>
         )}
@@ -105,12 +105,12 @@ function QuestDetail({ task, done, onToggle }: { task: Task; done: boolean; onTo
               {task.guide.map((step, i) => (
                 <div key={i} style={{
                   background: '#071525', border: `1px solid ${P.panelBd}`,
-                  padding: '8px 12px', display: 'flex', gap: 8,
+                  padding: '8px 12px', display: 'flex', gap: 8, minWidth: 0,
                 }}>
                   <span style={{ fontSize: 9, color: P.gold, flexShrink: 0, fontWeight: 900, marginTop: 1, ...EN }}>
                     {String(i + 1).padStart(2, '0')}
                   </span>
-                  <span style={{ fontSize: 11, color: '#c5d8ec', lineHeight: 1.8, whiteSpace: 'pre-line', ...ZH }}>{step}</span>
+                  <span style={{ fontSize: 11, color: '#c5d8ec', lineHeight: 1.8, whiteSpace: 'pre-line', wordBreak: 'break-word', overflowWrap: 'break-word', minWidth: 0, flex: 1, ...ZH }}>{step}</span>
                 </div>
               ))}
             </div>
