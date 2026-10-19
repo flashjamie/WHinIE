@@ -150,6 +150,12 @@ function QuestDetail({ task, done, onToggle }: { task: Task; done: boolean; onTo
           <span style={{ fontSize: 14 }}>⭐</span>
           <span style={{ fontSize: 10, color: P.gold, ...EN }}>+{task.xp} EXP</span>
         </div>
+
+        {task.disclaimer && (
+          <div style={{ marginTop: 10, fontSize: 9, color: '#666', textAlign: 'right', ...ZH }}>
+            {task.disclaimer}
+          </div>
+        )}
       </div>
 
       {/* Accept / Complete button */}

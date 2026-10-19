@@ -51,7 +51,8 @@ export interface Task {
   optional: boolean;
   objective?: string;
   guide?:     string[];
-  reward?:    string;
+  reward?:      string;
+  disclaimer?:  string;
 }
 
 // ─── Daily Tasks ──────────────────────────────────────────────────────────────
