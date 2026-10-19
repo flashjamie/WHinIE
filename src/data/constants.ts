@@ -261,18 +261,19 @@ export const RANDOM_EVENTS: RandomEvent[] = [
 
 // ─── Collections / Badges ────────────────────────────────────────────────────
 export const BADGES: Badge[] = [
-  { id: 'transit_maniac', emoji: '🔀', title: '轉機狂人',   titleEn: 'Transit Maniac',   desc: '選擇了複雜的多段中轉航線',              color: '#9B59B6', unlockKey: 'hasComplexRouting' },
-  { id: 'ireland_landed', emoji: '☘️', title: '愛爾蘭登陸', titleEn: 'Ireland Landed',   desc: '成功抵達翡翠島！',                      color: '#00A651', unlockKey: 'hasArrived'        },
-  { id: 'passport_done',  emoji: '🛂', title: '護照完成',   titleEn: 'Passport Ready',   desc: '完整填寫了冒險者護照資料',              color: '#E67E22', unlockKey: 'hasFullProfile'    },
-  { id: 'flight_ready',   emoji: '✈️', title: '飛行準備',   titleEn: 'Flight Ready',     desc: '填妥航班編號與起飛時間',                color: '#2980B9', unlockKey: 'hasFlightInfo'     },
-  { id: 'time_traveler',  emoji: '🕐', title: '時空旅人',   titleEn: 'Time Traveler',    desc: '擁有中轉時區同步能力',                  color: '#16A085', unlockKey: 'hasTransitTz'      },
-  { id: 'irp_done',       emoji: '🏛️', title: 'IRP 完成',   titleEn: 'IRP Registered',  desc: '完成外國人居留許可登記',                color: '#27AE60', unlockKey: 'irpDone'           },
-  { id: 'ppsn_done',      emoji: '🔢', title: 'PPSN 取得',  titleEn: 'PPSN Obtained',    desc: '拿到愛爾蘭公共服務號碼',                color: '#2ECC71', unlockKey: 'ppsnDone'          },
-  { id: 'bank_open',      emoji: '💳', title: '開戶成功',   titleEn: 'Bank Opened',      desc: '成功開立本地銀行帳戶',                  color: '#3498DB', unlockKey: 'bankDone'          },
-  { id: 'pub_first',      emoji: '🍺', title: 'Pub 初體驗', titleEn: 'First Pint',       desc: '進入愛爾蘭 Pub 喝下第一杯',            color: '#C0392B', unlockKey: 'pubVisited'        },
-  { id: 'rain_survivor',  emoji: '☔', title: '雨中求生',   titleEn: 'Rain Survivor',    desc: '在都柏林雨天仍然出門並帶了傘',          color: '#2C3E50', unlockKey: 'rainSurvived'      },
-  { id: 'house_found',    emoji: '🏠', title: '找到家',     titleEn: 'Home Found',       desc: '找到都柏林長期住所',                    color: '#8E44AD', unlockKey: 'houseDone'         },
-  { id: 'first_job',      emoji: '💼', title: '第一份工作', titleEn: 'First Job',        desc: '在愛爾蘭拿到第一份工作',                color: '#F39C12', unlockKey: 'jobDone'           },
+  { id: 'visa_done',      emoji: '🛂', title: '愛爾蘭旅人',  titleEn: 'Ireland Adventurer', desc: '完成簽證領取，啟動愛爾蘭冒險！',      color: '#FF6B35', unlockKey: 'visa_done'         },
+  { id: 'transit_maniac', emoji: '🔀', title: '轉機狂人',   titleEn: 'Transit Maniac',     desc: '選擇了複雜的多段中轉航線',            color: '#9B59B6', unlockKey: 'hasComplexRouting' },
+  { id: 'ireland_landed', emoji: '☘️', title: '愛爾蘭登陸', titleEn: 'Ireland Landed',     desc: '成功抵達翡翠島！',                    color: '#00A651', unlockKey: 'hasArrived'        },
+  { id: 'passport_done',  emoji: '🛂', title: '護照完成',   titleEn: 'Passport Ready',     desc: '完整填寫了冒險者護照資料',            color: '#E67E22', unlockKey: 'hasFullProfile'    },
+  { id: 'flight_ready',   emoji: '✈️', title: '飛行準備',   titleEn: 'Flight Ready',       desc: '填妥航班編號與起飛時間',              color: '#2980B9', unlockKey: 'hasFlightInfo'     },
+  { id: 'time_traveler',  emoji: '🕐', title: '時空旅人',   titleEn: 'Time Traveler',      desc: '擁有中轉時區同步能力',                color: '#16A085', unlockKey: 'hasTransitTz'      },
+  { id: 'irp_done',       emoji: '🏛️', title: 'IRP 完成',   titleEn: 'IRP Registered',    desc: '完成外國人居留許可登記',              color: '#27AE60', unlockKey: 'irp_done'          },
+  { id: 'ppsn_done',      emoji: '🔢', title: 'PPSN 取得',  titleEn: 'PPSN Obtained',      desc: '拿到愛爾蘭公共服務號碼',              color: '#2ECC71', unlockKey: 'ppsn_done'         },
+  { id: 'bank_open',      emoji: '💳', title: '開戶成功',   titleEn: 'Bank Opened',        desc: '成功開立本地銀行帳戶',                color: '#3498DB', unlockKey: 'bank_open'         },
+  { id: 'pub_first',      emoji: '🍺', title: 'Pub 初體驗', titleEn: 'First Pint',         desc: '進入愛爾蘭 Pub 喝下第一杯',          color: '#C0392B', unlockKey: 'pubVisited'        },
+  { id: 'rain_survivor',  emoji: '☔', title: '雨中求生',   titleEn: 'Rain Survivor',      desc: '在都柏林雨天仍然出門並帶了傘',        color: '#2C3E50', unlockKey: 'rainSurvived'      },
+  { id: 'house_found',    emoji: '🏠', title: '找到家',     titleEn: 'Home Found',         desc: '找到都柏林長期住所',                  color: '#8E44AD', unlockKey: 'house_found'       },
+  { id: 'first_job',      emoji: '💼', title: '第一份工作', titleEn: 'First Job',          desc: '在愛爾蘭拿到第一份工作',              color: '#F39C12', unlockKey: 'first_job'         },
 ];
 
 // ─── AIB Bank Steps ───────────────────────────────────────────────────────────

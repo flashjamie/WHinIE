@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useCallback } from 'react';
+import React, { createContext, useContext, useReducer, useCallback, useEffect, useState, useRef } from 'react';
 import type { ScreenId, PlayerProfile, AvatarConfig, Gender } from '../types';
 import { DEFAULT_AVATAR, getDayStatus, resolveTransitTz } from '../data/constants';
 
@@ -167,25 +167,50 @@ export interface GameDerived {
   aibBalance:         number;
 }
 
+// ─── Badge auto-unlock map ────────────────────────────────────────────────────
+// Maps badge id → a function(completedTasks, derived) → boolean
+type BadgeCheck = (completedTasks: Set<string>, derived: GameDerived) => boolean;
+const BADGE_CHECKS: Record<string, BadgeCheck> = {
+  transit_maniac: (_, d) => d.hasComplexRouting,
+  ireland_landed: (_, d) => d.hasArrived,
+  passport_done:  (_, d) => d.hasFullProfile,
+  flight_ready:   (_, d) => d.hasFlightInfo,
+  time_traveler:  (_, d) => d.hasTransitTz,
+  irp_done:       (ct)   => ct.has('ie_irp'),
+  ppsn_done:      (ct)   => ct.has('ie_ppsn'),
+  bank_open:      (ct)   => ct.has('ie_bank'),
+  house_found:    (ct)   => ct.has('ie_house'),
+  first_job:      (ct)   => ct.has('ie_job'),
+  // tw_passport task → 愛爾蘭旅人 (reuse ireland_landed on arrival, but also give on task done)
+  // Add a dedicated badge for completing the 簽證領取 task
+  visa_done:      (ct)   => ct.has('tw_passport'),
+};
+
 // ─── Context ──────────────────────────────────────────────────────────────────
 interface GameContextValue {
-  state:    GameState;
-  derived:  GameDerived;
-  dispatch: React.Dispatch<Action>;
-  navigate: (screen: ScreenId) => void;
+  state:      GameState;
+  derived:    GameDerived;
+  dispatch:   React.Dispatch<Action>;
+  navigate:   (screen: ScreenId) => void;
+  newBadge:   typeof import('../data/constants').BADGES[0] | null;
+  clearBadge: () => void;
 }
 
 const GameContext = createContext<GameContextValue | null>(null);
 
 // ─── Provider ─────────────────────────────────────────────────────────────────
-import { MAIN_TASKS } from '../data/constants';
+import { MAIN_TASKS, BADGES } from '../data/constants';
 
 export function GameProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(reducer, INITIAL_STATE);
+  const [newBadge, setNewBadge] = useState<typeof BADGES[0] | null>(null);
+  const prevUnlocked = useRef<Set<string>>(new Set());
 
   const navigate = useCallback((screen: ScreenId) => {
     dispatch({ type: 'NAVIGATE', screen });
   }, []);
+
+  const clearBadge = useCallback(() => setNewBadge(null), []);
 
   const { player, completedTasks } = state;
 
@@ -222,8 +247,25 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     aibBalance,
   };
 
+  // Auto-unlock badges based on task completion and derived state
+  useEffect(() => {
+    BADGES.forEach(badge => {
+      if (state.unlockedBadges.has(badge.id)) return;
+      const check = BADGE_CHECKS[badge.unlockKey];
+      if (!check) return;
+      if (check(state.completedTasks, derived)) {
+        dispatch({ type: 'UNLOCK_BADGE', id: badge.id });
+        if (!prevUnlocked.current.has(badge.id)) {
+          setNewBadge(badge);
+        }
+      }
+    });
+    prevUnlocked.current = new Set(state.unlockedBadges);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.completedTasks, state.unlockedBadges, derived.hasArrived, derived.hasComplexRouting, derived.hasFullProfile, derived.hasFlightInfo, derived.hasTransitTz]);
+
   return (
-    <GameContext.Provider value={{ state, derived, dispatch, navigate }}>
+    <GameContext.Provider value={{ state, derived, dispatch, navigate, newBadge, clearBadge }}>
       {children}
     </GameContext.Provider>
   );

@@ -73,6 +73,19 @@ const GLOBAL_CSS = `
     from { opacity: 0; transform: translateY(8px); }
     to   { opacity: 1; transform: translateY(0); }
   }
+  @keyframes badgeIn {
+    0%   { opacity: 0; transform: translateY(-60px) scale(0.7); }
+    60%  { transform: translateY(6px) scale(1.04); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  @keyframes badgeOut {
+    0%   { opacity: 1; transform: translateY(0) scale(1); }
+    100% { opacity: 0; transform: translateY(-40px) scale(0.85); }
+  }
+  @keyframes badgeShine {
+    0%   { left: -80%; }
+    100% { left: 130%; }
+  }
 
   /* ── Native date/time input ─────────────────────────────────── */
   input[type="date"]::-webkit-calendar-picker-indicator,
@@ -99,6 +112,79 @@ function ScreenRouter() {
   }
 }
 
+// ─── Badge Unlock Toast ───────────────────────────────────────────────────────
+function BadgeToast() {
+  const { newBadge, clearBadge } = useGame();
+  const [exiting, setExiting] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!newBadge) { setExiting(false); return; }
+    setExiting(false);
+    const timer = setTimeout(() => {
+      setExiting(true);
+      setTimeout(clearBadge, 400);
+    }, 3500);
+    return () => clearTimeout(timer);
+  }, [newBadge, clearBadge]);
+
+  if (!newBadge) return null;
+
+  return (
+    <div
+      onClick={() => { setExiting(true); setTimeout(clearBadge, 400); }}
+      style={{
+        position: 'fixed', top: 18, left: '50%', transform: 'translateX(-50%)',
+        zIndex: 9999, cursor: 'pointer',
+        animation: exiting ? 'badgeOut 0.4s ease-in forwards' : 'badgeIn 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards',
+      }}
+    >
+      <div style={{
+        background: '#1a0a00',
+        border: `3px solid ${newBadge.color}`,
+        boxShadow: `0 0 0 1px #000, 0 8px 32px rgba(0,0,0,0.55), 0 0 20px ${newBadge.color}66`,
+        padding: '12px 20px 12px 14px',
+        display: 'flex', alignItems: 'center', gap: 12,
+        minWidth: 220, position: 'relative', overflow: 'hidden',
+      }}>
+        {/* Shine sweep */}
+        <div style={{
+          position: 'absolute', top: 0, bottom: 0, width: 60,
+          background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent)',
+          animation: 'badgeShine 1.2s ease-in-out 0.3s both',
+          pointerEvents: 'none',
+        }} />
+        {/* Color strip */}
+        <div style={{
+          position: 'absolute', top: 0, left: 0, right: 0, height: 3,
+          background: newBadge.color,
+        }} />
+        <div style={{
+          width: 44, height: 44, flexShrink: 0,
+          border: `2.5px solid ${newBadge.color}`,
+          background: `${newBadge.color}22`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 24,
+        }}>{newBadge.emoji}</div>
+        <div>
+          <div style={{
+            fontSize: 9, color: newBadge.color, fontWeight: 900,
+            letterSpacing: '0.15em', marginBottom: 2,
+            fontFamily: "'Itim', cursive",
+          }}>✦ 徽章解鎖！</div>
+          <div style={{
+            fontSize: 14, fontWeight: 900, color: '#fff',
+            fontFamily: "'Noto Sans TC', sans-serif",
+          }}>【{newBadge.title}】</div>
+          <div style={{
+            fontSize: 10, color: '#c0a070', marginTop: 2,
+            fontFamily: "'Noto Sans TC', sans-serif",
+          }}>{newBadge.desc}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── App Inner (needs context) ────────────────────────────────────────────────
 function AppInner() {
   const { state } = useGame();
@@ -119,6 +205,7 @@ function AppInner() {
 
   return (
     <>
+      <BadgeToast />
       <ParticlesBurst />
       <NotebookContainer>
         <ScreenRouter />
