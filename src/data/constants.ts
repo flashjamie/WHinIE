@@ -230,9 +230,10 @@ export const MAIN_TASKS: Task[] = [
     ],
     reward: '解鎖【開戶成功】稱號\n+180 EXP',
     disclaimer: '資訊核對 2026.10.19　僅供參考' },
-  { id: 'ie_leap',   icon: '🚌', label: '獲得 Leap Card',           level: 'LV1_IE', xp:  80, optional: false,
-    objective: '購買並儲值 Leap Card 公共交通卡，搭乘巴士、DART、Luas 皆可使用。' },
+ { id: 'ie_leap',   icon: '🚌', label: '獲得 Leap Card',           level: 'LV1_IE', xp:  80, optional: false,
+    objective: '購買並儲值 Leap Card 公共交通卡，搭乘巴士、DART、Luas 皆可使用。\n 可下載Leap Top-up App 線上靠卡感應加值' },
   { id: 'ie_house',  icon: '🏠', label: '找到長期住所',             level: 'LV1_IE', xp: 250, optional: false,
+    objective: '可透過 Daft.ie 或租屋社團／打工度假社群找到長期租屋，簽訂租約。' },
     objective: '可透過 Daft.ie 或租屋社團／打工度假社群找到長期租屋，簽訂租約。' },
 
   // LV.2 工作生活 ──────────────────────
