@@ -199,13 +199,13 @@ export const MAIN_TASKS: Task[] = [
 
   // LV.1 愛爾蘭落地 ────────────────────
   { id: 'ie_irp',    icon: '🏛️', label: 'IRP 居留許可登記',        level: 'LV1_IE', xp: 200, optional: false,
-    objective: '實體 IRP 卡是在愛爾蘭工作、租屋的重要身分證明。\n⚠️ 抵達後盡早預約，辦理期限依入境章及官方指示。\n\n申請流程：① 建立帳號＋身分驗證 → ② 線上預約首次登記 → ③ 備齊紙本文件與規費 → ④ Burgh Quay 現場辦理 → ⑤ 等待實體 IRP 卡寄到家',
+    objective: '實體 IRP 卡是在愛爾蘭的重要身分證明。\n⚠️ 抵達愛爾蘭後盡早線上預約，辦理期限依入境章及官方指示。\n\n申請流程：① 建立帳號＋身分驗證 → ② 線上預約首次登記 → ③ 備齊紙本文件與規費 → ④ 到都柏林Burgh Quay 現場辦理 → ⑤ 等待實體 IRP 卡寄到家',
     guide: [
       '🖥️ STEP 01｜建立帳號，完成身分驗證\n準備：護照正本、Email、可收訊息且能上網的手機\n\n官方入口：portal.irishimmigration.ie/en\n\n① 註冊帳號＋設定驗證器\n填寫資料、驗證 Email，依畫面設定 Authenticator。\n② 開啟官方提供的 ID-Pal 連結\n依系統通知下載 App，拍攝護照正本並完成人臉掃描。\n③ 確認資料並提交\n姓名須與護照一致，完成驗證後才可進入預約流程。',
-      '📅 STEP 02｜線上預約首次登記\n預約本身免費｜抵達愛爾蘭後盡早操作\n\n登入帳號 → 選擇「First Time Registration Appointment」\n依序填寫居住郡、首次登記與居留類別。\n打工度假簽證選 Stamp 1。\n\n在行事曆選擇地點、日期與時間。\n✅ 完成後保存 Confirmation Email，建議列印備用。\n\n📖 線上申請教學：greatstudyabroad.com（搜尋「愛爾蘭IRP線上申請教學2025」）',
-      '📄 STEP 03｜備齊紙本文件與規費\nStamp 1 所需文件（依官方清單為準）：\n• 有效護照正本\n• 預約確認信（Confirmation Email 列印版）\n• 愛爾蘭地址證明\n• 財力證明（銀行存款證明，建議 €3,000 以上）\n• 打工度假簽證授權書（WHA）\n• 規費：€300（持實體信用卡或金融卡繳付）\n\n完整清單請參考官方頁面：\nirishimmigration.ie → Required Documents → Stamp 1\n\n⚠️ 文件依自身狀況準備，勿漏掉財力證明。',
+      '📅 STEP 02｜線上預約首次登記\n\n登入帳號 → 選擇「First Time Registration Appointment」\n依序填寫居住郡、首次登記與居留類別。\n打工度假簽證選 Stamp 1。\n\n在行事曆選擇地點、日期與時間。\n✅ 完成後保存 Confirmation Email，建議列印備用。\n\n📖 線上申請教學：greatstudyabroad.com（搜尋「愛爾蘭IRP線上申請教學2025」）',
+      '📄 STEP 03｜備齊紙本文件與規費\nStamp 1 所需文件（依官方清單為準）：\n• 有效護照正本\n• 預約確認信 (給門口警衛備查）\n• Address Form for Registration Appointment（在預約確認信的附件中，需要紙本列印填寫姓名、地址等資訊）\n• 愛爾蘭地址證明\n• 財力證明（銀行存款英文證明，建議 €3,000 以上）\n• 打工度假簽證授權書正本（WHA）\n• 規費：€300（持實體信用卡或金融卡繳付）\n\n完整清單請參考官方頁面：\nirishimmigration.ie → Required Documents → Stamp 1',
       '🏛️ STEP 04｜前往 Burgh Quay 現場辦理\nRegistration Office\n13–14 Burgh Quay, Dublin 2, D02 XK70\n預留 30–60 分鐘辦理，另加交通與候位時間，建議提早抵達。\n\n① 報到領號碼：在報到機取得號碼，等候叫號\n② 審查紙本文件：移民官核對身分與簽證資格\n③ 拍照＋採集指紋：現場拍攝 IRP 照片，完成指紋掃描\n④ 繳費＋確認許可：刷卡繳費（€300），完成居留登記\n\n⚠️ 離開前：拿回護照，確認居留資料與寄卡地址正確。',
-      '📬 STEP 05｜在家等 IRP 卡寄到\n實體卡郵寄到登記時填寫的愛爾蘭住址，不會現場領卡。\n約 15 個工作天（不含週末及國定假日）。\n\n讓卡片順利找到你：\n① 確認住址、房號與 Eircode（郵遞區號）填寫正確\n② 收到後核對姓名、效期及 Stamp 類別\n③ 保留登記資料，方便日後查詢\n\n⚠️ 超過 15 個工作天未收到？\n登入 Customer Service Portal，使用「Submit Query」查詢。',
+      '📬 STEP 05｜等 IRP 卡寄到家\n實體卡郵寄到登記時填寫的愛爾蘭住址，不會現場領卡。\n約 15 個工作天（不含週末及國定假日）。\n\n⚠️ 超過 15 個工作天未收到？\n登入 Customer Service Portal，使用「Submit Query」查詢。',
     ],
     reward: '解鎖【IRP 完成】稱號\n+200 EXP',
     disclaimer: '資訊核對 2026.10.19　僅供參考' },
